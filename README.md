@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.2`
+# Universal MarkConverter (doc2md) `v.1.6.3`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.3-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,22 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.3
+
+- **Resiliência e Fallback Nativo do Parser HTML (`js/parsers/text-parser.js`):**
+  - Decodificação universal e segura de entradas como `ArrayBuffer`, `Blob` e `string` UTF-8.
+  - Arquitetura de conversão em duas camadas: Camada 1 com `TurndownService` sob demanda e Camada 2 com `DOMParser` nativo recursivo com extração de tags semânticas (títulos, listas, tabelas, blocos de código e ênfases), garantindo zero falhas na conversão de arquivos `.html`/`.htm`.
+- **Catálogo Tipado de Erros do Pipeline (`ERROR_CATALOG`):**
+  - Mapeamento estruturado de falhas (arquivo grande > 1,5 GB, arquivo vazio, parser não suportado, extração falha, pacote corrompido, timeout) com mensagens informativas.
+- **Colapso Visual Imediato de Barras de Progresso em Caso de Falha (`.has-error`):**
+  - Ocultação imediata das barras de progresso ao ocorrer falha (`display: none !important`), substituindo-as pelo badge descritivo `.item-error-badge` em tom carmim/coral com tooltip explicativo.
+- **Estabilidade Absoluta do Botão de Download Unificado:**
+  - O botão de download unificado surge em linha dedicada logo abaixo dos controles padrão (`#unified-download-container`), sem deslocar horizontalmente os botões "Baixar Todos (.zip)" e "Limpar Todos".
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.3`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

@@ -4,7 +4,7 @@
  * formatação inteligente de tempo (formatElapsedTime) e telemetria de peso do Markdown (v.1.4.4).
  */
 
-import { APP_CONFIG } from '../js/config.js';
+import { APP_CONFIG, ERROR_CATALOG } from '../js/config.js';
 import { 
   formatElapsedTime, 
   formatBytes, 
@@ -16,10 +16,12 @@ import {
   extractArchiveFiles,
   scrollToActiveItem
 } from '../js/app.js';
+import { parseText } from '../js/parsers/text-parser.js';
 import JSZip from 'jszip';
+import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & AUTO-SCROLL (v.1.6.2)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.3)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -417,6 +419,77 @@ if (!scrolledElement || scrolledElement.behavior !== 'smooth' || scrolledElement
 }
 console.log('  -> scrollToActiveItem acionou scrollIntoView({ behavior: "smooth", block: "nearest" }) com perfeição!');
 
+// 13. Teste de conversão resiliente de arquivo .html
+console.log('[TESTE 13] Testando conversão resiliente de arquivo HTML com fallback nativo...');
+const sampleHtml = `
+  <!DOCTYPE html>
+  <html>
+    <head><title>Página de Exemplo</title></head>
+    <body>
+      <h1>Título Principal do Documento</h1>
+      <p>Este é um parágrafo com <strong>negrito</strong> e <em>itálico</em>.</p>
+      <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+      </ul>
+      <a href="https://example.com">Link de Exemplo</a>
+      <script>console.log("deve ser removido");</script>
+    </body>
+  </html>
+`;
+
+const mockHtmlFile = {
+  name: 'pagina_teste.html',
+  size: Buffer.byteLength(sampleHtml),
+  text: async () => sampleHtml,
+  arrayBuffer: async () => Buffer.from(sampleHtml).buffer
+};
+
+const htmlMarkdown = await parseText(mockHtmlFile);
+if (!htmlMarkdown || !htmlMarkdown.includes('Título Principal do Documento')) {
+  console.error('[FALHA] Parser HTML falhou em extrair o título do documento');
+  process.exit(1);
+}
+if (!htmlMarkdown.includes('**negrito**')) {
+  console.error('[FALHA] Parser HTML não preservou marcação de negrito');
+  process.exit(1);
+}
+if (htmlMarkdown.includes('deve ser removido') || htmlMarkdown.includes('<script>')) {
+  console.error('[FALHA] Parser HTML não eliminou tags de script');
+  process.exit(1);
+}
+console.log('  -> Conversão de arquivo .html em Markdown validada com 100% de sucesso (sem exceções)!');
+
+// 14. Teste de colapso visual de barras de progresso na ocorrência de erro
+console.log('[TESTE 14] Testando colapso visual de barras de progresso em caso de erro (.has-error)...');
+const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
+if (!stylesCss.includes('.file-queue-item.has-error .item-progress') || !stylesCss.includes('display: none !important')) {
+  console.error('[FALHA] Regra CSS de colapso de progresso para .has-error ausente em css/styles.css');
+  process.exit(1);
+}
+if (!stylesCss.includes('.item-error-badge') || !stylesCss.includes('#EF4444')) {
+  console.error('[FALHA] Regras de estilização de .item-error-badge ausentes ou sem cor #EF4444');
+  process.exit(1);
+}
+if (ERROR_CATALOG.FILE_TOO_LARGE !== 'Arquivo excede o limite máximo permitido de 1,5 GB.' || !ERROR_CATALOG.EMPTY_FILE) {
+  console.error('[FALHA] ERROR_CATALOG incompleto ou incorreto em js/config.js');
+  process.exit(1);
+}
+console.log('  -> Colapso visual (.has-error display: none !important) e ERROR_CATALOG validados com sucesso!');
+
+// 15. Teste de estabilidade e posicionamento do botão de download unificado abaixo da linha principal
+console.log('[TESTE 15] Testando layout de duas linhas e estabilidade do botão unificado...');
+const indexHtmlContent = fs.readFileSync('./index.html', 'utf8');
+if (!indexHtmlContent.includes('queue-actions-row') || !indexHtmlContent.includes('unified-download-container')) {
+  console.error('[FALHA] Estrutura estável de duas linhas (queue-actions-row / unified-download-container) ausente no index.html');
+  process.exit(1);
+}
+if (!stylesCss.includes('.unified-download-container') || !stylesCss.includes('.queue-header-actions')) {
+  console.error('[FALHA] Estilização para posicionamento vertical de .unified-download-container ausente em css/styles.css');
+  process.exit(1);
+}
+console.log('  -> Botão unificado posicionado em container dedicado abaixo dos controles padrão sem saltos!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.2)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.3)');
 console.log('===============================================================');

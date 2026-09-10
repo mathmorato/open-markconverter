@@ -1,6 +1,6 @@
 {
   "name": "open-markconverter",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Universal MarkConverter (doc2md) - 100% Client-Side Universal Document to Markdown Converter",
   "main": "index.html",
   "type": "module",

@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.6.2</span>
+          <span class="version-badge" id="header-version">v.1.6.3</span>
         </div>
       </a>
 
@@ -158,41 +158,48 @@
             </h2>
           </div>
 
-          <!-- Controle de Mesclagem Unificada em Arquivo Único -->
-          <div class="merge-toggle-container">
-            <label class="toggle-switch" title="Compilar todos os arquivos convertidos em um único documento Markdown consolidado">
-              <input type="checkbox" id="toggle-merge-markdown">
-              <span class="toggle-slider"></span>
-              <span class="toggle-label">Mesclar arquivos em um único .md</span>
-            </label>
-          </div>
+          <div class="queue-header-actions">
+            <!-- Linha 1: Controles e Ações Padrão -->
+            <div class="queue-actions-row">
+              <label class="toggle-switch" title="Compilar todos os arquivos convertidos em um único documento Markdown consolidado">
+                <input type="checkbox" id="toggle-merge-markdown">
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Mesclar arquivos em um único .md</span>
+              </label>
+              <div class="queue-buttons-group">
+                <button type="button" id="btn-queue-download-all" class="btn btn-secondary btn-sm" title="Baixar todos os documentos convertidos em arquivo .zip">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Baixar Todos (.zip)
+                </button>
+                <button type="button" id="btn-queue-clear" class="btn btn-ghost btn-sm" title="Limpar todos os arquivos da fila">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  </svg>
+                  Limpar Todos
+                </button>
+              </div>
+            </div>
 
-          <div class="file-queue-actions">
-            <button type="button" id="btn-queue-download-merged" class="btn btn-primary btn-sm" style="display: none;" title="Baixar todos os documentos mesclados em um único arquivo .md">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="12" y1="18" x2="12" y2="12"/>
-                <polyline points="9 15 12 18 15 15"/>
-              </svg>
-              Baixar Markdown Unificado (.md)
-            </button>
-            <button type="button" id="btn-queue-download-all" class="btn btn-secondary btn-sm" title="Baixar todos os documentos convertidos em arquivo .zip">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Baixar Todos (.zip)
-            </button>
-            <button type="button" id="btn-queue-clear" class="btn btn-ghost btn-sm" title="Limpar todos os arquivos da fila">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-              Limpar Todos
-            </button>
+            <!-- Linha 2: Área Dedicada para Ações de Mesclagem (surge embaixo) -->
+            <div id="unified-download-container" class="unified-download-container" style="display: none;">
+              <button type="button" id="btn-download-unified" class="btn btn-primary btn-sm btn-unified btn-queue-download-merged" title="Baixar todos os documentos mesclados em um único arquivo .md">
+                <span class="icon-merge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <polyline points="9 15 12 18 15 15"/>
+                  </svg>
+                </span>
+                Baixar Markdown Unificado (.md)
+              </button>
+            </div>
           </div>
         </div>
         <div id="file-queue-list" class="file-queue-list" role="list">
@@ -212,7 +219,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.6.2</span>
+        <span class="version-badge" id="footer-version">v.1.6.3</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

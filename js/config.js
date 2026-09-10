@@ -1,11 +1,11 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.6.2
+ * @version v.1.6.3
  */
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.6.2',
+  VERSION: 'v.1.6.3',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',
@@ -130,3 +130,16 @@ export function loadScript(src) {
   loadedScripts.set(src, promise);
   return promise;
 }
+
+/**
+ * Catálogo Padronizado e Tipado de Erros do Pipeline (doc2md)
+ */
+export const ERROR_CATALOG = {
+  FILE_TOO_LARGE: 'Arquivo excede o limite máximo permitido de 1,5 GB.',
+  EMPTY_FILE: 'Arquivo vazio (0 bytes).',
+  PARSER_NOT_FOUND: 'Formato não suportado ou parser indisponível.',
+  PARSING_FAILED: 'Erro de conversão: falha na extração de dados do documento.',
+  CORRUPTED_ARCHIVE: 'Pacote compactado corrompido ou protegido por senha.',
+  TIMEOUT: 'Tempo de processamento excedido.',
+  UNKNOWN: 'Erro de conversão inesperado.'
+};

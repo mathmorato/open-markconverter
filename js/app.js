@@ -32,7 +32,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-import { APP_CONFIG, loadScript } from './config.js';
+import { APP_CONFIG, loadScript, ERROR_CATALOG } from './config.js';
 import { parseDocx } from './parsers/docx-parser.js';
 import { parseSpreadsheet } from './parsers/xlsx-parser.js';
 import { parsePptx } from './parsers/pptx-parser.js';
@@ -67,7 +67,9 @@ const elements = typeof document !== 'undefined' ? {
   btnQueueClear: document.getElementById('btn-queue-clear'),
   btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
   toggleMergeMarkdown: document.getElementById('toggle-merge-markdown'),
-  btnQueueDownloadMerged: document.getElementById('btn-queue-download-merged')
+  btnQueueDownloadMerged: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
+  btnDownloadUnified: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
+  unifiedDownloadContainer: document.getElementById('unified-download-container')
 } : {};
 
 /* ==========================================================================
@@ -549,40 +551,40 @@ export async function addFilesToQueue(files) {
 
     if (isArchiveError) {
       status = 'error';
-      statusText = 'Erro na extração';
+      statusText = 'Erro de conversão';
       uploadProgress = 0;
       uploadText = '0%';
-      convertProgress = 100;
-      convertText = 'Erro: Pacote corrompido ou com senha';
-      progress = 100;
-      errorMessage = archiveErrMsg || 'Falha ao descompactar pacote compactado';
+      convertProgress = 0;
+      convertText = 'Erro';
+      progress = 0;
+      errorMessage = archiveErrMsg || ERROR_CATALOG.CORRUPTED_ARCHIVE;
     } else if (file.size === 0) {
       status = 'error';
-      statusText = 'Erro: Vazio (0 B)';
+      statusText = 'Erro de conversão';
       uploadProgress = 0;
       uploadText = '0%';
-      convertProgress = 100;
-      convertText = 'Erro: Arquivo vazio';
-      progress = 100;
-      errorMessage = 'Arquivo vazio (0 bytes)';
+      convertProgress = 0;
+      convertText = 'Erro';
+      progress = 0;
+      errorMessage = ERROR_CATALOG.EMPTY_FILE;
     } else if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
       status = 'error';
-      statusText = 'Erro: Excede 1,5 GB';
+      statusText = 'Erro de conversão';
       uploadProgress = 0;
       uploadText = '0%';
-      convertProgress = 100;
-      convertText = 'Erro: Limite excedido';
-      progress = 100;
-      errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
+      convertProgress = 0;
+      convertText = 'Erro';
+      progress = 0;
+      errorMessage = ERROR_CATALOG.FILE_TOO_LARGE;
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
-      statusText = 'Erro: Formato não suportado';
+      statusText = 'Erro de conversão';
       uploadProgress = 0;
       uploadText = '0%';
-      convertProgress = 100;
-      convertText = 'Erro: Formato não suportado';
-      progress = 100;
-      errorMessage = `Extensão "${ext}" não suportada`;
+      convertProgress = 0;
+      convertText = 'Erro';
+      progress = 0;
+      errorMessage = `${ERROR_CATALOG.PARSER_NOT_FOUND} (Extensão "${ext}")`;
     }
 
     const queueItem = {
@@ -664,9 +666,10 @@ function renderQueue() {
     const uploadDoneClass = isUploadDone ? 'upload-done' : '';
     const convertDoneClass = isConvertDone ? 'convert-done' : '';
     const completedClass = isCompleted ? 'completed is-completed' : '';
+    const hasErrorClass = isError ? 'has-error' : '';
 
     return `
-      <div class="file-queue-item queue-item ${statusClass} ${completedClass} ${readingClass} ${uploadDoneClass} ${convertDoneClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+      <div class="file-queue-item queue-item ${statusClass} ${hasErrorClass} ${completedClass} ${readingClass} ${uploadDoneClass} ${convertDoneClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO (Ícone + Nome + Peso Original) -->
         <div class="item-block item-info queue-item-info">
           ${formatIcon}
@@ -674,7 +677,7 @@ function renderQueue() {
           <span class="badge-file-size queue-item-size file-meta queue-item-meta">${formatBytes(item.file.size)}</span>
         </div>
 
-        <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO (Visíveis apenas durante processamento) -->
+        <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO (Ocultas se .has-error ou concluído) -->
         <div class="item-block item-progress queue-item-progress file-progress-group">
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
@@ -699,6 +702,20 @@ function renderQueue() {
             <div class="mini-progress-track progress-bar-container">
               <div class="mini-progress-fill progress-bar-fill bar-convert ${isCompleted ? 'completed' : (isError ? 'error' : '')}" style="width: ${item.convertProgress}%;"></div>
             </div>
+          </div>
+        </div>
+
+        <!-- BLOCO DE ERRO: Substitui as barras em caso de falha -->
+        <div class="item-block item-error-container" style="${isError ? 'display: flex;' : 'display: none;'}">
+          <div class="item-error-badge" title="${item.errorMessage || 'Erro de conversão'}">
+            <span class="icon-error-circle" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            </span>
+            <span class="error-text">Erro de conversão</span>
           </div>
         </div>
 
@@ -794,12 +811,24 @@ function updateQueueItemDOM(item) {
   const isConvertDone = (item.convertProgress >= 100) || item.status === 'completed';
   const uploadDoneClass = isUploadDone ? 'upload-done' : '';
   const convertDoneClass = isConvertDone ? 'convert-done' : '';
+  const isError = item.status === 'error';
+  const hasErrorClass = isError ? 'has-error' : '';
 
-  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''} ${readingClass} ${uploadDoneClass} ${convertDoneClass}`.trim();
+  itemEl.className = `file-queue-item queue-item ${item.status} ${hasErrorClass} ${item.status === 'completed' ? 'is-completed' : ''} ${readingClass} ${uploadDoneClass} ${convertDoneClass}`.trim();
   
+  // Atualiza bloco de erro explícito em caso de falha
+  const errorContainer = itemEl.querySelector('.item-error-container');
+  if (errorContainer) {
+    errorContainer.style.display = isError ? 'flex' : 'none';
+    const badge = errorContainer.querySelector('.item-error-badge');
+    if (badge) {
+      badge.setAttribute('title', item.errorMessage || 'Erro de conversão');
+    }
+  }
+
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
-    const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
+    const badgeErrorClass = isError ? 'badge-error' : '';
     statusBadge.className = `queue-item-status ${item.status} ${badgeErrorClass}`.trim();
     statusBadge.textContent = item.statusText;
   }
@@ -807,7 +836,6 @@ function updateQueueItemDOM(item) {
   // Atualiza os ícones do Bloco 3
   const isProcessing = item.status === 'processing';
   const isCompleted = item.status === 'completed';
-  const isError = item.status === 'error';
   const isQueued = !isProcessing && !isCompleted && !isError;
 
   const hourglassIcon = itemEl.querySelector('.icon-hourglass');
@@ -1003,13 +1031,13 @@ async function processQueueItem(item) {
 
   if (item.file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
     item.status = 'error';
-    item.statusText = 'Erro: Excede 1,5 GB';
+    item.statusText = 'Erro de conversão';
     item.uploadProgress = 0;
     item.uploadText = '0%';
-    item.convertProgress = 100;
-    item.convertText = 'Erro: Limite excedido';
-    item.progress = 100;
-    item.errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
+    item.convertProgress = 0;
+    item.convertText = 'Erro';
+    item.progress = 0;
+    item.errorMessage = ERROR_CATALOG.FILE_TOO_LARGE;
     updateQueueItemDOM(item);
     return;
   }
@@ -1148,11 +1176,26 @@ async function processQueueItem(item) {
     item.isReading = false;
     const duration = Math.round(performance.now() - startTime);
     item.status = 'error';
-    item.convertProgress = 100;
+    item.convertProgress = 0;
     item.convertText = 'Erro';
-    item.progress = 100;
-    item.statusText = 'Erro';
-    item.errorMessage = error.message || 'Falha durante o processamento';
+    item.progress = 0;
+    item.statusText = 'Erro de conversão';
+
+    const errMsg = error ? (error.message || '') : '';
+    if (errMsg.includes('1,5 GB') || errMsg.includes('tamanho') || errMsg.includes('size')) {
+      item.errorMessage = ERROR_CATALOG.FILE_TOO_LARGE;
+    } else if (errMsg.includes('vazio') || errMsg.includes('0 bytes')) {
+      item.errorMessage = ERROR_CATALOG.EMPTY_FILE;
+    } else if (errMsg.includes('não suportad') || errMsg.includes('parser') || errMsg.includes('desconhecido')) {
+      item.errorMessage = ERROR_CATALOG.PARSER_NOT_FOUND;
+    } else if (errMsg.includes('senha') || errMsg.includes('corrompid') || errMsg.includes('compactad')) {
+      item.errorMessage = ERROR_CATALOG.CORRUPTED_ARCHIVE;
+    } else if (errMsg.includes('timeout') || errMsg.includes('tempo')) {
+      item.errorMessage = ERROR_CATALOG.TIMEOUT;
+    } else {
+      item.errorMessage = errMsg ? `${ERROR_CATALOG.PARSING_FAILED} (${errMsg})` : ERROR_CATALOG.PARSING_FAILED;
+    }
+
     item.durationMs = duration;
     updateQueueItemDOM(item);
 
@@ -1270,9 +1313,16 @@ export async function downloadUnifiedMarkdown() {
 }
 
 function updateMergeButtonVisibility() {
-  if (!elements.btnQueueDownloadMerged) return;
   const isEnabled = elements.toggleMergeMarkdown ? elements.toggleMergeMarkdown.checked : false;
-  elements.btnQueueDownloadMerged.style.display = isEnabled ? 'inline-flex' : 'none';
+  if (elements.unifiedDownloadContainer) {
+    elements.unifiedDownloadContainer.style.display = isEnabled ? 'flex' : 'none';
+  }
+  if (elements.btnDownloadUnified) {
+    elements.btnDownloadUnified.style.display = isEnabled ? 'inline-flex' : 'none';
+  }
+  if (elements.btnQueueDownloadMerged && elements.btnQueueDownloadMerged !== elements.btnDownloadUnified) {
+    elements.btnQueueDownloadMerged.style.display = isEnabled ? 'inline-flex' : 'none';
+  }
 }
 
 function initQueueEvents() {
@@ -1308,7 +1358,11 @@ function initQueueEvents() {
     });
   }
 
-  if (elements.btnQueueDownloadMerged) {
+  if (elements.btnDownloadUnified) {
+    elements.btnDownloadUnified.addEventListener('click', () => {
+      downloadUnifiedMarkdown();
+    });
+  } else if (elements.btnQueueDownloadMerged) {
     elements.btnQueueDownloadMerged.addEventListener('click', () => {
       downloadUnifiedMarkdown();
     });

@@ -800,6 +800,51 @@ body {
   gap: 0.5rem;
 }
 
+.queue-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.queue-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.queue-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.unified-download-container {
+  display: none;
+  justify-content: flex-end;
+  width: 100%;
+  animation: slide-down-fade 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slide-down-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-unified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
 .file-queue-list {
   display: flex;
   flex-direction: column;
@@ -1012,6 +1057,81 @@ body {
   padding: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+/* Desaparecimento e Colapso Imediato das Barras de Progresso em Falha/Erro */
+.file-queue-item.has-error .item-progress,
+.file-queue-item.has-error .queue-item-progress,
+.file-queue-item.has-error .file-progress-group,
+.queue-item.has-error .item-progress,
+.queue-item.has-error .queue-item-progress,
+.queue-item.has-error .file-progress-group {
+  display: none !important;
+  opacity: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Indicador Explícito de Erro (Substitui as Barras na Falha) */
+.item-error-container {
+  display: none;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 1 33.33%;
+  max-width: 33.33%;
+  margin: 0 auto;
+}
+
+.file-queue-item.has-error .item-error-container,
+.queue-item.has-error .item-error-container {
+  display: flex !important;
+}
+
+.item-error-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #EF4444;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: help;
+  padding: 0.35rem 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.item-error-badge:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.item-error-badge .icon-error-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #EF4444;
+  flex-shrink: 0;
+}
+
+.item-error-badge .icon-error-circle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.item-error-badge .error-text {
+  color: #EF4444;
+  white-space: nowrap;
+}
+
+/* Oculta ícone duplicado no bloco 3 quando badge de erro estiver ativo */
+.file-queue-item.has-error .status-indicator .icon-error,
+.queue-item.has-error .status-indicator .icon-error {
+  display: none !important;
 }
 
 .mini-progress-wrapper,

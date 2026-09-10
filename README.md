@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.9`
+# Universal MarkConverter (doc2md) `v.1.7.0`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.9-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.7.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,20 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.7.0
+
+- **Ícones Vetoriais Asimétricos de Ordenação Crescente/Decrescente:**
+  - Substituição do ícone genérico por componentes SVG vetoriais com seta direcional e barras horizontais escalonadas estilo pirâmide.
+  - Alternância de estado dinâmica entre modo Crescente (A-Z) com seta para cima e barras em expansão e modo Decrescente (Z-A) com seta para baixo e barras em afunilamento.
+- **Alinhamento Estrito à Esquerda na Linha de Mesclagem (`#unified-action-row`):**
+  - Ajuste ergonômico de layout com `justify-content: flex-start`, aproximando o botão de ordenação e o botão primário de download unificado da margem esquerda da fila.
+- **Redução de 50% no Espaçamento Vertical do Cabeçalho:**
+  - Compactação da distância vertical entre o cabeçalho da fila e os botões de mesclagem (`gap: 0.38rem` e `margin-top: 0.25rem`), eliminando espaços ociosos sem gerar drift visual.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Virada decimal de `v.1.6.9` para **`v.1.7.0`** rigorosamente sincronizada nos 4 pontos obrigatórios (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

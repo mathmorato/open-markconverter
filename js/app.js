@@ -40,7 +40,7 @@ import { parsePdf } from './parsers/pdf-parser.js';
 import { parseText } from './parsers/text-parser.js';
 
 // Estado global da sessão local com suporte a fila em lote
-const state = {
+export const state = {
   theme: 'system',
   queue: [],
   maxConcurrency: 2,
@@ -1647,7 +1647,7 @@ export function renderQueueUI() {
 }
 
 /**
- * Atualiza o texto e título do botão de ordenação na interface
+ * Atualiza o texto, ícones vetoriais e título do botão de ordenação na interface
  */
 export function updateSortButtonUI() {
   const btn = (elements && elements.btnSortFiles) || (typeof document !== 'undefined' ? document.getElementById('btn-sort-files') : null);
@@ -1655,9 +1655,15 @@ export function updateSortButtonUI() {
   if (!btn) return;
 
   const isAsc = state.sortAscending !== false;
-  btn.title = isAsc ? 'Classificar arquivos por ordem alfabética inversa (Z-A)' : 'Classificar arquivos por ordem alfabética (A-Z)';
+  btn.title = isAsc ? 'Classificar arquivos em ordem decrescente (Z-A)' : 'Classificar arquivos em ordem crescente (A-Z)';
   if (label) {
-    label.textContent = isAsc ? 'Ordenar A-Z' : 'Ordenar Z-A';
+    label.textContent = isAsc ? 'Classificar A-Z' : 'Classificar Z-A';
+  }
+  const iconAsc = btn.querySelector('.icon-asc');
+  const iconDesc = btn.querySelector('.icon-desc');
+  if (iconAsc && iconDesc) {
+    iconAsc.style.display = isAsc ? 'inline-block' : 'none';
+    iconDesc.style.display = isAsc ? 'none' : 'inline-block';
   }
 }
 
@@ -1695,7 +1701,7 @@ function initQueueEvents() {
 
   if (elements.btnSortFiles) {
     elements.btnSortFiles.addEventListener('click', () => {
-      state.sortAscending = !state.sortAscending;
+      state.sortAscending = !(state.sortAscending !== false);
       sortQueueByName(state.sortAscending);
     });
   }

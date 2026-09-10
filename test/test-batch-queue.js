@@ -21,14 +21,15 @@ import {
   sortQueueByName,
   renderQueueUI,
   buildBacklogSection,
-  buildDirectoryTreeAscii
+  buildDirectoryTreeAscii,
+  state as appState
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
 import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.9)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -732,6 +733,74 @@ if (!unifiedHierarchyMarkdown.includes('<!-- PACOTE DE ORIGEM: relatorios.zip | 
 }
 console.log('  -> Backlog inicial com tabela de proveniência, árvore ASCII e rastreabilidade nos blocos validado com 100% de êxito!');
 
+// 21. Teste de alternância entre ordenação Crescente/Decrescente e integridade dos estilos alinhados à esquerda (v.1.7.0)
+console.log('[TESTE 21] Testando alternância entre Crescente (A-Z) e Decrescente (Z-A) e alinhamento à esquerda...');
+
+// Preenche appState.queue com itens desordenados
+appState.queue = [
+  { file: { name: 'Capítulo 02.pdf', size: 1024 }, markdown: '# Cap 2', status: 'completed' },
+  { file: { name: 'Capítulo 10.pdf', size: 2048 }, markdown: '# Cap 10', status: 'completed' },
+  { file: { name: 'Capítulo 01.pdf', size: 512 }, markdown: '# Cap 1', status: 'completed' }
+];
+
+// Ordenação inicial crescente A-Z
+sortQueueByName(true);
+if (appState.sortAscending !== true ||
+    appState.queue[0].file.name !== 'Capítulo 01.pdf' ||
+    appState.queue[1].file.name !== 'Capítulo 02.pdf' ||
+    appState.queue[2].file.name !== 'Capítulo 10.pdf') {
+  console.error('[FALHA] sortQueueByName(true) não ordenou em sequência crescente A-Z natural');
+  process.exit(1);
+}
+console.log('  -> [OK] Modo Crescente (A-Z) verificado: ' + appState.queue.map(it => it.file.name).join(' -> '));
+
+// Alternância para decrescente Z-A (como no clique do botão)
+appState.sortAscending = !(appState.sortAscending !== false);
+sortQueueByName(appState.sortAscending);
+if (appState.sortAscending !== false ||
+    appState.queue[0].file.name !== 'Capítulo 10.pdf' ||
+    appState.queue[1].file.name !== 'Capítulo 02.pdf' ||
+    appState.queue[2].file.name !== 'Capítulo 01.pdf') {
+  console.error('[FALHA] sortQueueByName(false) não ordenou em sequência decrescente Z-A');
+  process.exit(1);
+}
+console.log('  -> [OK] Alternância para Decrescente (Z-A) verificada: ' + appState.queue.map(it => it.file.name).join(' -> '));
+
+// Nova alternância de volta para crescente A-Z
+appState.sortAscending = !(appState.sortAscending !== false);
+sortQueueByName(appState.sortAscending);
+if (appState.sortAscending !== true ||
+    appState.queue[0].file.name !== 'Capítulo 01.pdf' ||
+    appState.queue[2].file.name !== 'Capítulo 10.pdf') {
+  console.error('[FALHA] Retorno ao modo crescente A-Z falhou');
+  process.exit(1);
+}
+console.log('  -> [OK] Alternância circular de ordenação validada com êxito!');
+
+// Validação de CSS e integridade de layout para .unified-action-row e .queue-header
+const cssContent = fs.readFileSync('./css/styles.css', 'utf8');
+if (!cssContent.includes('justify-content: flex-start')) {
+  console.error('[FALHA] .unified-action-row não possui justify-content: flex-start');
+  process.exit(1);
+}
+if (!cssContent.includes('gap: 0.38rem')) {
+  console.error('[FALHA] .queue-header não possui redução de 50% de gap (gap: 0.38rem)');
+  process.exit(1);
+}
+if (!cssContent.includes('.btn-sort .sort-icon')) {
+  console.error('[FALHA] .btn-sort .sort-icon não está estilizado no CSS');
+  process.exit(1);
+}
+console.log('  -> [OK] Estilos de alinhamento à esquerda e redução de 50% no espaçamento vertical validados!');
+
+// Validação dos elementos HTML de ordenação e ícones vetoriais
+const htmlContent = fs.readFileSync('./index.html', 'utf8');
+if (!htmlContent.includes('icon-desc') || !htmlContent.includes('icon-asc') || !htmlContent.includes('sort-files-label')) {
+  console.error('[FALHA] index.html não contém os ícones SVG icon-desc / icon-asc ou sort-files-label');
+  process.exit(1);
+}
+console.log('  -> [OK] Ícones vetoriais SVG e elementos de ordenação validados no DOM!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.9)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.0)');
 console.log('===============================================================');

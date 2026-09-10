@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.6.9') {
-  console.error('[ERRO] Versão diferente de v.1.6.9');
+if (APP_CONFIG.VERSION !== 'v.1.7.0') {
+  console.error('[ERRO] Versão diferente de v.1.7.0');
   process.exit(1);
 }
 // Garante que versões inválidas como v.1.4.11 sejam expressamente rejeitadas
@@ -43,7 +43,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.6.9' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.7.0' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -51,8 +51,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.6.9')) {
-  console.error('[ERRO] index.html não contém v.1.6.9');
+if (!indexHtml.includes('v.1.7.0')) {
+  console.error('[ERRO] index.html não contém v.1.7.0');
   process.exit(1);
 }
 if (!indexHtml.includes('id="toggle-merge-markdown"') || (!indexHtml.includes('btn-queue-download-merged') && !indexHtml.includes('btn-download-unified'))) {
@@ -120,7 +120,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.6.9, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.7.0, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -332,6 +332,18 @@ if (!stylesCss.includes('.unified-download-container') && !stylesCss.includes('.
   console.error('[ERRO] css/styles.css não contém regras para .unified-download-container ou .unified-action-row');
   process.exit(1);
 }
+if (!stylesCss.includes('justify-content: flex-start')) {
+  console.error('[ERRO] css/styles.css não contém alinhamento estrito à esquerda (justify-content: flex-start) para os botões de mesclagem');
+  process.exit(1);
+}
+if (!stylesCss.includes('gap: 0.38rem')) {
+  console.error('[ERRO] css/styles.css não contém redução de 50% no gap vertical do cabeçalho (gap: 0.38rem)');
+  process.exit(1);
+}
+if (!indexHtml.includes('icon-desc') || !indexHtml.includes('icon-asc')) {
+  console.error('[ERRO] index.html não contém os ícones vetoriais de ordenação icon-desc e icon-asc');
+  process.exit(1);
+}
 if (!stylesCss.includes('.queue-header-main') || !stylesCss.includes('.queue-header-controls') || !stylesCss.includes('.queue-static-buttons')) {
   console.error('[ERRO] css/styles.css não contém regras para .queue-header-main, .queue-header-controls ou .queue-static-buttons');
   process.exit(1);
@@ -344,15 +356,15 @@ console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), t
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.6.9')) {
-  console.error('[ERRO] README.md não contém v.1.6.9');
+if (!readme.includes('v.1.7.0')) {
+  console.error('[ERRO] README.md não contém v.1.7.0');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.6.9 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.7.0 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

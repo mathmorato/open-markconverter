@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.5.1`
+# Universal MarkConverter (doc2md) `v.1.5.2`
 
-[![Version](https://img.shields.io/badge/version-v.1.5.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.5.2-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,20 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.5.2
+
+- **Padronização e Redução Harmoniosa da Tipografia:**
+  - Redefinição do nome do arquivo (`.file-name`) para uma escala harmoniosa e legível de **`0.95rem` (~15.2px)** com `font-weight: 600`, eliminando o tamanho excessivo anterior e restabelecendo elegância estética.
+  - Badges de metadados (`.badge-file-size`, `.badge-elapsed-time`) padronizadas em **`0.8rem–0.85rem`** (~12.8px–13.6px) com `font-weight: 500`, preenchimento compacto (`padding: 0.2rem 0.5rem`) e cantos arredondados suaves (`border-radius: 6px`).
+  - Telemetria de tamanho do Markdown (`.badge-md-size`) padronizada em **`0.85rem`** em Verde Esmeralda (`#10B981`) de alta legibilidade.
+  - Rótulos e percentuais das etapas (`.mini-progress-label`, `.read-percent`, `.convert-percent`) consolidados em **`0.82rem`**.
+- **Preservação Integral dos Ícones Ampliados:**
+  - Ícone vetorial de arquivo com badge (`.file-badge-icon`) mantido em área de destaque visual (~52px de altura) com etiqueta de extensão perfeitamente centralizada e nítida.
+  - Glifos de ação, status e etapas conservados em dimensões generosas (**22px a 26px**), criando contraste refinado entre a solidez dos ícones e a sutileza da tipografia padrão.
+  - Alinhamento vertical milimétrico em linha única (`align-items: center`) e respiro equilibrado nos cards da fila (`min-height: 68px; padding: 0.85rem 1.25rem`).
 
 ---
 

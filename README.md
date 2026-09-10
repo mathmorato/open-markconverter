@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.1.0`
+# Universal MarkConverter (doc2md) `v.1.2.0`
 
-[![Version](https://img.shields.io/badge/version-v.1.1.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.2.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Privacy: 100% Client--Side](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green.svg)](#privacidade-e-segurança)
 [![Static Deploy](https://img.shields.io/badge/Deploy-GitHub%20Pages-informational.svg)](#instruções-de-deploy-github-pages)

@@ -1,18 +1,17 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * concorrência controlada, progresso individual e remoção de itens.
+ * download individual por item, download em lote (.zip) e remoção de itens (v.1.2.0).
  */
 
 import { APP_CONFIG } from '../js/config.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO LÓGICA DE FILA DE PROCESSAMENTO EM LOTE (v.1.1.0)');
+console.log('  TESTANDO LÓGICA DE FILA E DOWNLOADS INDIVIDUAL/LOTE (v.1.2.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
 const state = {
   queue: [],
-  activeItemId: null,
   maxConcurrency: 2
 };
 
@@ -77,11 +76,11 @@ function removeQueueItem(itemId) {
   if (idx === -1) return;
   state.queue[idx].cancelled = true;
   state.queue.splice(idx, 1);
+}
 
-  if (state.activeItemId === itemId) {
-    const nextCompleted = state.queue.find(it => it.status === 'completed');
-    state.activeItemId = nextCompleted ? nextCompleted.id : null;
-  }
+function clearQueue() {
+  state.queue.forEach(it => { it.cancelled = true; });
+  state.queue = [];
 }
 
 // 1. Testa adição de múltiplos arquivos
@@ -132,7 +131,7 @@ const processItem = async (item) => {
   await new Promise(r => setTimeout(r, 20));
   item.progress = 100;
   item.status = 'completed';
-  item.markdown = `# Convertido ${item.file.name}`;
+  item.markdown = `# Convertido ${item.file.name}\n\nConteúdo Markdown extraído.`;
   activeCount--;
 };
 
@@ -147,28 +146,40 @@ await processItem(validItems[2]);
 
 console.log('  -> Todos os 3 itens válidos concluídos sem exceder o limite de concorrência');
 
-// 3. Testa seleção de documento ativo
-state.activeItemId = validItems[0].id;
-console.log(`[TESTE 3] Documento ativo selecionado: ${validItems[0].file.name}`);
-if (state.activeItemId !== validItems[0].id) {
-  console.error('[FALHA] Falha ao selecionar item ativo');
+// 3. Testa download individual imediato para item concluído
+console.log('[TESTE 3] Testando download individual de documento concluído...');
+const itemToDownload = validItems[0];
+if (itemToDownload.status !== 'completed' || !itemToDownload.markdown) {
+  console.error('[FALHA] Item não está pronto para download');
+  process.exit(1);
+}
+const expectedFilename = `${itemToDownload.file.name.replace(/\.[^/.]+$/, '')}.md`;
+console.log(`  -> Nome de download individual gerado: "${expectedFilename}"`);
+if (!expectedFilename.endsWith('.md') || !itemToDownload.markdown.includes('Convertido')) {
+  console.error('[FALHA] Falha na formatação de saída para download individual');
   process.exit(1);
 }
 
-// 4. Testa remoção de item ativo e alternância para o próximo
-console.log(`[TESTE 4] Removendo item ativo (${validItems[0].file.name})...`);
+// 4. Testa remoção individual de item da fila
+console.log(`[TESTE 4] Removendo item (${validItems[0].file.name}) da fila...`);
+const countBefore = state.queue.length;
 removeQueueItem(validItems[0].id);
 
-if (state.queue.some(it => it.id === validItems[0].id)) {
-  console.error('[FALHA] Item não foi removido da fila');
+if (state.queue.length !== countBefore - 1 || state.queue.some(it => it.id === validItems[0].id)) {
+  console.error('[FALHA] Item não foi removido corretamente da fila');
   process.exit(1);
 }
-if (state.activeItemId !== validItems[1].id) {
-  console.error(`[FALHA] Item ativo deveria ter mudado para ${validItems[1].file.name}`);
+console.log(`  -> Item removido com sucesso! Restam ${state.queue.length} itens na fila.`);
+
+// 5. Testa limpeza total da fila ("Limpar Todos")
+console.log('[TESTE 5] Testando ação global "Limpar Todos"...');
+clearQueue();
+if (state.queue.length !== 0) {
+  console.error('[FALHA] Ação Limpar Todos não esvaziou a fila');
   process.exit(1);
 }
-console.log(`  -> Item removido com sucesso! Novo item ativo: ${validItems[1].file.name}`);
+console.log('  -> Fila completamente limpa!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DA FILA EM LOTE PASSARAM COM ÊXITO!');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.2.0)');
 console.log('===============================================================');

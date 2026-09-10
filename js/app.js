@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.1.0
+ * @version v.1.2.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -37,13 +37,8 @@ import { parseText } from './parsers/text-parser.js';
 
 // Estado global da sessão local com suporte a fila em lote
 const state = {
-  currentFile: null,
-  currentMarkdown: '',
   theme: 'system',
-  viewMode: 'split',
-  isConverting: false,
   queue: [],
-  activeItemId: null,
   maxConcurrency: 2
 };
 
@@ -67,29 +62,6 @@ const elements = {
   queueCounter: document.getElementById('queue-counter'),
   btnQueueClear: document.getElementById('btn-queue-clear'),
   btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
-  
-  statusDot: document.getElementById('status-dot'),
-  statusText: document.getElementById('status-text'),
-  metricFileName: document.getElementById('metric-file-name'),
-  metricFileSize: document.getElementById('metric-file-size'),
-  metricFormat: document.getElementById('metric-format'),
-  metricConversionTime: document.getElementById('metric-conversion-time'),
-  metricWordCount: document.getElementById('metric-word-count'),
-  metricLineCount: document.getElementById('metric-line-count'),
-  charCounter: document.getElementById('char-counter'),
-
-  splitGrid: document.getElementById('split-grid'),
-  tabSplit: document.getElementById('tab-split'),
-  tabRaw: document.getElementById('tab-raw'),
-  tabPreview: document.getElementById('tab-preview'),
-
-  rawEditor: document.getElementById('raw-markdown-editor'),
-  previewContainer: document.getElementById('preview-container'),
-
-  btnCopy: document.getElementById('btn-copy'),
-  btnCopyText: document.getElementById('btn-copy-text'),
-  btnDownload: document.getElementById('btn-download'),
-  btnClear: document.getElementById('btn-clear'),
 
   toastContainer: document.getElementById('toast-container')
 };
@@ -129,7 +101,6 @@ function initTheme() {
   const savedTheme = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.THEME) || 'system';
   applyTheme(savedTheme);
 
-  // Escuta mudanças de preferência do sistema operacional
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if (state.theme === 'system') {
       applyTheme('system');
@@ -145,72 +116,7 @@ function initTheme() {
 }
 
 /* ==========================================================================
-   Gerenciamento de Modos de Exibição (Split / Raw / Preview)
-   ========================================================================== */
-function applyViewMode(mode) {
-  state.viewMode = mode;
-  localStorage.setItem(APP_CONFIG.STORAGE_KEYS.VIEW_MODE, mode);
-
-  elements.tabSplit.classList.toggle('active', mode === 'split');
-  elements.tabRaw.classList.toggle('active', mode === 'raw');
-  elements.tabPreview.classList.toggle('active', mode === 'preview');
-
-  elements.splitGrid.classList.remove('view-raw-only', 'view-preview-only');
-  if (mode === 'raw') {
-    elements.splitGrid.classList.add('view-raw-only');
-  } else if (mode === 'preview') {
-    elements.splitGrid.classList.add('view-preview-only');
-  }
-}
-
-function initViewMode() {
-  const savedMode = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.VIEW_MODE) || 'split';
-  applyViewMode(savedMode);
-
-  elements.tabSplit.addEventListener('click', () => applyViewMode('split'));
-  elements.tabRaw.addEventListener('click', () => applyViewMode('raw'));
-  elements.tabPreview.addEventListener('click', () => applyViewMode('preview'));
-}
-
-/* ==========================================================================
-   Renderização Markdown com Sanitização e Fallback
-   ========================================================================== */
-async function renderMarkdown(markdown) {
-  if (!markdown || !markdown.trim()) {
-    elements.previewContainer.innerHTML = '';
-    return;
-  }
-
-  try {
-    await Promise.all([
-      loadScript(APP_CONFIG.CDN.MARKED),
-      loadScript(APP_CONFIG.CDN.DOMPURIFY)
-    ]);
-
-    if (typeof window.marked !== 'undefined') {
-      window.marked.setOptions({
-        gfm: true,
-        breaks: true
-      });
-
-      const rawHtml = window.marked.parse(markdown);
-      const cleanHtml = typeof window.DOMPurify !== 'undefined'
-        ? window.DOMPurify.sanitize(rawHtml)
-        : rawHtml;
-
-      elements.previewContainer.innerHTML = cleanHtml;
-      return;
-    }
-  } catch (err) {
-    console.warn('Erro ao carregar renderizador marked/purify:', err);
-  }
-
-  // Fallback seguro simples se biblioteca CDN não carregar
-  elements.previewContainer.textContent = markdown;
-}
-
-/* ==========================================================================
-   Cálculo e Atualização de Métricas
+   Helpers de Formatação e Diagnóstico
    ========================================================================== */
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
@@ -220,24 +126,6 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function updateEditorMetrics(text) {
-  const chars = text.length;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const lines = text ? text.split('\n').length : 0;
-
-  elements.metricWordCount.textContent = words.toLocaleString('pt-BR');
-  elements.metricLineCount.textContent = lines.toLocaleString('pt-BR');
-  elements.charCounter.textContent = `${chars.toLocaleString('pt-BR')} caracteres`;
-}
-
-function updateStatus(type, message) {
-  elements.statusDot.className = 'status-dot ' + type;
-  elements.statusText.textContent = message;
-}
-
-/* ==========================================================================
-   Roteamento de Conversão por Formato
-   ========================================================================== */
 function getFormatCategory(fileName) {
   const ext = '.' + fileName.split('.').pop().toLowerCase();
 
@@ -262,9 +150,6 @@ function updateDebugStatus(message, isError = false) {
   elements.debugStatus.className = `debug-status ${isError ? 'error' : 'active'}`;
 }
 
-/* ==========================================================================
-   Helpers de Formato, Download e Leitura Progressiva
-   ========================================================================== */
 function getFormatIcon(category) {
   switch (category) {
     case 'docx':
@@ -324,7 +209,7 @@ function readFileWithProgress(file, onProgress) {
 }
 
 /* ==========================================================================
-   Pipeline de Fila em Lote (Batch Queue Management)
+   Pipeline de Fila em Lote e Central de Documentos (v.1.2.0)
    ========================================================================== */
 function addFilesToQueue(files) {
   if (!files || files.length === 0) return;
@@ -391,13 +276,14 @@ function renderQueue() {
   }
 
   elements.fileQueueList.innerHTML = state.queue.map(item => {
-    const isActive = state.activeItemId === item.id;
     const formatIcon = getFormatIcon(item.formatInfo.parser);
     const statusClass = item.status;
     const timeText = item.durationMs ? `${item.durationMs} ms` : '';
+    const isCompleted = item.status === 'completed';
+    const baseName = item.file.name.replace(/\.[^/.]+$/, '');
 
     return `
-      <div class="queue-item ${isActive ? 'active' : ''} ${statusClass}" data-id="${item.id}" role="listitem" tabindex="0" aria-label="${item.file.name}">
+      <div class="queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <div class="queue-item-main">
           <div class="queue-item-left">
             <div class="queue-item-icon" aria-hidden="true">${formatIcon}</div>
@@ -411,15 +297,24 @@ function renderQueue() {
           </div>
           <div class="queue-item-right">
             <span class="queue-item-status ${statusClass}" id="status-badge-${item.id}">${item.statusText}</span>
-            <button type="button" class="btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            </button>
+            <div class="queue-item-actions">
+              <button type="button" class="btn-queue-item-download" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              <button type="button" class="btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         <div class="progress-bar-container" aria-hidden="true">
@@ -429,12 +324,12 @@ function renderQueue() {
     `;
   }).join('');
 
-  // Listeners para clique nos itens e botões de remoção
-  elements.fileQueueList.querySelectorAll('.queue-item').forEach(itemEl => {
-    const id = itemEl.dataset.id;
-    itemEl.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-queue-item-remove')) return;
-      selectQueueItem(id);
+  // Eventos de clique para download individual e remoção
+  elements.fileQueueList.querySelectorAll('.btn-queue-item-download').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      downloadQueueItem(id);
     });
   });
 
@@ -451,7 +346,7 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
-  itemEl.className = `queue-item ${state.activeItemId === item.id ? 'active' : ''} ${item.status}`;
+  itemEl.className = `queue-item ${item.status}`;
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
@@ -464,6 +359,15 @@ function updateQueueItemDOM(item) {
     progressBar.style.width = `${item.progress}%`;
   }
 
+  const downloadBtn = itemEl.querySelector(`.btn-queue-item-download[data-id="${item.id}"]`);
+  if (downloadBtn) {
+    if (item.status === 'completed') {
+      downloadBtn.removeAttribute('disabled');
+    } else {
+      downloadBtn.setAttribute('disabled', '');
+    }
+  }
+
   const metaEl = itemEl.querySelector('.queue-item-meta');
   if (metaEl && item.durationMs && !metaEl.querySelector('.queue-item-time')) {
     const timeSpan = document.createElement('span');
@@ -473,44 +377,16 @@ function updateQueueItemDOM(item) {
   }
 }
 
-async function selectQueueItem(itemId) {
+function downloadQueueItem(itemId) {
   const item = state.queue.find(it => it.id === itemId);
-  if (!item) return;
-
-  state.activeItemId = itemId;
-  state.currentFile = item.file;
-  state.currentMarkdown = item.markdown || '';
-
-  if (elements.fileQueueList) {
-    const itemsDom = elements.fileQueueList.querySelectorAll('.queue-item');
-    itemsDom.forEach(el => {
-      if (el.dataset.id === itemId) {
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-      }
-    });
+  if (!item || item.status !== 'completed' || !item.markdown) {
+    showToast('O documento ainda não foi processado com sucesso.', 'warning');
+    return;
   }
 
-  elements.rawEditor.value = item.markdown || '';
-  updateEditorMetrics(item.markdown || '');
-  await renderMarkdown(item.markdown || '');
-
-  elements.metricFileName.textContent = item.file.name;
-  elements.metricFileSize.textContent = formatBytes(item.file.size);
-  elements.metricFormat.textContent = item.formatInfo.ext.toUpperCase();
-  elements.metricFormat.className = item.status === 'error' ? 'metric-badge error' : 'metric-badge';
-  elements.metricConversionTime.textContent = `${item.durationMs || 0} ms`;
-
-  if (item.status === 'completed') {
-    updateStatus('success', 'Documento ativo pronto para edição/exportação');
-  } else if (item.status === 'error') {
-    updateStatus('error', item.errorMessage || 'Falha na conversão');
-  } else if (item.status === 'processing') {
-    updateStatus('processing', item.statusText || 'Processando...');
-  } else {
-    updateStatus('idle', 'Aguardando processamento na fila');
-  }
+  const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+  downloadMarkdownFile(baseName, item.markdown);
+  showToast(`Download de "${baseName}.md" concluído!`, 'success');
 }
 
 function removeQueueItem(itemId) {
@@ -520,25 +396,6 @@ function removeQueueItem(itemId) {
   const item = state.queue[itemIndex];
   item.cancelled = true;
   state.queue.splice(itemIndex, 1);
-
-  if (state.activeItemId === itemId) {
-    const nextCompleted = state.queue.find(it => it.status === 'completed');
-    if (nextCompleted) {
-      selectQueueItem(nextCompleted.id);
-    } else {
-      state.activeItemId = null;
-      state.currentFile = null;
-      state.currentMarkdown = '';
-      elements.rawEditor.value = '';
-      elements.previewContainer.innerHTML = '';
-      elements.metricFileName.textContent = '-';
-      elements.metricFileSize.textContent = '0 KB';
-      elements.metricFormat.textContent = 'Nenhum';
-      elements.metricConversionTime.textContent = '0 ms';
-      updateEditorMetrics('');
-      updateStatus('idle', 'Pronto para converter');
-    }
-  }
 
   renderQueue();
   showToast(`Item "${item.file.name}" removido da fila.`);
@@ -592,7 +449,6 @@ async function processQueueItem(item) {
     item.statusText = 'Convertendo documento... (60%)';
     updateQueueItemDOM(item);
 
-    // Armazena em cache o buffer para o parser
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
     let markdown = '';
@@ -626,11 +482,6 @@ async function processQueueItem(item) {
     updateQueueItemDOM(item);
 
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${duration} ms`);
-
-    if (!state.activeItemId || state.activeItemId === item.id) {
-      selectQueueItem(item.id);
-    }
-
     showToast(`Arquivo "${item.file.name}" convertido em ${duration} ms`, 'success');
   } catch (error) {
     if (item.cancelled) return;
@@ -644,10 +495,6 @@ async function processQueueItem(item) {
 
     updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage}`, true);
     showToast(`Erro ao processar "${item.file.name}": ${item.errorMessage}`, 'error', 4500);
-
-    if (state.activeItemId === item.id) {
-      selectQueueItem(item.id);
-    }
   } finally {
     processQueue();
   }
@@ -722,17 +569,6 @@ function initQueueEvents() {
       if (state.queue.length === 0) return;
       state.queue.forEach(it => { it.cancelled = true; });
       state.queue = [];
-      state.activeItemId = null;
-      state.currentFile = null;
-      state.currentMarkdown = '';
-      elements.rawEditor.value = '';
-      elements.previewContainer.innerHTML = '';
-      elements.metricFileName.textContent = '-';
-      elements.metricFileSize.textContent = '0 KB';
-      elements.metricFormat.textContent = 'Nenhum';
-      elements.metricConversionTime.textContent = '0 ms';
-      updateEditorMetrics('');
-      updateStatus('idle', 'Pronto para converter');
       renderQueue();
       showToast('Fila de arquivos limpa.');
     });
@@ -817,10 +653,6 @@ function initDropzone() {
 
   // 3. Suporte a Colar (Paste / Clipboard) iterando todos os arquivos
   window.addEventListener('paste', async (e) => {
-    if (document.activeElement === elements.rawEditor) {
-      return;
-    }
-
     if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
       e.preventDefault();
       console.log(`[doc2md] ${e.clipboardData.files.length} arquivo(s) recebido(s) via Paste (Clipboard)`);
@@ -874,91 +706,22 @@ function initQuickExamples() {
 }
 
 /* ==========================================================================
-   Ações da Barra de Ferramentas (Copiar, Download, Limpar, Exemplo)
+   Documento de Demonstração (Demo)
    ========================================================================== */
-function initActions() {
-  // Copiar Markdown
-  elements.btnCopy.addEventListener('click', async () => {
-    const text = elements.rawEditor.value;
-    if (!text) {
-      showToast('Nada para copiar.');
-      return;
-    }
+function initDemoAction() {
+  if (!elements.btnLoadSample) return;
 
-    try {
-      await navigator.clipboard.writeText(text);
-      
-      // Feedback imediato no botão
-      const originalText = elements.btnCopyText.textContent;
-      elements.btnCopyText.textContent = 'Copiado!';
-      elements.btnCopy.classList.add('btn-success');
-
-      setTimeout(() => {
-        elements.btnCopyText.textContent = originalText;
-        elements.btnCopy.classList.remove('btn-success');
-      }, 2000);
-
-      showToast('Markdown copiado para a área de transferência!');
-    } catch (err) {
-      // Fallback para textarea selection
-      elements.rawEditor.select();
-      document.execCommand('copy');
-      showToast('Copiado com sucesso!');
-    }
-  });
-
-  // Download do arquivo .md
-  elements.btnDownload.addEventListener('click', () => {
-    const text = elements.rawEditor.value;
-    if (!text) {
-      showToast('Nenhum conteúdo para baixar.');
-      return;
-    }
-
-    const baseName = state.currentFile
-      ? state.currentFile.name.replace(/\.[^/.]+$/, '')
-      : 'documento';
-
-    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${baseName}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showToast(`Arquivo ${baseName}.md baixado.`);
-  });
-
-  // Limpar Editor
-  elements.btnClear.addEventListener('click', () => {
-    state.currentFile = null;
-    state.currentMarkdown = '';
-    elements.rawEditor.value = '';
-    elements.previewContainer.innerHTML = '';
-    elements.metricFileName.textContent = '-';
-    elements.metricFileSize.textContent = '0 KB';
-    elements.metricFormat.textContent = 'Nenhum';
-    elements.metricConversionTime.textContent = '0 ms';
-    updateEditorMetrics('');
-    updateStatus('idle', 'Pronto para converter');
-    showToast('Editor limpo.');
-  });
-
-  // Carregar Documento de Demonstração
   elements.btnLoadSample.addEventListener('click', () => {
     const sampleMarkdown = `# Relatório Executivo e Técnico • Universal MarkConverter
 
 ## 1. Visão Geral
-O **Universal MarkConverter (doc2md)** é uma aplicação moderna para conversão 100% *client-side* de múltiplos formatos de documento em **Markdown semântico e estruturado**.
+O **Universal MarkConverter (doc2md)** é uma plataforma web para conversão 100% *client-side* de múltiplos formatos de documento em **Markdown semântico e estruturado**.
 
-> **Privacidade Absoluta:** O processamento ocorre integralmente no navegador do usuário, com zero requisições externas para processamento de arquivos.
+> **Privacidade Absoluta:** O processamento ocorre integralmente no navegador do usuário, com zero envio de dados para servidores remotos.
 
 ---
 
-## 2. Comparativo de Recursos
+## 2. Formatos Suportados na Plataforma
 
 | Formato | Motor de Parsing | Extração Semântica | Status |
 | :--- | :--- | :--- | :--- |
@@ -967,41 +730,11 @@ O **Universal MarkConverter (doc2md)** é uma aplicação moderna para conversã
 | **Apresentações (.pptx)** | JSZip + DOMParser | Estruturação por slides e tópicos | Suportado |
 | **Documentos (.pdf)** | PDF.js | Fluxo contínuo e quebra de páginas | Suportado |
 | **Textos / Código** | ES Modules | JSON, HTML, RTF, TXT, XML | Suportado |
-
----
-
-## 3. Exemplo de Código Extraído
-
-\`\`\`javascript
-// Exemplo de integração assíncrona
-import { APP_CONFIG } from './js/config.js';
-
-console.log(\`Executando Universal MarkConverter \${APP_CONFIG.VERSION}\`);
-\`\`\`
-
-### Checklist de Recursos
-- [x] Upload por Drag & Drop
-- [x] Detecção automática de formatos
-- [x] Visualização em Split View responsivo
-- [x] Cópia instantânea e download de arquivo .md
-- [x] Suporte a Dark Mode e Light Mode
 `;
 
     const mockFile = new File([sampleMarkdown], 'demonstracao-markconverter.md', { type: 'text/markdown' });
-    convertFile(mockFile);
-  });
-
-  // Atualização em tempo real quando o usuário digita no editor de Markdown
-  let debounceTimeout = null;
-  elements.rawEditor.addEventListener('input', () => {
-    const text = elements.rawEditor.value;
-    state.currentMarkdown = text;
-    updateEditorMetrics(text);
-
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-      renderMarkdown(text);
-    }, 200);
+    addFilesToQueue([mockFile]);
+    showToast('Documento de demonstração adicionado à fila!', 'info');
   });
 }
 
@@ -1050,10 +783,8 @@ function showToast(message, type = 'info', duration = 3000) {
 document.addEventListener('DOMContentLoaded', () => {
   initVersion();
   initTheme();
-  initViewMode();
   initDropzone();
   initQueueEvents();
   initQuickExamples();
-  initActions();
-  updateEditorMetrics('');
+  initDemoAction();
 });

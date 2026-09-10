@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.1.0</span>
+          <span class="version-badge" id="header-version">v.1.2.0</span>
         </div>
       </a>
 
@@ -204,151 +204,6 @@
       </div>
     </section>
 
-    <!-- Barra de Status e Métricas de Conversão -->
-    <section class="metrics-bar" id="metrics-bar" aria-live="polite">
-      <div class="metrics-group">
-        <div class="status-pill">
-          <span class="status-dot idle" id="status-dot"></span>
-          <span id="status-text">Pronto para converter</span>
-        </div>
-
-        <div class="metric-item">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <span>Arquivo:</span>
-          <span class="metric-val" id="metric-file-name">-</span>
-        </div>
-
-        <div class="metric-item">
-          <span>Tamanho:</span>
-          <span class="metric-val" id="metric-file-size">0 KB</span>
-        </div>
-
-        <div class="metric-item">
-          <span>Formato:</span>
-          <span class="metric-badge" id="metric-format">Nenhum</span>
-        </div>
-      </div>
-
-      <div class="metrics-group">
-        <div class="metric-item">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Tempo:</span>
-          <span class="metric-val" id="metric-conversion-time">0 ms</span>
-        </div>
-
-        <div class="metric-item">
-          <span>Palavras:</span>
-          <span class="metric-val" id="metric-word-count">0</span>
-        </div>
-
-        <div class="metric-item">
-          <span>Linhas:</span>
-          <span class="metric-val" id="metric-line-count">0</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Espaço de Trabalho: Split View Responsivo -->
-    <section class="workspace-container">
-      <div class="workspace-controls">
-        <!-- Alternador de Modos de Visualização -->
-        <div class="view-mode-tabs" role="tablist">
-          <button class="view-tab active" id="tab-split" role="tab" aria-selected="true" data-mode="split">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2"/>
-              <line x1="12" x2="12" y1="3" y2="21"/>
-            </svg>
-            Lado a Lado (Split)
-          </button>
-          <button class="view-tab" id="tab-raw" role="tab" aria-selected="false" data-mode="raw">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-            Markdown Bruto (Raw)
-          </button>
-          <button class="view-tab" id="tab-preview" role="tab" aria-selected="false" data-mode="preview">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            Visualização Formatada (Preview)
-          </button>
-        </div>
-
-        <!-- Botões de Ação Principal -->
-        <div class="action-buttons">
-          <button id="btn-copy" class="btn btn-primary" title="Copiar Markdown para Área de Transferência">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-            </svg>
-            <span id="btn-copy-text">Copiar Markdown</span>
-          </button>
-
-          <button id="btn-download" class="btn btn-secondary" title="Fazer Download do Arquivo .md">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Download .md
-          </button>
-
-          <button id="btn-clear" class="btn btn-secondary" title="Limpar editor">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 6h18"/>
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-            </svg>
-            Limpar
-          </button>
-        </div>
-      </div>
-
-      <!-- Grade dos Dois Painéis -->
-      <div class="split-view-grid" id="split-grid">
-        <!-- Painel 1: Editor de Markdown Bruto -->
-        <div class="editor-card raw-panel">
-          <div class="card-header">
-            <span class="card-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 18 22 12 16 6"/>
-                <polyline points="8 6 2 12 8 18"/>
-              </svg>
-              Raw Markdown
-            </span>
-            <div class="card-actions">
-              <span id="char-counter" style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">0 caracteres</span>
-            </div>
-          </div>
-          <div class="editor-body">
-            <textarea id="raw-markdown-editor" class="raw-textarea" placeholder="O código Markdown convertido aparecerá aqui. Você também pode digitar ou colar diretamente..." spellcheck="false"></textarea>
-          </div>
-        </div>
-
-        <!-- Painel 2: Visualização Renderizada -->
-        <div class="editor-card preview-panel">
-          <div class="card-header">
-            <span class="card-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              Rendered Preview
-            </span>
-          </div>
-          <div class="preview-container markdown-body" id="preview-container"></div>
-        </div>
-      </div>
-    </section>
-
   </main>
 
   <!-- Rodapé Institucional e SemVer -->
@@ -366,7 +221,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.1.0</span>
+        <span class="version-badge" id="footer-version">v.1.2.0</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

@@ -11,23 +11,23 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.1.0') {
-  console.error('[ERRO] Versão diferente de v.1.1.0');
+if (APP_CONFIG.VERSION !== 'v.1.2.0') {
+  console.error('[ERRO] Versão diferente de v.1.2.0');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.1.0') {
+if (pkg.version !== '1.2.0') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html e componentes de upload e fila
+// 3. Verifica sincronização no index.html, fila de downloads e remoção do editor antigo
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.1.0')) {
-  console.error('[ERRO] index.html não contém v.1.1.0');
+if (!indexHtml.includes('v.1.2.0')) {
+  console.error('[ERRO] index.html não contém v.1.2.0');
   process.exit(1);
 }
 if (!indexHtml.includes('id="btn-browse"')) {
@@ -54,9 +54,13 @@ if (!indexHtml.includes('id="file-queue-section"') || !indexHtml.includes('id="b
   console.error('[ERRO] index.html não contém os elementos da fila de processamento em lote');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.1.0, #btn-browse, multiple, file-queue-section e quick-examples');
+if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="preview-container"') || indexHtml.includes('id="metrics-bar"')) {
+  console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
+  process.exit(1);
+}
+console.log('[OK] index.html contém v.1.2.0, fila de arquivos e remoção completa do editor obsoleto');
 
-// 4. Verifica listeners e telemetria no js/app.js
+// 4. Verifica listeners, download individual e telemetria no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
 if (!appJs.includes("window.addEventListener('paste'")) {
   console.error('[ERRO] js/app.js não contém listener de paste');
@@ -66,19 +70,19 @@ if (!appJs.includes('window.onerror') || !appJs.includes('window.onunhandledreje
   console.error('[ERRO] js/app.js não contém telemetria de erros globais');
   process.exit(1);
 }
-if (!appJs.includes('addFilesToQueue') || !appJs.includes('initQueueEvents')) {
-  console.error('[ERRO] js/app.js não contém funções de fila addFilesToQueue/initQueueEvents');
+if (!appJs.includes('addFilesToQueue') || !appJs.includes('downloadQueueItem') || !appJs.includes('btn-queue-item-download')) {
+  console.error('[ERRO] js/app.js não contém rotinas de download individual ou fila de lote');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém listener de paste, telemetria global, addFilesToQueue e initQueueEvents');
+console.log('[OK] js/app.js contém listener de paste, telemetria global, addFilesToQueue e downloadQueueItem');
 
 // 5. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.1.0')) {
-  console.error('[ERRO] README.md não contém v.1.1.0');
+if (!readme.includes('v.1.2.0')) {
+  console.error('[ERRO] README.md não contém v.1.2.0');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.1.0');
+console.log('[OK] README.md contém cabeçalho v.1.2.0');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

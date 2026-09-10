@@ -11,34 +11,42 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.0.1') {
-  console.error('[ERRO] Versão diferente de v.1.0.1');
+if (APP_CONFIG.VERSION !== 'v.1.0.2') {
+  console.error('[ERRO] Versão diferente de v.1.0.2');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.0.1') {
+if (pkg.version !== '1.0.2') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html
+// 3. Verifica sincronização no index.html e estrutura semântica do label
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.0.1')) {
-  console.error('[ERRO] index.html não contém v.1.0.1');
+if (!indexHtml.includes('v.1.0.2')) {
+  console.error('[ERRO] index.html não contém v.1.0.2');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.0.1 no header e footer');
+if (!indexHtml.includes('<label for="file-input" class="dropzone"')) {
+  console.error('[ERRO] index.html não utiliza tag <label for="file-input"> semântica para o dropzone');
+  process.exit(1);
+}
+if (!indexHtml.includes('class="visually-hidden"')) {
+  console.error('[ERRO] input type=file não possui classe visually-hidden');
+  process.exit(1);
+}
+console.log('[OK] index.html contém v.1.0.2 e label semântico dropzone');
 
 // 4. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.0.1')) {
-  console.error('[ERRO] README.md não contém v.1.0.1');
+if (!readme.includes('v.1.0.2')) {
+  console.error('[ERRO] README.md não contém v.1.0.2');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.0.1');
+console.log('[OK] README.md contém cabeçalho v.1.0.2');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

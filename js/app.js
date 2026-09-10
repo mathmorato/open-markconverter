@@ -223,10 +223,13 @@ function getFormatCategory(fileName) {
 async function convertFile(file) {
   if (!file) return;
 
+  console.log(`[doc2md] Recebido arquivo: "${file.name}" | Tamanho: ${file.size} bytes (${formatBytes(file.size)}) | MIME: ${file.type || 'desconhecido'}`);
+
   const ext = '.' + file.name.split('.').pop().toLowerCase();
 
   // Validação: Arquivo vazio
   if (file.size === 0) {
+    console.warn(`[doc2md] Arquivo "${file.name}" rejeitado: 0 bytes.`);
     state.currentFile = file;
     updateStatus('error', 'Arquivo vazio (0 bytes)');
     elements.metricFileName.textContent = file.name;
@@ -239,6 +242,7 @@ async function convertFile(file) {
 
   // Validação: Formatos binários não suportados
   if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
+    console.warn(`[doc2md] Formato binário não suportado: "${ext}"`);
     state.currentFile = file;
     updateStatus('error', 'Formato não suportado');
     elements.metricFileName.textContent = file.name;
@@ -251,6 +255,8 @@ async function convertFile(file) {
 
   const formatInfo = getFormatCategory(file.name);
   state.currentFile = file;
+
+  console.log(`[doc2md] Formato detectado: ${formatInfo.name} | Parser atribuído: ${formatInfo.parser}`);
 
   updateStatus('processing', `Convertendo ${file.name}...`);
   elements.metricFileName.textContent = file.name;
@@ -287,6 +293,7 @@ async function convertFile(file) {
     }
 
     const duration = Math.round(performance.now() - startTime);
+    console.log(`[doc2md] Conversão de "${file.name}" concluída em ${duration} ms`);
 
     state.currentMarkdown = markdown;
     elements.rawEditor.value = markdown;
@@ -298,7 +305,7 @@ async function convertFile(file) {
     updateStatus('success', 'Conversão concluída com sucesso!');
     showToast(`Arquivo ${file.name} convertido em ${duration} ms`, 'success');
   } catch (error) {
-    console.error('Falha na conversão do arquivo:', error);
+    console.error(`[doc2md] Erro durante processamento de ${file.name}:`, error);
     updateStatus('error', 'Erro ao converter documento');
     elements.metricFormat.className = 'metric-badge error';
     showToast(`Erro ao processar ${file.name}: ${error.message || 'Falha ao processar arquivo'}`, 'error', 4500);
@@ -320,36 +327,22 @@ function initDropzone() {
     e.preventDefault();
   }, false);
 
-  // Manipulação de clique na dropzone
-  dropzone.addEventListener('click', (e) => {
-    if (e.target !== fileInput) {
-      fileInput.click();
+  // Listeners isolados de Drag & Drop na .dropzone
+  const handleDragEnterOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
     }
-  });
+    dropzone.classList.add('drag-over');
+  };
 
-  // Acessibilidade via teclado (Enter ou Barra de Espaço)
-  dropzone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      fileInput.click();
-    }
-  });
+  dropzone.addEventListener('dragenter', handleDragEnterOver);
+  dropzone.addEventListener('dragover', handleDragEnterOver);
 
-  // Efeitos visuais e tratamento de Drag & Drop
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.add('drag-over');
-    });
-  });
-
-  ['dragleave', 'dragend'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.remove('drag-over');
-    });
+  dropzone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
   });
 
   dropzone.addEventListener('drop', (e) => {
@@ -358,19 +351,26 @@ function initDropzone() {
     dropzone.classList.remove('drag-over');
     const files = e.dataTransfer ? e.dataTransfer.files : null;
     if (files && files.length > 0) {
+      console.log(`[doc2md] Arquivo recebido via Drop: "${files[0].name}"`);
       convertFile(files[0]);
     }
   });
 
-  // Previne que o clique no input propague de volta ao dropzone
-  fileInput.addEventListener('click', (e) => {
-    e.stopPropagation();
+  // Acessibilidade via teclado na label focada (Enter ou Barra de Espaço)
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (document.activeElement === dropzone) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    }
   });
 
-  // Mudança de arquivo via input nativo
+  // Mudança de arquivo via input nativo (disparado pelo label for="file-input" sem necessidade de listener de clique)
   fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      console.log(`[doc2md] Arquivo recebido via seletor nativo: "${files[0].name}"`);
       convertFile(files[0]);
     }
     // Reseta input para permitir selecionar o mesmo arquivo novamente
@@ -386,6 +386,7 @@ function initDropzone() {
 
     if (e.clipboardData && e.clipboardData.files.length > 0) {
       e.preventDefault();
+      console.log('[doc2md] Arquivo recebido via Paste (Ctrl+V)');
       convertFile(e.clipboardData.files[0]);
       return;
     }
@@ -393,6 +394,7 @@ function initDropzone() {
     const pastedText = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (pastedText && pastedText.trim()) {
       e.preventDefault();
+      console.log('[doc2md] Texto recebido via Paste (Ctrl+V)');
       const mockFile = new File([pastedText], 'texto-colado.txt', { type: 'text/plain' });
       convertFile(mockFile);
     }

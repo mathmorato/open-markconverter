@@ -1,8 +1,32 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.0.0
+ * @version v.1.0.3
  */
+
+// Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
+window.onerror = function(message, source, lineno, colno, error) {
+  const debugEl = document.getElementById('debug-status');
+  const sourceFile = source ? source.split('/').pop() : 'script';
+  const errText = `[Erro Fatal/Script]: ${message} (${sourceFile}:${lineno})`;
+  if (debugEl) {
+    debugEl.textContent = errText;
+    debugEl.className = 'debug-status error';
+  }
+  console.error('[doc2md Runtime Error]', { message, source, lineno, colno, error });
+  return false;
+};
+
+window.onunhandledrejection = function(event) {
+  const debugEl = document.getElementById('debug-status');
+  const reason = event.reason ? (event.reason.message || String(event.reason)) : 'Falha assíncrona';
+  const errText = `[Erro Assíncrono/CDN]: ${reason}`;
+  if (debugEl) {
+    debugEl.textContent = errText;
+    debugEl.className = 'debug-status error';
+  }
+  console.error('[doc2md Unhandled Rejection]', event.reason);
+};
 
 import { APP_CONFIG, loadScript } from './config.js';
 import { parseDocx } from './parsers/docx-parser.js';
@@ -30,6 +54,8 @@ const elements = {
   
   dropzone: document.getElementById('dropzone'),
   fileInput: document.getElementById('file-input'),
+  btnBrowse: document.getElementById('btn-browse'),
+  debugStatus: document.getElementById('debug-status'),
   btnLoadSample: document.getElementById('btn-load-sample'),
   
   statusDot: document.getElementById('status-dot'),
@@ -220,10 +246,18 @@ function getFormatCategory(fileName) {
   };
 }
 
+function updateDebugStatus(message, isError = false) {
+  if (!elements.debugStatus) return;
+  elements.debugStatus.textContent = message;
+  elements.debugStatus.className = `debug-status ${isError ? 'error' : 'active'}`;
+}
+
 async function convertFile(file) {
   if (!file) return;
 
-  console.log(`[doc2md] Recebido arquivo: "${file.name}" | Tamanho: ${file.size} bytes (${formatBytes(file.size)}) | MIME: ${file.type || 'desconhecido'}`);
+  const fileInfoStr = `[Recebido]: ${file.name} | Tamanho: ${file.size} bytes | MIME: ${file.type || 'desconhecido'}`;
+  console.log(`[doc2md] ${fileInfoStr}`);
+  updateDebugStatus(fileInfoStr);
 
   const ext = '.' + file.name.split('.').pop().toLowerCase();
 
@@ -232,6 +266,7 @@ async function convertFile(file) {
     console.warn(`[doc2md] Arquivo "${file.name}" rejeitado: 0 bytes.`);
     state.currentFile = file;
     updateStatus('error', 'Arquivo vazio (0 bytes)');
+    updateDebugStatus(`[Falha]: O arquivo "${file.name}" está vazio (0 bytes)`, true);
     elements.metricFileName.textContent = file.name;
     elements.metricFileSize.textContent = '0 Bytes';
     elements.metricFormat.textContent = 'VAZIO';
@@ -245,6 +280,7 @@ async function convertFile(file) {
     console.warn(`[doc2md] Formato binário não suportado: "${ext}"`);
     state.currentFile = file;
     updateStatus('error', 'Formato não suportado');
+    updateDebugStatus(`[Rejeitado]: Formato "${ext}" não suportado para conversão`, true);
     elements.metricFileName.textContent = file.name;
     elements.metricFileSize.textContent = formatBytes(file.size);
     elements.metricFormat.textContent = ext.toUpperCase();
@@ -293,7 +329,9 @@ async function convertFile(file) {
     }
 
     const duration = Math.round(performance.now() - startTime);
-    console.log(`[doc2md] Conversão de "${file.name}" concluída em ${duration} ms`);
+    const successMsg = `[Concluído]: ${file.name} | Tempo: ${duration} ms | Formato: ${formatInfo.ext.toUpperCase()}`;
+    console.log(`[doc2md] ${successMsg}`);
+    updateDebugStatus(successMsg);
 
     state.currentMarkdown = markdown;
     elements.rawEditor.value = markdown;
@@ -305,7 +343,9 @@ async function convertFile(file) {
     updateStatus('success', 'Conversão concluída com sucesso!');
     showToast(`Arquivo ${file.name} convertido em ${duration} ms`, 'success');
   } catch (error) {
-    console.error(`[doc2md] Erro durante processamento de ${file.name}:`, error);
+    const errorMsg = `[Falha]: ${file.name} - ${error.message || 'Erro durante o parsing'}`;
+    console.error(`[doc2md] ${errorMsg}`, error);
+    updateDebugStatus(errorMsg, true);
     updateStatus('error', 'Erro ao converter documento');
     elements.metricFormat.className = 'metric-badge error';
     showToast(`Erro ao processar ${file.name}: ${error.message || 'Falha ao processar arquivo'}`, 'error', 4500);
@@ -313,12 +353,38 @@ async function convertFile(file) {
 }
 
 /* ==========================================================================
-   Eventos de Drag & Drop e Entrada de Arquivos
+   Eventos de Entrada de Arquivos (Botão Nativo, Drag & Drop e Paste)
    ========================================================================== */
 function initDropzone() {
-  const { dropzone, fileInput } = elements;
+  const { dropzone, fileInput, btnBrowse } = elements;
 
-  // Previne comportamento padrão do navegador de abrir arquivos soltos fora da dropzone
+  // 1. Canal Botão Nativo Explícito
+  if (btnBrowse) {
+    btnBrowse.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
+  // Clique na área da dropzone também abre o seletor (se não clicou em outro botão)
+  dropzone.addEventListener('click', (e) => {
+    if (e.target !== btnBrowse && !e.target.closest('button')) {
+      fileInput.click();
+    }
+  });
+
+  // Mudança de arquivo via input nativo
+  fileInput.addEventListener('change', (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      console.log(`[doc2md] Arquivo capturado via seletor nativo: "${files[0].name}"`);
+      convertFile(files[0]);
+    }
+    // Reseta input para permitir selecionar o mesmo arquivo novamente
+    fileInput.value = '';
+  });
+
+  // 2. Canal Drag & Drop Blindado
   window.addEventListener('dragover', (e) => {
     e.preventDefault();
   }, false);
@@ -327,18 +393,20 @@ function initDropzone() {
     e.preventDefault();
   }, false);
 
-  // Listeners isolados de Drag & Drop na .dropzone
-  const handleDragEnterOver = (e) => {
+  dropzone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.add('drag-over');
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
     dropzone.classList.add('drag-over');
-  };
-
-  dropzone.addEventListener('dragenter', handleDragEnterOver);
-  dropzone.addEventListener('dragover', handleDragEnterOver);
+  });
 
   dropzone.addEventListener('dragleave', (e) => {
     e.preventDefault();
@@ -356,47 +424,34 @@ function initDropzone() {
     }
   });
 
-  // Acessibilidade via teclado na label focada (Enter ou Barra de Espaço)
-  dropzone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      if (document.activeElement === dropzone) {
-        e.preventDefault();
-        fileInput.click();
-      }
-    }
-  });
-
-  // Mudança de arquivo via input nativo (disparado pelo label for="file-input" sem necessidade de listener de clique)
-  fileInput.addEventListener('change', (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      console.log(`[doc2md] Arquivo recebido via seletor nativo: "${files[0].name}"`);
-      convertFile(files[0]);
-    }
-    // Reseta input para permitir selecionar o mesmo arquivo novamente
-    fileInput.value = '';
-  });
-
-  // Suporte a colar arquivos ou texto da área de transferência (Ctrl+V)
-  window.addEventListener('paste', (e) => {
-    // Se o usuário estiver editando o textarea diretamente, não intercepta texto simples
+  // 3. Canal Alternativo: Suporte a Colar (Paste / Clipboard)
+  window.addEventListener('paste', async (e) => {
+    // Se o usuário estiver editando o textarea de markdown diretamente, permite colagem normal
     if (document.activeElement === elements.rawEditor) {
       return;
     }
 
-    if (e.clipboardData && e.clipboardData.files.length > 0) {
+    // Se houver arquivo no clipboard
+    if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
       e.preventDefault();
-      console.log('[doc2md] Arquivo recebido via Paste (Ctrl+V)');
-      convertFile(e.clipboardData.files[0]);
+      const file = e.clipboardData.files[0];
+      console.log(`[doc2md] Arquivo recebido via Paste (Clipboard): "${file.name}"`);
+      convertFile(file);
       return;
     }
 
-    const pastedText = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+    // Se houver texto puro no clipboard
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
     if (pastedText && pastedText.trim()) {
       e.preventDefault();
-      console.log('[doc2md] Texto recebido via Paste (Ctrl+V)');
-      const mockFile = new File([pastedText], 'texto-colado.txt', { type: 'text/plain' });
-      convertFile(mockFile);
+      console.log('[doc2md] Texto puro recebido via Paste (Clipboard)');
+      updateDebugStatus(`[Clipboard]: Texto recebido (${pastedText.length} caracteres)`);
+      state.currentMarkdown = pastedText;
+      elements.rawEditor.value = pastedText;
+      updateEditorMetrics(pastedText);
+      await renderMarkdown(pastedText);
+      updateStatus('success', 'Texto da área de transferência carregado!');
+      showToast('Texto colado carregado com sucesso!', 'success');
     }
   });
 }

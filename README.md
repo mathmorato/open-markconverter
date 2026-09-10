@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.0.2`
+# Universal MarkConverter (doc2md) `v.1.0.3`
 
-[![Version](https://img.shields.io/badge/version-v.1.0.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.0.3-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Privacy: 100% Client--Side](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green.svg)](#privacidade-e-segurança)
 [![Static Deploy](https://img.shields.io/badge/Deploy-GitHub%20Pages-informational.svg)](#instruções-de-deploy-github-pages)
@@ -100,7 +100,7 @@ Por ser uma aplicação 100% estática sem necessidade de build complexo no serv
 ## 🏷️ Versionamento SemVer
 
 O projeto segue estritamente a especificação [SemVer](https://semver.org/) no formato `v.X.Y.Z`:
-- **Versão Atual:** `v.1.0.2`
+- **Versão Atual:** `v.1.0.3`
 - A versão está sincronizada no rodapé e cabeçalho de `index.html`, em `js/config.js`, no `package.json` e neste `README.md`.
 
 ---

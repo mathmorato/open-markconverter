@@ -358,19 +358,47 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* Ocultação semântica e acessível do input nativo */
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+/* Botão Explícito de Seleção de Arquivo */
+.btn-browse {
+  margin: 0.5rem 0;
+  padding: 0.65rem 1.4rem;
+  font-size: 0.9375rem;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-browse:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* Barra de Telemetria e Diagnóstico Visual Técnico */
+.debug-status {
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-align: center;
+  transition: all var(--transition-fast);
+  word-break: break-all;
+}
+
+.debug-status.active {
+  color: var(--blue-primary);
+  border-color: var(--border-focus);
+}
+
+.debug-status.error {
+  color: #EF4444 !important;
+  border-color: var(--error-border) !important;
+  background-color: var(--error-bg) !important;
+  font-weight: 600;
 }
 
 .quick-actions {

@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.0.2</span>
+          <span class="version-badge" id="header-version">v.1.0.3</span>
         </div>
       </a>
 
@@ -75,8 +75,8 @@
 
       <!-- Dropzone Drag & Drop -->
       <div class="dropzone-container">
-        <label for="file-input" class="dropzone" id="dropzone" tabindex="0" aria-label="Arraste seu documento ou clique para selecionar">
-          <input type="file" id="file-input" class="visually-hidden" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log" aria-label="Selecionar arquivo">
+        <div class="dropzone" id="dropzone" aria-label="Zona para arrastar e soltar arquivos">
+          <input type="file" id="file-input" style="display: none;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log" aria-label="Selecionar arquivo">
           
           <div class="dropzone-inner">
             <div class="dropzone-icon-wrap" aria-hidden="true">
@@ -87,8 +87,19 @@
               </svg>
             </div>
             <div class="dropzone-prompt">
-              Arraste e solte o arquivo aqui ou <span class="link-text">clique para procurar</span>
+              Arraste e solte o arquivo aqui ou clique no botão abaixo
             </div>
+
+            <!-- Botão Explícito de Seleção Direta -->
+            <button type="button" id="btn-browse" class="btn btn-primary btn-browse">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Selecionar Arquivo do Computador
+            </button>
+
             <div class="dropzone-subprompt">
               Suporta colar arquivos ou texto da área de transferência (Ctrl+V)
             </div>
@@ -107,7 +118,10 @@
               <span class="format-tag">.rtf</span>
             </div>
           </div>
-        </label>
+        </div>
+
+        <!-- Telemetria e Diagnóstico Visual Técnico -->
+        <div id="debug-status" class="debug-status" aria-live="polite">Sistema pronto. Nenhuma falha detectada.</div>
 
         <!-- Ação rápida: Carregar Exemplo -->
         <div class="quick-actions">
@@ -287,7 +301,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.0.2</span>
+        <span class="version-badge" id="footer-version">v.1.0.3</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

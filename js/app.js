@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.3.0
+ * @version v.1.3.1
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -10,6 +10,7 @@ window.onerror = function(message, source, lineno, colno, error) {
   const sourceFile = source ? source.split('/').pop() : 'script';
   const errText = `[Erro Fatal/Script]: ${message} (${sourceFile}:${lineno})`;
   if (debugEl) {
+    debugEl.style.display = 'block';
     debugEl.textContent = errText;
     debugEl.className = 'debug-status error';
   }
@@ -22,6 +23,7 @@ window.onunhandledrejection = function(event) {
   const reason = event.reason ? (event.reason.message || String(event.reason)) : 'Falha assíncrona';
   const errText = `[Erro Assíncrono/CDN]: ${reason}`;
   if (debugEl) {
+    debugEl.style.display = 'block';
     debugEl.textContent = errText;
     debugEl.className = 'debug-status error';
   }
@@ -146,8 +148,15 @@ function getFormatCategory(fileName) {
 
 function updateDebugStatus(message, isError = false) {
   if (!elements.debugStatus) return;
-  elements.debugStatus.textContent = message;
-  elements.debugStatus.className = `debug-status ${isError ? 'error' : 'active'}`;
+  if (isError) {
+    elements.debugStatus.style.display = 'block';
+    elements.debugStatus.textContent = message;
+    elements.debugStatus.className = 'debug-status error';
+  } else {
+    elements.debugStatus.style.display = 'none';
+    elements.debugStatus.textContent = '';
+    elements.debugStatus.className = 'debug-status';
+  }
 }
 
 function getFormatIcon(category) {

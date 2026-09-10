@@ -11,23 +11,23 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.3.0') {
-  console.error('[ERRO] Versão diferente de v.1.3.0');
+if (APP_CONFIG.VERSION !== 'v.1.3.1') {
+  console.error('[ERRO] Versão diferente de v.1.3.1');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.3.0') {
+if (pkg.version !== '1.3.1') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html, fila de downloads e container central unificado
+// 3. Verifica sincronização no index.html, fila de downloads, container central e limpeza visual
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.3.0')) {
-  console.error('[ERRO] index.html não contém v.1.3.0');
+if (!indexHtml.includes('v.1.3.1')) {
+  console.error('[ERRO] index.html não contém v.1.3.1');
   process.exit(1);
 }
 if (!indexHtml.includes('app-main-container')) {
@@ -38,8 +38,13 @@ if (!indexHtml.includes('id="btn-browse"')) {
   console.error('[ERRO] index.html não contém botão explícito #btn-browse');
   process.exit(1);
 }
-if (!indexHtml.includes('id="debug-status"')) {
-  console.error('[ERRO] index.html não contém barra técnica #debug-status');
+if (indexHtml.includes('Sistema pronto. Nenhuma falha detectada.')) {
+  console.error('[ERRO] index.html ainda contém texto estático obsoleto da caixa de depuração');
+  process.exit(1);
+}
+const footerMatch = indexHtml.match(/<footer[\s\S]*?<\/footer>/);
+if (footerMatch && (footerMatch[0].includes('privacy-badge') || footerMatch[0].includes('100% Client-Side'))) {
+  console.error('[ERRO] index.html ainda contém badge redundante "100% Client-Side" no rodapé');
   process.exit(1);
 }
 if (!indexHtml.includes('quick-examples-section') || !indexHtml.includes('btn-quick-example')) {
@@ -62,7 +67,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.3.0, app-main-container, fila de arquivos e remoção do editor obsoleto');
+console.log('[OK] index.html contém v.1.3.1, app-main-container, fila de arquivos e limpeza visual');
 
 // 4. Verifica listeners, download individual, telemetria e dupla barra de progresso no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -98,11 +103,11 @@ console.log('[OK] css/styles.css contém app-main-container, dupla barra de prog
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.3.0')) {
-  console.error('[ERRO] README.md não contém v.1.3.0');
+if (!readme.includes('v.1.3.1')) {
+  console.error('[ERRO] README.md não contém v.1.3.1');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.3.0');
+console.log('[OK] README.md contém cabeçalho v.1.3.1');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

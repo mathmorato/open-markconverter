@@ -385,8 +385,9 @@ body {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
-/* Barra de Telemetria e Diagnóstico Visual Técnico */
+/* Barra de Telemetria e Diagnóstico Visual Técnico (oculto por padrão) */
 .debug-status {
+  display: none;
   margin-top: 0.65rem;
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius-sm);
@@ -401,11 +402,13 @@ body {
 }
 
 .debug-status.active {
+  display: block;
   color: var(--blue-primary);
   border-color: var(--border-focus);
 }
 
 .debug-status.error {
+  display: block;
   color: #EF4444 !important;
   border-color: var(--error-border) !important;
   background-color: var(--error-bg) !important;
@@ -633,7 +636,8 @@ body {
 .footer-privacy {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
 .privacy-badge {

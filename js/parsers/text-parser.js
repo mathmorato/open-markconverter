@@ -3,7 +3,7 @@
  * Suporte a .txt, .json, .html, .rtf, .md, .xml, .yaml
  */
 
-import { APP_CONFIG, loadScript } from '../config.js';
+import { APP_CONFIG, loadScript, CODE_EXTENSIONS_MAP } from '../config.js';
 
 /**
  * Converte documento ou string HTML para Markdown estruturado usando DOMParser nativo (ou regex)
@@ -144,6 +144,41 @@ export function convertHtmlToMarkdown(htmlContent, docTitle = 'Documento') {
   return `# ${docTitle}\n\n${stripped || '*Documento HTML sem conteúdo*'}`;
 }
 
+/**
+ * Processa qualquer arquivo de programação ou script gerando Markdown estruturado
+ * com cabeçalho semântico, metadados e código com indentação preservada.
+ * @param {string|ArrayBuffer|Uint8Array} input Conteúdo do código ou buffer
+ * @param {string} extension Extensão do arquivo (ex: 'js', 'm', 'lua')
+ * @param {string} fileName Nome do arquivo
+ * @returns {string} Markdown estruturado
+ */
+export function parseSourceCode(input, extension, fileName = 'codigo') {
+  let textContent = '';
+  if (typeof input === 'string') {
+    textContent = input;
+  } else if (input instanceof ArrayBuffer) {
+    textContent = new TextDecoder('utf-8').decode(input);
+  } else if (input && input.buffer instanceof ArrayBuffer) {
+    textContent = new TextDecoder('utf-8').decode(input);
+  } else {
+    textContent = String(input || '');
+  }
+
+  const cleanExt = (extension || '').toLowerCase().replace(/^\./, '');
+  const language = CODE_EXTENSIONS_MAP[cleanExt] || cleanExt || 'text';
+  const lines = textContent.split(/\r\n|\r|\n/).length;
+  const sizeInBytes = (typeof Blob !== 'undefined')
+    ? new Blob([textContent]).size
+    : Buffer.byteLength(textContent, 'utf8');
+  const formattedSize = (sizeInBytes / 1024).toFixed(1) + ' KB';
+
+  return `# ${fileName}\n\n` +
+    `> **Linguagem:** \`${language}\` | **Linhas:** ${lines} | **Tamanho:** ${formattedSize}\n\n` +
+    `\`\`\`${language}\n` +
+    `${textContent}\n` +
+    `\`\`\`\n`;
+}
+
 export async function parseText(file, onProgress = null) {
   if (typeof onProgress === 'function') {
     onProgress(50, 'Lendo conteúdo textual...');
@@ -173,6 +208,11 @@ export async function parseText(file, onProgress = null) {
     textContent = new TextDecoder('utf-8').decode(ab);
   } else {
     textContent = String(file || '');
+  }
+
+  const cleanExt = (ext || '').replace(/^\./, '');
+  if (CODE_EXTENSIONS_MAP[cleanExt] && !['json', 'html', 'htm', 'rtf', 'md', 'markdown', 'txt', 'log'].includes(cleanExt)) {
+    return parseSourceCode(textContent, cleanExt, fileName);
   }
 
   switch (ext) {

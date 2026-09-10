@@ -35,7 +35,13 @@ const testFiles = [
   { name: 'notas.txt', expectedParser: 'text' },
   { name: 'payload.json', expectedParser: 'text' },
   { name: 'pagina.html', expectedParser: 'text' },
-  { name: 'readme.markdown', expectedParser: 'text' }
+  { name: 'readme.markdown', expectedParser: 'text' },
+  { name: 'algoritmo.m', expectedParser: 'code' },
+  { name: 'script.lua', expectedParser: 'code' },
+  { name: 'app.js', expectedParser: 'code' },
+  { name: 'process.py', expectedParser: 'code' },
+  { name: 'engine.rs', expectedParser: 'code' },
+  { name: 'deploy.sh', expectedParser: 'code' }
 ];
 
 testFiles.forEach(({ name, expectedParser }) => {

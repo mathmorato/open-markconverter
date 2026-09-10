@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.7.1`
+# Universal MarkConverter (doc2md) `v.1.7.2`
 
-[![Version](https://img.shields.io/badge/version-v.1.7.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.7.2-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,21 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.7.2
+
+- **Matriz Universal de Linguagens de Programação (`CODE_EXTENSIONS_MAP`):**
+  - Catálogo abrangente em `js/config.js` cobrindo MATLAB (`.m`), Lua (`.lua`), JavaScript (`.js`), TypeScript (`.ts`), Python (`.py`), C/C++ (`.c`, `.cpp`), Rust (`.rs`), Go (`.go`), Shell/Bash (`.sh`), Kotlin, Swift, Dart, SQL, e dezenas de linguagens funcionais, científicas, mobile e de infraestrutura.
+- **Parser Dedicado e Estruturado de Código-Fonte (`parseSourceCode`):**
+  - Ingestão limpa em `js/parsers/text-parser.js` com cabeçalho semântico, metadados formatados (linguagem, contagem de linhas e tamanho) e bloco de código fenced com indentação e quebras preservadas.
+- **Mecanismo Resiliente de Fallback Heurístico UTF-8:**
+  - Inspeção em memória dos primeiros 8 KB para arquivos sem extensão ou não catalogados: se contiver apenas caracteres textuais (sem byte nulo `\0`), converte imediatamente como código neutro, eliminando falsos erros `PARSER_NOT_FOUND`.
+- **Dropzone Expandida e Seletor sem Restrições:**
+  - Badges atualizados com `.js`, `.py`, `.m`, `.lua`, `.cpp`, `.rs`, `.sh` e a insígnia `+todas linguagens de código`. Seletor nativo liberado de atributos restritivos `accept`.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.7.2`** rigorosamente sincronizada nos 4 pontos mandatórios (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

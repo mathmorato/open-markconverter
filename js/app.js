@@ -32,12 +32,12 @@ if (typeof window !== 'undefined') {
   };
 }
 
-import { APP_CONFIG, loadScript, ERROR_CATALOG } from './config.js';
+import { APP_CONFIG, loadScript, ERROR_CATALOG, CODE_EXTENSIONS_MAP } from './config.js';
 import { parseDocx } from './parsers/docx-parser.js';
 import { parseSpreadsheet } from './parsers/xlsx-parser.js';
 import { parsePptx } from './parsers/pptx-parser.js';
 import { parsePdf } from './parsers/pdf-parser.js';
-import { parseText } from './parsers/text-parser.js';
+import { parseText, parseSourceCode } from './parsers/text-parser.js';
 
 // Estado global da sessão local com suporte a fila em lote
 export const state = {
@@ -181,6 +181,17 @@ function getFormatCategory(fileName) {
     if (format.ext.includes(ext)) {
       return { key, ...format, ext };
     }
+  }
+
+  const cleanExt = ext.replace(/^\./, '');
+  if (CODE_EXTENSIONS_MAP[cleanExt]) {
+    return {
+      key: 'code',
+      ext,
+      name: `Código (${CODE_EXTENSIONS_MAP[cleanExt]})`,
+      category: 'code',
+      parser: 'code'
+    };
   }
 
   return {
@@ -1282,6 +1293,8 @@ async function processQueueItem(item) {
 
     let markdown = '';
     try {
+      const cleanExt = (item.file.name.includes('.') ? item.file.name.split('.').pop() : item.file.name).toLowerCase().replace(/^\./, '');
+
       switch (item.formatInfo.parser) {
         case 'docx':
           markdown = await parseDocx(item.file, onParserSubProgress);
@@ -1295,10 +1308,33 @@ async function processQueueItem(item) {
         case 'pdf':
           markdown = await parsePdf(item.file, onParserSubProgress);
           break;
-        case 'text':
-        default:
-          markdown = await parseText(item.file, onParserSubProgress);
+        case 'code':
+          markdown = parseSourceCode(arrayBuffer, cleanExt, item.file.name);
           break;
+        case 'text':
+        default: {
+          if (CODE_EXTENSIONS_MAP[cleanExt] && !['txt', 'html', 'htm', 'rtf', 'md', 'markdown', 'log'].includes(cleanExt)) {
+            markdown = parseSourceCode(arrayBuffer, cleanExt, item.file.name);
+            break;
+          }
+
+          if (['txt', 'json', 'html', 'htm', 'rtf', 'md', 'markdown', 'log'].includes(cleanExt)) {
+            markdown = await parseText(item.file, onParserSubProgress);
+            break;
+          }
+
+          // Fallback heurístico UTF-8 para arquivos sem extensão ou com extensão desconhecida:
+          // Inspeciona amostra dos primeiros 8 KB em memória à procura de bytes nulos (\0).
+          // Se contiver apenas caracteres textuais, encaminha para parseSourceCode em vez de disparar erro.
+          const sample = new Uint8Array(arrayBuffer.slice(0, 8192));
+          const hasNullByte = sample.includes(0x00);
+          if (!hasNullByte) {
+            markdown = parseSourceCode(arrayBuffer, cleanExt || 'text', item.file.name);
+          } else {
+            throw new Error(`${ERROR_CATALOG.PARSER_NOT_FOUND} (Extensão "${cleanExt ? '.' + cleanExt : 'binária'}")`);
+          }
+          break;
+        }
       }
     } finally {
       clearInterval(tickerInterval);

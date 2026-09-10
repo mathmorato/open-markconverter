@@ -1,11 +1,104 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.7.1
+ * @version v.1.7.2
  */
 
+export const CODE_EXTENSIONS_MAP = {
+  // Web & Frontend
+  'js': 'javascript', 'mjs': 'javascript', 'cjs': 'javascript',
+  'ts': 'typescript', 'tsx': 'tsx', 'jsx': 'jsx',
+  'html': 'html', 'htm': 'html', 'xhtml': 'html',
+  'css': 'css', 'scss': 'scss', 'sass': 'sass', 'less': 'less', 'styl': 'stylus',
+  'vue': 'vue', 'svelte': 'svelte', 'astro': 'astro',
+  
+  // Computação Científica, Numérica & Estatística
+  'm': 'matlab', 'matlab': 'matlab', 'octave': 'matlab',
+  'r': 'r', 'rmd': 'r',
+  'jl': 'julia',
+  'f': 'fortran', 'for': 'fortran', 'f90': 'fortran', 'f95': 'fortran',
+  'nb': 'mathematica', 'wl': 'wolfram',
+  
+  // Scripts, Embeds, Jogos & Automação
+  'lua': 'lua',
+  'py': 'python', 'pyw': 'python', 'ipynb': 'json',
+  'rb': 'ruby', 'rake': 'ruby', 'gemspec': 'ruby',
+  'php': 'php', 'phtml': 'php',
+  'pl': 'perl', 'pm': 'perl', 't': 'perl',
+  'tcl': 'tcl', 'awk': 'awk', 'sed': 'sed',
+  
+  // Sistemas, Baixo Nível & Alta Performance
+  'c': 'c', 'h': 'c',
+  'cpp': 'cpp', 'hpp': 'cpp', 'cc': 'cpp', 'cxx': 'cpp', 'hxx': 'cpp',
+  'rs': 'rust',
+  'go': 'go',
+  'zig': 'zig',
+  'nim': 'nim',
+  'd': 'd',
+  'pas': 'pascal', 'pp': 'pascal', 'inc': 'pascal',
+  'ada': 'ada', 'adb': 'ada', 'ads': 'ada',
+  'asm': 'assembly', 's': 'assembly', 'nasm': 'assembly',
+  
+  // JVM & .NET
+  'java': 'java', 'class': 'text',
+  'kt': 'kotlin', 'kts': 'kotlin',
+  'scala': 'scala', 'sc': 'scala',
+  'groovy': 'groovy', 'gvy': 'groovy',
+  'cs': 'csharp', 'csx': 'csharp',
+  'fs': 'fsharp', 'fsi': 'fsharp', 'fsx': 'fsharp',
+  'vb': 'vbnet', 'vbs': 'vbscript',
+  
+  // Funcionais, Lisp & Concorrência
+  'hs': 'haskell', 'lhs': 'haskell',
+  'ex': 'elixir', 'exs': 'elixir',
+  'erl': 'erlang', 'hrl': 'erlang',
+  'clj': 'clojure', 'cljs': 'clojure', 'edn': 'clojure',
+  'ml': 'ocaml', 'mli': 'ocaml',
+  'lisp': 'lisp', 'lsp': 'lisp', 'cl': 'lisp',
+  'scm': 'scheme', 'ss': 'scheme',
+  'rkt': 'racket',
+  'elm': 'elm', 'purs': 'purescript',
+  'gleam': 'gleam',
+  
+  // Mobile & Multiplataforma
+  'swift': 'swift',
+  'dart': 'dart',
+  
+  // Shell, DevOps, Infra & Contêineres
+  'sh': 'bash', 'bash': 'bash', 'zsh': 'bash', 'fish': 'fish',
+  'ps1': 'powershell', 'psm1': 'powershell',
+  'bat': 'bat', 'cmd': 'bat',
+  'dockerfile': 'dockerfile', 'containerfile': 'dockerfile',
+  'makefile': 'makefile', 'mk': 'makefile',
+  'cmake': 'cmake',
+  'tf': 'terraform', 'hcl': 'hcl',
+  'nix': 'nix',
+  
+  // Bancos de Dados & Consultas
+  'sql': 'sql', 'psql': 'sql', 'plsql': 'sql', 'tsql': 'sql',
+  'cql': 'cql', 'prisma': 'prisma', 'graphql': 'graphql', 'gql': 'graphql',
+  
+  // Hardware, Shaders & Web3
+  'v': 'verilog', 'sv': 'systemverilog',
+  'vhd': 'vhdl', 'vhdl': 'vhdl',
+  'glsl': 'glsl', 'vert': 'glsl', 'frag': 'glsl', 'hlsl': 'hlsl', 'wgsl': 'wgsl',
+  'sol': 'solidity',
+  
+  // Linguagens Históricas
+  'cob': 'cobol', 'cbl': 'cobol',
+  'fth': 'forth', 'forth': 'forth',
+  'bas': 'basic',
+  
+  // Serialização, Configuração & Metadados
+  'json': 'json', 'json5': 'json5', 'jsonc': 'jsonc',
+  'yaml': 'yaml', 'yml': 'yaml',
+  'toml': 'toml', 'ini': 'ini', 'cfg': 'ini', 'conf': 'ini',
+  'xml': 'xml', 'xsd': 'xml', 'xsl': 'xml', 'svg': 'xml',
+  'proto': 'protobuf', 'env': 'bash'
+};
+
 export const APP_CONFIG = {
-  VERSION: 'v.1.7.1',
+  VERSION: 'v.1.7.2',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',
@@ -84,9 +177,15 @@ export const APP_CONFIG = {
     text: {
       ext: ['.txt', '.json', '.html', '.htm', '.rtf', '.xml', '.md', '.markdown', '.log', '.yaml', '.yml'],
       mime: ['text/plain', 'application/json', 'text/html', 'application/rtf', 'text/xml', 'text/markdown'],
-      name: 'Texto / Código (.txt, .json, .html, .rtf, .md)',
+      name: 'Texto (.txt, .json, .html, .rtf, .md)',
       category: 'text',
       parser: 'text'
+    },
+    code: {
+      ext: Object.keys(CODE_EXTENSIONS_MAP).map(ext => '.' + ext),
+      name: 'Código-Fonte / Scripts',
+      category: 'code',
+      parser: 'code'
     }
   }
 };

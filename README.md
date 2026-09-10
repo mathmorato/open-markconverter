@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.4`
+# Universal MarkConverter (doc2md) `v.1.6.5`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.4-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.5-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,17 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.5
+
+- **Confinamento Estrito de Auto-Scroll ao Container da Fila (`.file-queue-list`):**
+  - Eliminação definitiva de chamadas a `element.scrollIntoView()` na fila, evitando a propagação do movimento para nós ancestrais e mantendo a página global (`window`, `body`, `html`, cabeçalho e dropzone) absolutamente estática.
+  - Implementação da rotina `scrollQueueToItem(itemElement)` atuando exclusivamente via manipulação direta de `queueList.scrollTo({ top, behavior: 'smooth' })` e `.scrollTop`.
+  - Contenção de rolagem no CSS com `overscroll-behavior: contain;` e `overflow-x: hidden;`, impedindo encadeamento de scroll ao atingir as bordas da lista.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.5`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

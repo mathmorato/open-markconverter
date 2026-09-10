@@ -14,6 +14,7 @@ import {
   renderConvertStepIcon,
   mergeMarkdownOutputs,
   extractArchiveFiles,
+  scrollQueueToItem,
   scrollToActiveItem
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
@@ -21,7 +22,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.4)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.5)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -402,22 +403,50 @@ if (!unifiedMarkdown.includes('---')) {
 
 console.log('  -> Mesclagem unificada com demarcadores e metadados validada com perfeição!');
 
-// 12. Teste de auto-scroll inteligente e preservação de scroll manual do usuário
-console.log('[TESTE 12] Testando rotina de auto-scroll inteligente (scrollToActiveItem)...');
-let scrolledElement = null;
+// 12. Teste de auto-scroll inteligente confinado exclusivamente ao container da fila
+console.log('[TESTE 12] Testando rotina de auto-scroll confinado ao container da fila (scrollQueueToItem)...');
+let scrollToParams = null;
+let scrollIntoViewCalled = false;
+const mockQueueList = {
+  offsetTop: 0,
+  scrollTop: 0,
+  clientHeight: 480,
+  scrollTo: (params) => {
+    scrollToParams = params;
+  }
+};
+global.document = {
+  querySelector: (sel) => (sel === '.file-queue-list' ? mockQueueList : null),
+  getElementById: (id) => (id === 'file-queue-list' ? mockQueueList : null)
+};
+
 const mockElement = {
   id: 'test-scroll-item',
-  scrollIntoView: (options) => {
-    scrolledElement = options;
+  offsetTop: 600,
+  offsetHeight: 84,
+  scrollIntoView: () => {
+    scrollIntoViewCalled = true;
   }
 };
 
-scrollToActiveItem(mockElement);
-if (!scrolledElement || scrolledElement.behavior !== 'smooth' || scrolledElement.block !== 'nearest') {
-  console.error('[FALHA] scrollToActiveItem não executou scrollIntoView com parâmetros esperados');
+scrollQueueToItem(mockElement);
+if (scrollIntoViewCalled) {
+  console.error('[FALHA] scrollQueueToItem chamou scrollIntoView (deve confinar o scroll ao container sem rolar a janela)');
   process.exit(1);
 }
-console.log('  -> scrollToActiveItem acionou scrollIntoView({ behavior: "smooth", block: "nearest" }) com perfeição!');
+if (!scrollToParams || scrollToParams.behavior !== 'smooth' || typeof scrollToParams.top !== 'number') {
+  console.error('[FALHA] scrollQueueToItem não executou queueList.scrollTo com parâmetros esperados');
+  process.exit(1);
+}
+
+// Testa alias scrollToActiveItem
+scrollToParams = null;
+scrollToActiveItem(mockElement);
+if (!scrollToParams || scrollToParams.behavior !== 'smooth' || typeof scrollToParams.top !== 'number') {
+  console.error('[FALHA] scrollToActiveItem (alias) não delegou para scrollQueueToItem corretamente');
+  process.exit(1);
+}
+console.log('  -> scrollQueueToItem e scrollToActiveItem acionaram queueList.scrollTo({ top, behavior: "smooth" }) sem rolar a janela principal!');
 
 // 13. Teste de conversão resiliente de arquivo .html
 console.log('[TESTE 13] Testando conversão resiliente de arquivo HTML com fallback nativo...');
@@ -510,5 +539,5 @@ if (!stylesCss.includes('flex-shrink: 0') || !stylesCss.includes('#E2E8F0')) {
 console.log('  -> Barra de conversão isolada contra sobrescrita e altura do card (84px) validadas com 100% de sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.4)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.5)');
 console.log('===============================================================');

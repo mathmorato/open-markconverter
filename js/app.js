@@ -979,30 +979,57 @@ function removeQueueItem(itemId) {
 }
 
 /**
- * Auto-scroll suave para acompanhar o item ativo ou recém-concluído na fila
- * @param {string|HTMLElement} itemIdOrElement ID do item ou elemento DOM
+ * Rolagem automática estritamente confinada ao container interno da fila de documentos.
+ * Elimina qualquer rolagem na janela/página principal (window, body, html).
+ * @param {string|HTMLElement} itemOrId Elemento DOM ou ID do item da fila
  */
-export function scrollToActiveItem(itemIdOrElement) {
-  if (state.userIsScrolling || !itemIdOrElement) return;
+export function scrollQueueToItem(itemOrId) {
+  if (!itemOrId || state.userIsScrolling) return;
+
+  // Seleciona exclusivamente o container interno com overflow da fila
+  const queueList = elements.fileQueueList || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
+  if (!queueList) return;
 
   let itemElement = null;
-  if (typeof itemIdOrElement === 'object' && typeof itemIdOrElement.scrollIntoView === 'function') {
-    itemElement = itemIdOrElement;
-  } else if (typeof itemIdOrElement === 'string') {
-    const queueContainer = elements.fileQueueList || (typeof document !== 'undefined' ? document.getElementById('file-queue-list') : null);
-    if (!queueContainer) return;
-    itemElement = queueContainer.querySelector(`.queue-item[data-id="${itemIdOrElement}"]`);
+  if (typeof itemOrId === 'object' && itemOrId) {
+    itemElement = itemOrId;
+  } else if (typeof itemOrId === 'string') {
+    itemElement = queueList.querySelector ? (queueList.querySelector(`.queue-item[data-id="${itemOrId}"]`) || queueList.querySelector(`[data-id="${itemOrId}"]`)) : null;
   }
 
   if (!itemElement) return;
 
-  if (typeof itemElement.scrollIntoView === 'function') {
-    itemElement.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'nearest'
-    });
+  // Calcula a posição do item em relação ao topo do container da lista
+  const itemOffsetTop = typeof itemElement.offsetTop === 'number' && typeof queueList.offsetTop === 'number'
+    ? (itemElement.offsetTop - queueList.offsetTop)
+    : (typeof itemElement.offsetTop === 'number' ? itemElement.offsetTop : 0);
+  const itemHeight = typeof itemElement.offsetHeight === 'number' ? itemElement.offsetHeight : 0;
+  const currentScrollTop = typeof queueList.scrollTop === 'number' ? queueList.scrollTop : 0;
+  const containerHeight = typeof queueList.clientHeight === 'number' ? queueList.clientHeight : 480;
+
+  // Verifica se o item está fora da área visível interna do container
+  const isAbove = itemOffsetTop < currentScrollTop;
+  const isBelow = (itemOffsetTop + itemHeight) > (currentScrollTop + containerHeight);
+
+  if (isAbove || isBelow) {
+    const targetTop = Math.max(0, itemOffsetTop - (containerHeight / 2) + (itemHeight / 2));
+    if (typeof queueList.scrollTo === 'function') {
+      queueList.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      });
+    } else {
+      queueList.scrollTop = targetTop;
+    }
   }
+}
+
+/**
+ * Alias de retrocompatibilidade para scrollQueueToItem
+ * @param {string|HTMLElement} itemIdOrElement
+ */
+export function scrollToActiveItem(itemIdOrElement) {
+  return scrollQueueToItem(itemIdOrElement);
 }
 
 async function processQueue() {
@@ -1051,7 +1078,7 @@ async function processQueueItem(item) {
   item.convertText = 'Aguardando...';
   item.progress = 0;
   updateQueueItemDOM(item);
-  scrollToActiveItem(item.id);
+  scrollQueueToItem(item.id);
 
   const startTime = performance.now();
   updateDebugStatus(`[Processando]: ${item.file.name} (${formatBytes(item.file.size)})`);
@@ -1081,7 +1108,7 @@ async function processQueueItem(item) {
     item.convertText = '20% (Iniciando parser...)';
     item.statusText = 'Iniciando conversão... (20%)';
     updateQueueItemDOM(item);
-    scrollToActiveItem(item.id);
+    scrollQueueToItem(item.id);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
@@ -1172,7 +1199,7 @@ async function processQueueItem(item) {
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
-    scrollToActiveItem(item.id);
+    scrollQueueToItem(item.id);
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);

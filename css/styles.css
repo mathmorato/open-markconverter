@@ -849,8 +849,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  max-height: 480px;
-  overflow-y: auto;
+  max-height: 480px;         /* Limite de altura da caixa destacada */
+  overflow-y: auto;          /* Scroll interno habilitado */
+  overflow-x: hidden;
+  overscroll-behavior: contain; /* Impede que o fim do scroll encadeie rolagem na página pai */
   scroll-behavior: smooth;
   padding-right: 0.5rem;
 }

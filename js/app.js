@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.0.4
+ * @version v.1.1.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -35,13 +35,16 @@ import { parsePptx } from './parsers/pptx-parser.js';
 import { parsePdf } from './parsers/pdf-parser.js';
 import { parseText } from './parsers/text-parser.js';
 
-// Estado global da sessão local
+// Estado global da sessão local com suporte a fila em lote
 const state = {
   currentFile: null,
   currentMarkdown: '',
   theme: 'system',
   viewMode: 'split',
-  isConverting: false
+  isConverting: false,
+  queue: [],
+  activeItemId: null,
+  maxConcurrency: 2
 };
 
 // Elementos DOM
@@ -57,6 +60,13 @@ const elements = {
   btnBrowse: document.getElementById('btn-browse'),
   debugStatus: document.getElementById('debug-status'),
   btnLoadSample: document.getElementById('btn-load-sample'),
+
+  // Elementos da Fila de Arquivos em Lote
+  fileQueueSection: document.getElementById('file-queue-section'),
+  fileQueueList: document.getElementById('file-queue-list'),
+  queueCounter: document.getElementById('queue-counter'),
+  btnQueueClear: document.getElementById('btn-queue-clear'),
+  btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
   
   statusDot: document.getElementById('status-dot'),
   statusText: document.getElementById('status-text'),
@@ -252,103 +262,486 @@ function updateDebugStatus(message, isError = false) {
   elements.debugStatus.className = `debug-status ${isError ? 'error' : 'active'}`;
 }
 
-async function convertFile(file) {
-  if (!file) return;
+/* ==========================================================================
+   Helpers de Formato, Download e Leitura Progressiva
+   ========================================================================== */
+function getFormatIcon(category) {
+  switch (category) {
+    case 'docx':
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+    case 'xlsx':
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12v5"/><path d="M12 9v8"/><path d="M17 6v11"/></svg>`;
+    case 'pptx':
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="3" rx="2"/><path d="M7 21h10"/><path d="M12 17v4"/></svg>`;
+    case 'pdf':
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15v-6h2a2 2 0 0 1 0 4H9"/></svg>`;
+    case 'text':
+    default:
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  }
+}
 
-  const fileInfoStr = `[Recebido]: ${file.name} | Tamanho: ${file.size} bytes | MIME: ${file.type || 'desconhecido'}`;
-  console.log(`[doc2md] ${fileInfoStr}`);
-  updateDebugStatus(fileInfoStr);
+function downloadMarkdownFile(baseName, content) {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${baseName}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
+function readFileWithProgress(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (typeof FileReader === 'undefined') {
+      if (typeof file.arrayBuffer === 'function') {
+        file.arrayBuffer().then(buf => {
+          onProgress(100);
+          resolve(buf);
+        }).catch(reject);
+        return;
+      }
+    }
 
-  // Validação: Arquivo vazio
-  if (file.size === 0) {
-    console.warn(`[doc2md] Arquivo "${file.name}" rejeitado: 0 bytes.`);
-    state.currentFile = file;
-    updateStatus('error', 'Arquivo vazio (0 bytes)');
-    updateDebugStatus(`[Falha]: O arquivo "${file.name}" está vazio (0 bytes)`, true);
-    elements.metricFileName.textContent = file.name;
-    elements.metricFileSize.textContent = '0 Bytes';
-    elements.metricFormat.textContent = 'VAZIO';
-    elements.metricFormat.className = 'metric-badge error';
-    showToast(`O arquivo "${file.name}" está vazio (0 bytes).`, 'error', 4000);
+    const reader = new FileReader();
+    reader.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+        onProgress(percent);
+      }
+    };
+    reader.onload = () => {
+      onProgress(100);
+      resolve(reader.result);
+    };
+    reader.onerror = () => {
+      reject(new Error(`Falha ao ler o arquivo "${file.name}"`));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ==========================================================================
+   Pipeline de Fila em Lote (Batch Queue Management)
+   ========================================================================== */
+function addFilesToQueue(files) {
+  if (!files || files.length === 0) return;
+
+  const fileList = Array.from(files);
+  const newItems = [];
+
+  fileList.forEach(file => {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const formatInfo = getFormatCategory(file.name);
+    const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    let status = 'queued';
+    let statusText = 'Na fila';
+    let progress = 0;
+    let errorMessage = '';
+
+    if (file.size === 0) {
+      status = 'error';
+      statusText = 'Erro: Vazio (0 B)';
+      progress = 100;
+      errorMessage = 'Arquivo vazio (0 bytes)';
+    } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
+      status = 'error';
+      statusText = 'Erro: Formato não suportado';
+      progress = 100;
+      errorMessage = `Extensão "${ext}" não suportada`;
+    }
+
+    const queueItem = {
+      id,
+      file,
+      formatInfo,
+      status,
+      statusText,
+      progress,
+      markdown: '',
+      durationMs: 0,
+      errorMessage,
+      cancelled: false
+    };
+
+    newItems.push(queueItem);
+  });
+
+  state.queue.push(...newItems);
+  renderQueue();
+  processQueue();
+}
+
+function renderQueue() {
+  if (!elements.fileQueueSection || !elements.fileQueueList) return;
+
+  const total = state.queue.length;
+  if (total === 0) {
+    elements.fileQueueSection.style.display = 'none';
+    if (elements.queueCounter) elements.queueCounter.textContent = '0 arquivos';
     return;
   }
 
-  // Validação: Formatos binários não suportados
-  if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
-    console.warn(`[doc2md] Formato binário não suportado: "${ext}"`);
-    state.currentFile = file;
-    updateStatus('error', 'Formato não suportado');
-    updateDebugStatus(`[Rejeitado]: Formato "${ext}" não suportado para conversão`, true);
-    elements.metricFileName.textContent = file.name;
-    elements.metricFileSize.textContent = formatBytes(file.size);
-    elements.metricFormat.textContent = ext.toUpperCase();
-    elements.metricFormat.className = 'metric-badge error';
-    showToast(`Formato ${ext} não suportado para conversão em Markdown. Envie .docx, planilhas, .pptx, .pdf ou textos.`, 'error', 4500);
+  elements.fileQueueSection.style.display = 'block';
+  if (elements.queueCounter) {
+    elements.queueCounter.textContent = `${total} ${total === 1 ? 'arquivo' : 'arquivos'}`;
+  }
+
+  elements.fileQueueList.innerHTML = state.queue.map(item => {
+    const isActive = state.activeItemId === item.id;
+    const formatIcon = getFormatIcon(item.formatInfo.parser);
+    const statusClass = item.status;
+    const timeText = item.durationMs ? `${item.durationMs} ms` : '';
+
+    return `
+      <div class="queue-item ${isActive ? 'active' : ''} ${statusClass}" data-id="${item.id}" role="listitem" tabindex="0" aria-label="${item.file.name}">
+        <div class="queue-item-main">
+          <div class="queue-item-left">
+            <div class="queue-item-icon" aria-hidden="true">${formatIcon}</div>
+            <div class="queue-item-info">
+              <span class="queue-item-name" title="${item.file.name}">${item.file.name}</span>
+              <div class="queue-item-meta">
+                <span class="queue-item-size">${formatBytes(item.file.size)}</span>
+                ${timeText ? `<span class="queue-item-time">• ${timeText}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="queue-item-right">
+            <span class="queue-item-status ${statusClass}" id="status-badge-${item.id}">${item.statusText}</span>
+            <button type="button" class="btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="progress-bar-container" aria-hidden="true">
+          <div class="progress-bar-fill" id="progress-${item.id}" style="width: ${item.progress}%;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Listeners para clique nos itens e botões de remoção
+  elements.fileQueueList.querySelectorAll('.queue-item').forEach(itemEl => {
+    const id = itemEl.dataset.id;
+    itemEl.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-queue-item-remove')) return;
+      selectQueueItem(id);
+    });
+  });
+
+  elements.fileQueueList.querySelectorAll('.btn-queue-item-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      removeQueueItem(id);
+    });
+  });
+}
+
+function updateQueueItemDOM(item) {
+  const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
+  if (!itemEl) return;
+
+  itemEl.className = `queue-item ${state.activeItemId === item.id ? 'active' : ''} ${item.status}`;
+  
+  const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
+  if (statusBadge) {
+    statusBadge.className = `queue-item-status ${item.status}`;
+    statusBadge.textContent = item.statusText;
+  }
+
+  const progressBar = itemEl.querySelector(`#progress-${item.id}`);
+  if (progressBar) {
+    progressBar.style.width = `${item.progress}%`;
+  }
+
+  const metaEl = itemEl.querySelector('.queue-item-meta');
+  if (metaEl && item.durationMs && !metaEl.querySelector('.queue-item-time')) {
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'queue-item-time';
+    timeSpan.textContent = `• ${item.durationMs} ms`;
+    metaEl.appendChild(timeSpan);
+  }
+}
+
+async function selectQueueItem(itemId) {
+  const item = state.queue.find(it => it.id === itemId);
+  if (!item) return;
+
+  state.activeItemId = itemId;
+  state.currentFile = item.file;
+  state.currentMarkdown = item.markdown || '';
+
+  if (elements.fileQueueList) {
+    const itemsDom = elements.fileQueueList.querySelectorAll('.queue-item');
+    itemsDom.forEach(el => {
+      if (el.dataset.id === itemId) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+  }
+
+  elements.rawEditor.value = item.markdown || '';
+  updateEditorMetrics(item.markdown || '');
+  await renderMarkdown(item.markdown || '');
+
+  elements.metricFileName.textContent = item.file.name;
+  elements.metricFileSize.textContent = formatBytes(item.file.size);
+  elements.metricFormat.textContent = item.formatInfo.ext.toUpperCase();
+  elements.metricFormat.className = item.status === 'error' ? 'metric-badge error' : 'metric-badge';
+  elements.metricConversionTime.textContent = `${item.durationMs || 0} ms`;
+
+  if (item.status === 'completed') {
+    updateStatus('success', 'Documento ativo pronto para edição/exportação');
+  } else if (item.status === 'error') {
+    updateStatus('error', item.errorMessage || 'Falha na conversão');
+  } else if (item.status === 'processing') {
+    updateStatus('processing', item.statusText || 'Processando...');
+  } else {
+    updateStatus('idle', 'Aguardando processamento na fila');
+  }
+}
+
+function removeQueueItem(itemId) {
+  const itemIndex = state.queue.findIndex(it => it.id === itemId);
+  if (itemIndex === -1) return;
+
+  const item = state.queue[itemIndex];
+  item.cancelled = true;
+  state.queue.splice(itemIndex, 1);
+
+  if (state.activeItemId === itemId) {
+    const nextCompleted = state.queue.find(it => it.status === 'completed');
+    if (nextCompleted) {
+      selectQueueItem(nextCompleted.id);
+    } else {
+      state.activeItemId = null;
+      state.currentFile = null;
+      state.currentMarkdown = '';
+      elements.rawEditor.value = '';
+      elements.previewContainer.innerHTML = '';
+      elements.metricFileName.textContent = '-';
+      elements.metricFileSize.textContent = '0 KB';
+      elements.metricFormat.textContent = 'Nenhum';
+      elements.metricConversionTime.textContent = '0 ms';
+      updateEditorMetrics('');
+      updateStatus('idle', 'Pronto para converter');
+    }
+  }
+
+  renderQueue();
+  showToast(`Item "${item.file.name}" removido da fila.`);
+  processQueue();
+}
+
+async function processQueue() {
+  const processingCount = state.queue.filter(it => it.status === 'processing' && !it.cancelled).length;
+  if (processingCount >= state.maxConcurrency) {
     return;
   }
 
-  const formatInfo = getFormatCategory(file.name);
-  state.currentFile = file;
+  const nextItem = state.queue.find(it => it.status === 'queued' && !it.cancelled);
+  if (!nextItem) {
+    return;
+  }
 
-  console.log(`[doc2md] Formato detectado: ${formatInfo.name} | Parser atribuído: ${formatInfo.parser}`);
+  processQueueItem(nextItem);
 
-  updateStatus('processing', `Convertendo ${file.name}...`);
-  elements.metricFileName.textContent = file.name;
-  elements.metricFileSize.textContent = formatBytes(file.size);
-  elements.metricFormat.textContent = formatInfo.ext.toUpperCase();
-  elements.metricFormat.className = 'metric-badge';
+  if (processingCount + 1 < state.maxConcurrency) {
+    const anotherItem = state.queue.find(it => it.status === 'queued' && !it.cancelled);
+    if (anotherItem) {
+      processQueueItem(anotherItem);
+    }
+  }
+}
+
+async function processQueueItem(item) {
+  if (item.cancelled) return;
+
+  item.status = 'processing';
+  item.progress = 10;
+  item.statusText = 'Lendo arquivo... (10%)';
+  updateQueueItemDOM(item);
 
   const startTime = performance.now();
+  updateDebugStatus(`[Processando]: ${item.file.name} (${formatBytes(item.file.size)})`);
 
   try {
+    const arrayBuffer = await readFileWithProgress(item.file, (readPercent) => {
+      if (item.cancelled) return;
+      const overall = Math.round(10 + (readPercent * 0.4));
+      item.progress = overall;
+      item.statusText = `Processando... (${overall}%)`;
+      updateQueueItemDOM(item);
+    });
+
+    if (item.cancelled) return;
+
+    item.progress = 60;
+    item.statusText = 'Convertendo documento... (60%)';
+    updateQueueItemDOM(item);
+
+    // Armazena em cache o buffer para o parser
+    item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
+
     let markdown = '';
-
-    switch (formatInfo.parser) {
+    switch (item.formatInfo.parser) {
       case 'docx':
-        markdown = await parseDocx(file);
+        markdown = await parseDocx(item.file);
         break;
-
       case 'xlsx':
-        markdown = await parseSpreadsheet(file);
+        markdown = await parseSpreadsheet(item.file);
         break;
-
       case 'pptx':
-        markdown = await parsePptx(file);
+        markdown = await parsePptx(item.file);
         break;
-
       case 'pdf':
-        markdown = await parsePdf(file);
+        markdown = await parsePdf(item.file);
         break;
-
       case 'text':
       default:
-        markdown = await parseText(file);
+        markdown = await parseText(item.file);
         break;
     }
 
+    if (item.cancelled) return;
+
     const duration = Math.round(performance.now() - startTime);
-    const successMsg = `[Concluído]: ${file.name} | Tempo: ${duration} ms | Formato: ${formatInfo.ext.toUpperCase()}`;
-    console.log(`[doc2md] ${successMsg}`);
-    updateDebugStatus(successMsg);
+    item.status = 'completed';
+    item.progress = 100;
+    item.statusText = 'Concluído';
+    item.markdown = markdown;
+    item.durationMs = duration;
+    updateQueueItemDOM(item);
 
-    state.currentMarkdown = markdown;
-    elements.rawEditor.value = markdown;
-    elements.metricConversionTime.textContent = `${duration} ms`;
+    updateDebugStatus(`[Concluído]: ${item.file.name} em ${duration} ms`);
 
-    updateEditorMetrics(markdown);
-    await renderMarkdown(markdown);
+    if (!state.activeItemId || state.activeItemId === item.id) {
+      selectQueueItem(item.id);
+    }
 
-    updateStatus('success', 'Conversão concluída com sucesso!');
-    showToast(`Arquivo ${file.name} convertido em ${duration} ms`, 'success');
+    showToast(`Arquivo "${item.file.name}" convertido em ${duration} ms`, 'success');
   } catch (error) {
-    const errorMsg = `[Falha]: ${file.name} - ${error.message || 'Erro durante o parsing'}`;
-    console.error(`[doc2md] ${errorMsg}`, error);
-    updateDebugStatus(errorMsg, true);
-    updateStatus('error', 'Erro ao converter documento');
-    elements.metricFormat.className = 'metric-badge error';
-    showToast(`Erro ao processar ${file.name}: ${error.message || 'Falha ao processar arquivo'}`, 'error', 4500);
+    if (item.cancelled) return;
+    const duration = Math.round(performance.now() - startTime);
+    item.status = 'error';
+    item.progress = 100;
+    item.statusText = 'Erro';
+    item.errorMessage = error.message || 'Falha durante o processamento';
+    item.durationMs = duration;
+    updateQueueItemDOM(item);
+
+    updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage}`, true);
+    showToast(`Erro ao processar "${item.file.name}": ${item.errorMessage}`, 'error', 4500);
+
+    if (state.activeItemId === item.id) {
+      selectQueueItem(item.id);
+    }
+  } finally {
+    processQueue();
+  }
+}
+
+// Compatibilidade com chamadas diretas
+async function convertFile(file) {
+  if (!file) return;
+  addFilesToQueue([file]);
+}
+
+/* ==========================================================================
+   Ações Globais de Fila (Limpar e Download em Lote .ZIP)
+   ========================================================================== */
+async function downloadAllZip() {
+  const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
+  if (completed.length === 0) {
+    showToast('Nenhum documento convertido disponível para download.', 'info');
+    return;
+  }
+
+  if (completed.length === 1) {
+    const item = completed[0];
+    const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+    downloadMarkdownFile(baseName, item.markdown);
+    showToast(`Arquivo ${baseName}.md baixado com sucesso.`, 'success');
+    return;
+  }
+
+  showToast('Gerando pacote ZIP com os documentos...', 'info', 2000);
+  try {
+    await loadScript(APP_CONFIG.CDN.JSZIP);
+    const JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+    if (!JSZipClass) {
+      throw new Error('Biblioteca JSZip indisponível.');
+    }
+
+    const zip = new JSZipClass();
+    const usedNames = new Set();
+
+    completed.forEach(item => {
+      let baseName = item.file.name.replace(/\.[^/.]+$/, '');
+      let fileName = `${baseName}.md`;
+      let counter = 1;
+      while (usedNames.has(fileName)) {
+        fileName = `${baseName}_${counter}.md`;
+        counter++;
+      }
+      usedNames.add(fileName);
+      zip.file(fileName, item.markdown);
+    });
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `documentos_markdown_${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Pacote ZIP com ${completed.length} documentos baixado!`, 'success');
+  } catch (err) {
+    console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
+    showToast(`Falha ao gerar ZIP: ${err.message}`, 'error');
+  }
+}
+
+function initQueueEvents() {
+  if (elements.btnQueueClear) {
+    elements.btnQueueClear.addEventListener('click', () => {
+      if (state.queue.length === 0) return;
+      state.queue.forEach(it => { it.cancelled = true; });
+      state.queue = [];
+      state.activeItemId = null;
+      state.currentFile = null;
+      state.currentMarkdown = '';
+      elements.rawEditor.value = '';
+      elements.previewContainer.innerHTML = '';
+      elements.metricFileName.textContent = '-';
+      elements.metricFileSize.textContent = '0 KB';
+      elements.metricFormat.textContent = 'Nenhum';
+      elements.metricConversionTime.textContent = '0 ms';
+      updateEditorMetrics('');
+      updateStatus('idle', 'Pronto para converter');
+      renderQueue();
+      showToast('Fila de arquivos limpa.');
+    });
+  }
+
+  if (elements.btnQueueDownloadAll) {
+    elements.btnQueueDownloadAll.addEventListener('click', () => {
+      downloadAllZip();
+    });
   }
 }
 
@@ -368,20 +761,19 @@ function initDropzone() {
     });
   }
 
-  // Mudança de arquivo via input nativo
+  // Mudança de arquivo via input nativo com suporte a múltiplos itens
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
       const files = e.target.files;
       if (files && files.length > 0) {
-        console.log(`[doc2md] Arquivo capturado via seletor nativo: "${files[0].name}"`);
-        convertFile(files[0]);
+        console.log(`[doc2md] ${files.length} arquivo(s) capturado(s) via seletor nativo`);
+        addFilesToQueue(files);
       }
-      // Reseta input para permitir selecionar o mesmo arquivo novamente
       fileInput.value = '';
     });
   }
 
-  // 2. Canal Drag & Drop Blindado (sem chamar fileInput.click() para evitar loops)
+  // 2. Canal Drag & Drop Blindado com suporte a múltiplos arquivos
   window.addEventListener('dragover', (e) => {
     e.preventDefault();
   }, false);
@@ -417,40 +809,32 @@ function initDropzone() {
       dropzone.classList.remove('drag-over');
       const files = e.dataTransfer ? e.dataTransfer.files : null;
       if (files && files.length > 0) {
-        console.log(`[doc2md] Arquivo recebido via Drop: "${files[0].name}"`);
-        convertFile(files[0]);
+        console.log(`[doc2md] ${files.length} arquivo(s) recebido(s) via Drop`);
+        addFilesToQueue(files);
       }
     });
   }
 
-  // 3. Canal Alternativo: Suporte a Colar (Paste / Clipboard)
+  // 3. Suporte a Colar (Paste / Clipboard) iterando todos os arquivos
   window.addEventListener('paste', async (e) => {
-    // Se o usuário estiver editando o textarea de markdown diretamente, permite colagem normal
     if (document.activeElement === elements.rawEditor) {
       return;
     }
 
-    // Se houver arquivo no clipboard
     if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
       e.preventDefault();
-      const file = e.clipboardData.files[0];
-      console.log(`[doc2md] Arquivo recebido via Paste (Clipboard): "${file.name}"`);
-      convertFile(file);
+      console.log(`[doc2md] ${e.clipboardData.files.length} arquivo(s) recebido(s) via Paste (Clipboard)`);
+      addFilesToQueue(e.clipboardData.files);
       return;
     }
 
-    // Se houver texto puro no clipboard
     const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
     if (pastedText && pastedText.trim()) {
       e.preventDefault();
       console.log('[doc2md] Texto puro recebido via Paste (Clipboard)');
       updateDebugStatus(`[Clipboard]: Texto recebido (${pastedText.length} caracteres)`);
-      state.currentMarkdown = pastedText;
-      elements.rawEditor.value = pastedText;
-      updateEditorMetrics(pastedText);
-      await renderMarkdown(pastedText);
-      updateStatus('success', 'Texto da área de transferência carregado!');
-      showToast('Texto colado carregado com sucesso!', 'success');
+      const mockFile = new File([pastedText], 'texto_colado.txt', { type: 'text/plain' });
+      addFilesToQueue([mockFile]);
     }
   });
 }
@@ -469,7 +853,7 @@ function initQuickExamples() {
       const infoMsg = `[Exemplo]: Carregando "${fileName}" da pasta local...`;
       console.log(`[doc2md] ${infoMsg}`);
       updateDebugStatus(infoMsg);
-      showToast(`Carregando exemplo "${fileName}"...`, 'info', 2000);
+      showToast(`Adicionando exemplo "${fileName}" à fila...`, 'info', 2000);
 
       try {
         const response = await fetch(`examples/${encodeURIComponent(fileName)}`);
@@ -478,7 +862,7 @@ function initQuickExamples() {
         }
         const arrayBuf = await response.arrayBuffer();
         const file = new File([arrayBuf], fileName);
-        await convertFile(file);
+        addFilesToQueue([file]);
       } catch (err) {
         const errMsg = `Erro ao carregar exemplo "${fileName}": ${err.message}`;
         console.error(`[doc2md] ${errMsg}`, err);
@@ -668,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initViewMode();
   initDropzone();
+  initQueueEvents();
   initQuickExamples();
   initActions();
   updateEditorMetrics('');

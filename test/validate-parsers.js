@@ -11,23 +11,23 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.0.4') {
-  console.error('[ERRO] Versão diferente de v.1.0.4');
+if (APP_CONFIG.VERSION !== 'v.1.1.0') {
+  console.error('[ERRO] Versão diferente de v.1.1.0');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.0.4') {
+if (pkg.version !== '1.1.0') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html e componentes de upload
+// 3. Verifica sincronização no index.html e componentes de upload e fila
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.0.4')) {
-  console.error('[ERRO] index.html não contém v.1.0.4');
+if (!indexHtml.includes('v.1.1.0')) {
+  console.error('[ERRO] index.html não contém v.1.1.0');
   process.exit(1);
 }
 if (!indexHtml.includes('id="btn-browse"')) {
@@ -46,7 +46,15 @@ if (!indexHtml.includes('left: -9999px')) {
   console.error('[ERRO] index.html não contém posicionamento neutro do file-input');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.0.4, #btn-browse, #debug-status e quick-examples');
+if (!indexHtml.includes('multiple')) {
+  console.error('[ERRO] index.html não contém atributo multiple no file-input');
+  process.exit(1);
+}
+if (!indexHtml.includes('id="file-queue-section"') || !indexHtml.includes('id="btn-queue-download-all"') || !indexHtml.includes('id="btn-queue-clear"')) {
+  console.error('[ERRO] index.html não contém os elementos da fila de processamento em lote');
+  process.exit(1);
+}
+console.log('[OK] index.html contém v.1.1.0, #btn-browse, multiple, file-queue-section e quick-examples');
 
 // 4. Verifica listeners e telemetria no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -58,19 +66,19 @@ if (!appJs.includes('window.onerror') || !appJs.includes('window.onunhandledreje
   console.error('[ERRO] js/app.js não contém telemetria de erros globais');
   process.exit(1);
 }
-if (!appJs.includes('initQuickExamples')) {
-  console.error('[ERRO] js/app.js não contém inicialização de exemplos rápidos');
+if (!appJs.includes('addFilesToQueue') || !appJs.includes('initQueueEvents')) {
+  console.error('[ERRO] js/app.js não contém funções de fila addFilesToQueue/initQueueEvents');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém listener de paste, telemetria global e initQuickExamples');
+console.log('[OK] js/app.js contém listener de paste, telemetria global, addFilesToQueue e initQueueEvents');
 
 // 5. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.0.4')) {
-  console.error('[ERRO] README.md não contém v.1.0.4');
+if (!readme.includes('v.1.1.0')) {
+  console.error('[ERRO] README.md não contém v.1.1.0');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.0.4');
+console.log('[OK] README.md contém cabeçalho v.1.1.0');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

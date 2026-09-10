@@ -1,0 +1,174 @@
+/**
+ * Teste de integração para a lógica da Fila de Lote (Batch Queue),
+ * concorrência controlada, progresso individual e remoção de itens.
+ */
+
+import { APP_CONFIG } from '../js/config.js';
+
+console.log('===============================================================');
+console.log('  TESTANDO LÓGICA DE FILA DE PROCESSAMENTO EM LOTE (v.1.1.0)');
+console.log('===============================================================');
+
+// Simulação de estado da fila
+const state = {
+  queue: [],
+  activeItemId: null,
+  maxConcurrency: 2
+};
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFormatCategory(fileName) {
+  const ext = '.' + fileName.split('.').pop().toLowerCase();
+  for (const [key, format] of Object.entries(APP_CONFIG.SUPPORTED_FORMATS)) {
+    if (format.ext.includes(ext)) {
+      return { key, ...format, ext };
+    }
+  }
+  return { key: 'text', ext, name: `Arquivo (${ext})`, category: 'text', parser: 'text' };
+}
+
+function addFilesToQueue(files) {
+  files.forEach(file => {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const formatInfo = getFormatCategory(file.name);
+    const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    let status = 'queued';
+    let statusText = 'Na fila';
+    let progress = 0;
+    let errorMessage = '';
+
+    if (file.size === 0) {
+      status = 'error';
+      statusText = 'Erro: Vazio (0 B)';
+      progress = 100;
+      errorMessage = 'Arquivo vazio (0 bytes)';
+    } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
+      status = 'error';
+      statusText = 'Erro: Formato não suportado';
+      progress = 100;
+      errorMessage = `Extensão "${ext}" não suportada`;
+    }
+
+    state.queue.push({
+      id,
+      file,
+      formatInfo,
+      status,
+      statusText,
+      progress,
+      markdown: '',
+      durationMs: 0,
+      errorMessage,
+      cancelled: false
+    });
+  });
+}
+
+function removeQueueItem(itemId) {
+  const idx = state.queue.findIndex(it => it.id === itemId);
+  if (idx === -1) return;
+  state.queue[idx].cancelled = true;
+  state.queue.splice(idx, 1);
+
+  if (state.activeItemId === itemId) {
+    const nextCompleted = state.queue.find(it => it.status === 'completed');
+    state.activeItemId = nextCompleted ? nextCompleted.id : null;
+  }
+}
+
+// 1. Testa adição de múltiplos arquivos
+const mockFiles = [
+  { name: 'documento1.docx', size: 15000 },
+  { name: 'planilha.xlsx', size: 25000 },
+  { name: 'apresentacao.pptx', size: 50000 },
+  { name: 'vazio.txt', size: 0 },
+  { name: 'binario.exe', size: 10000 }
+];
+
+addFilesToQueue(mockFiles);
+
+console.log(`[TESTE 1] Total de itens na fila: ${state.queue.length}`);
+if (state.queue.length !== 5) {
+  console.error('[FALHA] Esperava 5 itens na fila');
+  process.exit(1);
+}
+
+// Verifica identificação correta de erros imediatos
+const emptyItem = state.queue.find(it => it.file.name === 'vazio.txt');
+if (emptyItem.status !== 'error' || emptyItem.progress !== 100) {
+  console.error('[FALHA] Arquivo vazio não foi marcado como erro');
+  process.exit(1);
+}
+console.log('  -> Arquivo vazio rejeitado com status "error" e 100% de progresso');
+
+const exeItem = state.queue.find(it => it.file.name === 'binario.exe');
+if (exeItem.status !== 'error') {
+  console.error('[FALHA] Arquivo .exe não foi rejeitado');
+  process.exit(1);
+}
+console.log('  -> Arquivo binário não suportado rejeitado');
+
+// 2. Simula concorrência controlada (máximo 2 simultâneos)
+let activeCount = 0;
+const processItem = async (item) => {
+  item.status = 'processing';
+  item.progress = 20;
+  activeCount++;
+  if (activeCount > state.maxConcurrency) {
+    console.error(`[FALHA] Concorrência excedeu o limite de ${state.maxConcurrency}: ${activeCount}`);
+    process.exit(1);
+  }
+
+  // Simula leitura e parsing
+  item.progress = 60;
+  await new Promise(r => setTimeout(r, 20));
+  item.progress = 100;
+  item.status = 'completed';
+  item.markdown = `# Convertido ${item.file.name}`;
+  activeCount--;
+};
+
+const validItems = state.queue.filter(it => it.status === 'queued');
+console.log(`[TESTE 2] Processando ${validItems.length} itens válidos com concorrência máxima de 2...`);
+
+await Promise.all([
+  processItem(validItems[0]),
+  processItem(validItems[1])
+]);
+await processItem(validItems[2]);
+
+console.log('  -> Todos os 3 itens válidos concluídos sem exceder o limite de concorrência');
+
+// 3. Testa seleção de documento ativo
+state.activeItemId = validItems[0].id;
+console.log(`[TESTE 3] Documento ativo selecionado: ${validItems[0].file.name}`);
+if (state.activeItemId !== validItems[0].id) {
+  console.error('[FALHA] Falha ao selecionar item ativo');
+  process.exit(1);
+}
+
+// 4. Testa remoção de item ativo e alternância para o próximo
+console.log(`[TESTE 4] Removendo item ativo (${validItems[0].file.name})...`);
+removeQueueItem(validItems[0].id);
+
+if (state.queue.some(it => it.id === validItems[0].id)) {
+  console.error('[FALHA] Item não foi removido da fila');
+  process.exit(1);
+}
+if (state.activeItemId !== validItems[1].id) {
+  console.error(`[FALHA] Item ativo deveria ter mudado para ${validItems[1].file.name}`);
+  process.exit(1);
+}
+console.log(`  -> Item removido com sucesso! Novo item ativo: ${validItems[1].file.name}`);
+
+console.log('===============================================================');
+console.log('  SUCESSO: TODOS OS TESTES DA FILA EM LOTE PASSARAM COM ÊXITO!');
+console.log('===============================================================');

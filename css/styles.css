@@ -258,6 +258,7 @@ body {
 /* ==========================================================================
    Hero & Drag and Drop Dropzone
    ========================================================================== */
+.hero-header,
 .hero-section {
   text-align: center;
   width: 100%;
@@ -277,6 +278,10 @@ body {
   font-size: 1rem;
   color: var(--text-secondary);
   margin-bottom: 1.25rem;
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
 }
 
 .dropzone-container {
@@ -286,7 +291,10 @@ body {
 }
 
 .dropzone {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
   border: 2px dashed var(--border-color);
   background-color: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -296,6 +304,7 @@ body {
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .dropzone:hover,
@@ -316,8 +325,10 @@ body {
   align-items: center;
   gap: 0.75rem;
   position: relative;
+  width: 100%;
 }
 
+.dropzone-icon,
 .dropzone-icon-wrap {
   width: 54px;
   height: 54px;
@@ -330,14 +341,24 @@ body {
   transition: transform var(--transition-fast);
 }
 
+.dropzone:hover .dropzone-icon,
 .dropzone:hover .dropzone-icon-wrap {
   transform: scale(1.08);
 }
 
+.upload-icon-svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  display: block;
+}
+
+.dropzone-main-text,
 .dropzone-prompt {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
 }
 
 .dropzone-prompt .link-text {
@@ -346,19 +367,23 @@ body {
   text-underline-offset: 3px;
 }
 
+.dropzone-subtext,
 .dropzone-subprompt {
   font-size: 0.875rem;
   color: var(--text-muted);
+  margin: 0;
 }
 
+.format-badges-list,
 .format-tags {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.35rem;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
+.format-badge,
 .format-tag {
   font-size: 0.75rem;
   font-family: var(--font-mono);
@@ -367,14 +392,24 @@ body {
   background-color: var(--bg-surface);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.format-badge.highlight,
+.format-tag.highlight {
+  background-color: var(--blue-subtle);
+  color: var(--blue-primary);
+  border-color: rgba(37, 99, 235, 0.35);
+  font-weight: 700;
 }
 
 /* Limite de Upload Visível (Dropzone) */
+.limit-indicator,
 .limit-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
   padding: 0.3rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 500;
@@ -385,35 +420,74 @@ body {
   transition: all var(--transition-fast);
 }
 
+.limit-indicator .icon-info {
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: var(--blue-primary);
+  line-height: 1;
+}
+
+.limit-indicator svg,
 .limit-badge svg {
   color: var(--blue-primary);
   flex-shrink: 0;
 }
 
+.limit-indicator strong,
 .limit-badge strong {
   color: var(--text-primary);
   font-weight: 600;
 }
 
+[data-theme="dark"] .limit-indicator,
 [data-theme="dark"] .limit-badge {
   color: #94A3B8;
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+[data-theme="dark"] .limit-indicator strong,
 [data-theme="dark"] .limit-badge strong {
   color: #F1F5F9;
 }
 
 /* Botão Explícito de Seleção de Arquivo */
 .btn-browse {
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
   padding: 0.65rem 1.4rem;
   font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.btn-browse svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
 }
 
 .btn-browse:hover {

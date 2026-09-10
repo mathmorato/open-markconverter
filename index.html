@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.7.0</span>
+          <span class="version-badge" id="header-version">v.1.7.1</span>
         </div>
       </a>
 
@@ -69,74 +69,71 @@
       
       <!-- Seção de Apresentação & Dropzone -->
       <section class="hero-section">
-      <h1 class="hero-title">Conversor Universal de Documentos para Markdown</h1>
-      <p class="hero-subtitle">
-        Converta arquivos DOCX, Planilhas, PPTX, PDFs e textos diretamente no navegador. 100% privado, local e sem dependência de servidores.
-      </p>
+        <!-- Cabeçalho Principal -->
+        <header class="hero-header">
+          <h1 class="hero-title">Conversor Universal & Mesclador de Documentos para Markdown</h1>
+          <p class="hero-subtitle">
+            Converta, descompacte e unifique documentos, planilhas, apresentações, PDFs e pacotes (.zip/.rar) diretamente no navegador. 100% privado, local e sem dependência de servidores.
+          </p>
+        </header>
 
-      <!-- Dropzone Drag & Drop -->
-      <div class="dropzone-container">
-        <div class="dropzone" id="dropzone" aria-label="Zona para arrastar e soltar arquivos">
-          <input type="file" id="file-input" multiple style="position: absolute; left: -9999px; opacity: 0;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log,.zip,.rar,.7z,.tar,.gz,.bz2" aria-label="Selecionar arquivos">
-          
-          <div class="dropzone-inner">
-            <div class="dropzone-icon-wrap" aria-hidden="true">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
+        <!-- Área da Dropzone -->
+        <div class="dropzone-container">
+          <label for="file-input" class="dropzone" id="dropzone" tabindex="0">
+            <div class="dropzone-icon dropzone-icon-wrap" aria-hidden="true">
+              <!-- SVG do Ícone de Upload -->
+              <svg class="upload-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
-            <div class="dropzone-prompt">
-              Arraste e solte o arquivo aqui ou clique no botão abaixo
-            </div>
 
-            <!-- Botão Explícito de Seleção Direta -->
+            <p class="dropzone-main-text dropzone-prompt">
+              Arraste e solte seus arquivos ou pacotes (.zip, .rar) aqui, ou clique no botão abaixo
+            </p>
+
             <button type="button" id="btn-browse" class="btn btn-primary btn-browse">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               Selecionar Arquivo do Computador
             </button>
 
-            <div class="dropzone-subprompt">
-              Suporta colar arquivos ou texto da área de transferência (Ctrl+V)
+            <p class="dropzone-subtext dropzone-subprompt">
+              Suporta upload em lote, descompactação automática e colagem de arquivos/texto (Ctrl+V)
+            </p>
+
+            <div class="format-badges-list format-tags">
+              <span class="format-badge format-tag">.docx</span>
+              <span class="format-badge format-tag">.xlsx</span>
+              <span class="format-badge format-tag">.csv</span>
+              <span class="format-badge format-tag">.ods</span>
+              <span class="format-badge format-tag">.pptx</span>
+              <span class="format-badge format-tag">.pdf</span>
+              <span class="format-badge format-tag">.txt</span>
+              <span class="format-badge format-tag">.json</span>
+              <span class="format-badge format-tag">.html</span>
+              <span class="format-badge format-tag">.rtf</span>
+              <span class="format-badge format-tag">.zip</span>
+              <span class="format-badge format-tag">.rar</span>
+              <span class="format-badge format-tag highlight">+30 formatos</span>
             </div>
 
-            <!-- Tags de formatos aceitos -->
-            <div class="format-tags">
-              <span class="format-tag">.docx</span>
-              <span class="format-tag">.xlsx</span>
-              <span class="format-tag">.csv</span>
-              <span class="format-tag">.ods</span>
-              <span class="format-tag">.pptx</span>
-              <span class="format-tag">.pdf</span>
-              <span class="format-tag">.txt</span>
-              <span class="format-tag">.json</span>
-              <span class="format-tag">.html</span>
-              <span class="format-tag">.rtf</span>
-              <span class="format-tag">.zip</span>
-              <span class="format-tag">.rar</span>
+            <div class="limit-indicator limit-badge" title="Tamanho máximo suportado por documento">
+              <span class="icon-info">ⓘ</span>
+              <span>Limite máximo: <strong>1,5 GB</strong> por arquivo ou pacote compactado</span>
             </div>
 
-            <!-- Limite de upload visível -->
-            <div class="limit-badge" title="Tamanho máximo suportado por documento">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span>Limite máximo: <strong>1,5 GB</strong> por arquivo</span>
-            </div>
-          </div>
+            <input type="file" id="file-input" class="visually-hidden" multiple style="position: absolute; left: -9999px; opacity: 0;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log,.zip,.rar,.7z,.tar,.gz,.bz2" aria-label="Selecionar arquivos" />
+          </label>
         </div>
 
         <!-- Telemetria e Diagnóstico Visual Técnico (oculto por padrão) -->
         <div id="debug-status" class="debug-status" aria-live="polite" style="display: none;"></div>
-      </div>
-    </section>
+      </section>
 
     <!-- Fila de Documentos & Progresso em Lote (File Queue Section) -->
     <section id="file-queue-section" class="file-queue-section" style="display: none;" aria-label="Fila de arquivos para conversão">
@@ -243,7 +240,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.7.0</span>
+        <span class="version-badge" id="footer-version">v.1.7.1</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

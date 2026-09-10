@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.7.0`
+# Universal MarkConverter (doc2md) `v.1.7.1`
 
-[![Version](https://img.shields.io/badge/version-v.1.7.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.7.1-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,21 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.7.1
+
+- **Reformulação Textual e Semântica do Cabeçalho e Dropzone:**
+  - Título Principal atualizado para *"Conversor Universal & Mesclador de Documentos para Markdown"*, evidenciando o suporte a lote e descompactação automática.
+  - Subtítulo completo descrevendo suporte a documentos, planilhas, apresentações, PDFs e pacotes (`.zip`/`.rar`).
+  - Textos instrutivos na dropzone explicitando upload em lote, descompactação automática e suporte à área de transferência (Ctrl+V).
+- **Lista Expandida de Badges de Formato com Destaque (`+30 formatos`):**
+  - Inclusão dos badges `.docx`, `.xlsx`, `.csv`, `.ods`, `.pptx`, `.pdf`, `.txt`, `.json`, `.html`, `.rtf`, `.zip`, `.rar` e badge destacada `+30 formatos`.
+- **Badge Informativa de Limite Expandido:**
+  - Ícone informativo estilizado com indicação clara de limite máximo de **1,5 GB por arquivo ou pacote compactado**.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.7.1`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

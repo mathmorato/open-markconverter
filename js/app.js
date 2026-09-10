@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.7.7
+ * @version v.1.7.8
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -51,17 +51,17 @@ export const state = {
 
 /**
  * Escala dinamicamente o teto de concorrência conforme o volume da fila ou pacotes descompactados
- * @param {boolean} forceHighConcurrency - Força modo agressivo (50 workers)
+ * @param {boolean} forceHighConcurrency - Força modo agressivo (1000 workers)
  * @returns {number} Concorrência ativa configurada
  */
 export function updateDynamicConcurrency(forceHighConcurrency = false) {
   if (forceHighConcurrency) {
-    state.maxConcurrency = (APP_CONFIG.CONCURRENCY && APP_CONFIG.CONCURRENCY.HIGH_VOLUME) || 50;
+    state.maxConcurrency = (APP_CONFIG.CONCURRENCY && APP_CONFIG.CONCURRENCY.HIGH_VOLUME) || 1000;
     return state.maxConcurrency;
   }
   const hasExtractedOrigin = state.queue && state.queue.some(it => it.archiveOrigin && it.archiveOrigin !== '(Upload Direto)');
   if (hasExtractedOrigin) {
-    state.maxConcurrency = (APP_CONFIG.CONCURRENCY && APP_CONFIG.CONCURRENCY.HIGH_VOLUME) || 50;
+    state.maxConcurrency = (APP_CONFIG.CONCURRENCY && APP_CONFIG.CONCURRENCY.HIGH_VOLUME) || 1000;
     return state.maxConcurrency;
   }
   const totalItems = state.queue ? state.queue.length : 0;
@@ -732,10 +732,10 @@ export async function addFilesToQueue(files) {
   state.queue.push(...newItems);
   state.userIsScrolling = false;
 
-  // Escala dinamicamente a concorrência para pelo menos 50 workers ao descompactar ou com lote > 20 arquivos
+  // Escala dinamicamente a concorrência para até 1000 workers ao descompactar ou com lote > 20 arquivos
   const hasExtractedOrigin = fileList.some(f => f.archiveOrigin && f.archiveOrigin !== '(Upload Direto)') || isArchiveExtraction;
   if (hasExtractedOrigin || queueCandidates.length > 20 || state.queue.length > 20) {
-    state.maxConcurrency = 50;
+    state.maxConcurrency = (APP_CONFIG.CONCURRENCY && APP_CONFIG.CONCURRENCY.HIGH_VOLUME) || 1000;
   } else {
     updateDynamicConcurrency();
   }
@@ -945,7 +945,7 @@ function flushQueueDOMUpdates() {
 
 /**
  * Atualiza o DOM do item da fila com throttle e batching via requestAnimationFrame
- * para garantir 60 FPS e ausência de jank com até 50+ itens simultâneos
+ * para garantir 60 FPS e ausência de jank com até 1000 itens simultâneos
  * @param {Object} item - Objeto do item da fila
  * @param {boolean} immediate - Se true, ignora o RAF e atualiza síncrono
  */
@@ -1261,7 +1261,7 @@ export function scrollToActiveItem(itemIdOrElement) {
 }
 
 /**
- * Despacha tarefas da fila concorrente até preencher o teto de concorrência (até 50 workers paralelos)
+ * Despacha tarefas da fila concorrente até preencher o teto de concorrência (até 1000 workers paralelos)
  */
 export function dispatchNext() {
   updateDynamicConcurrency();

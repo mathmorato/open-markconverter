@@ -1,6 +1,6 @@
 /**
  * Suíte Geral de Testes para Parsers Universais, YAML (.yml/.yaml),
- * Tipos MIME e Resiliência Heurística (v.1.7.7)
+ * Tipos MIME e Resiliência Heurística (v.1.7.8)
  */
 
 import assert from 'assert';

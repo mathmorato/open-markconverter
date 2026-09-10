@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.7.7
+ * @version v.1.7.8
  */
 
 export const CODE_EXTENSIONS_MAP = {
@@ -179,7 +179,7 @@ export const MIME_TYPE_MAP = {
 };
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.7.7',
+  VERSION: 'v.1.7.8',
   APP_NAME: 'Open Mark',
   TAGLINE: 'Open Mark • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-mark',
@@ -191,7 +191,7 @@ export const APP_CONFIG = {
   CONCURRENCY: {
     DEFAULT: 4,               // Pool moderado para poucos arquivos (<= 20)
     HIGH_VOLUME_THRESHOLD: 20, // Ponto de corte para escalonamento automático
-    HIGH_VOLUME: 50           // Pool agressivo para lotes grandes e descompactação
+    HIGH_VOLUME: 1000         // Pool agressivo para alto volume e descompactação (até 1000 simultâneos)
   },
   
   // Chaves de persistência no LocalStorage
@@ -337,14 +337,14 @@ export const ERROR_CATALOG = {
 /**
  * Determina a concorrência dinâmica com base no volume da fila ou pacote
  * @param {number|Array} queueOrLength - Tamanho da fila ou array de arquivos
- * @returns {number} 4 para lotes moderados (<= 20) ou 50 para alto volume / descompactação (> 20)
+ * @returns {number} 4 para lotes moderados (<= 20) ou 1000 para alto volume / descompactação (> 20)
  */
 export function getDynamicConcurrency(queueOrLength) {
   const count = typeof queueOrLength === 'number'
     ? queueOrLength
     : (Array.isArray(queueOrLength) ? queueOrLength.length : 0);
   if (count > (APP_CONFIG.CONCURRENCY?.HIGH_VOLUME_THRESHOLD || 20)) {
-    return APP_CONFIG.CONCURRENCY?.HIGH_VOLUME || 50; // Ativa pool agressivo para alto volume (50 workers)
+    return APP_CONFIG.CONCURRENCY?.HIGH_VOLUME || 1000; // Ativa pool agressivo para alto volume (1000 workers)
   }
   return APP_CONFIG.CONCURRENCY?.DEFAULT || 4; // Padrão leve para poucos arquivos
 }

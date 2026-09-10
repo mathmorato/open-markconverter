@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.11`
+# Universal MarkConverter (doc2md) `v.1.4.12`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.11-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.12-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,23 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.4.12
+
+- **Expansão de 50% na Altura e Área Física dos Cards da Fila (`.file-queue-item`):**
+  - Elevação da altura mínima (`min-height`) de ~52px para **`78px`** (+50%) e expansão do padding interno para **`1rem 1.4rem`**, proporcionando maior respiro visual, ergonomia tátil e conforto de clique.
+- **Aumento de 50% na Escala de Todos os Ícones:**
+  - **Ícone de Arquivo com Badge (`.file-badge-icon`):** ampliado de `36px × 44px` para **`54px × 66px`**, com a etiqueta de extensão (`.file-extension-tag`) redimensionada proporcionalmente para **`0.78rem`** (~12-13px).
+  - **Ícones de Etapas (`.step-icon-upload`, `.step-icon-convert`):** ampliados para **`24px × 24px`** e **`26px × 22px`**, com keyframe ascendente ajustado para amplitude maior (`translateY(-12px)`).
+  - **Indicadores de Status (`.status-icon`, `.status-indicator`):** ampulheta giratória e check verde ampliados para **`28px × 28px`** (container com área mínima de `36px × 36px`).
+  - **Botões de Ação (`.btn-download`, `.btn-remove`):** ampliados para acomodar SVGs de **`24px`** e área de toque confortável de **`40px × 40px`** (`padding: 0.5rem`).
+- **Aumento de 50% na Tipografia e Espessura de Trilhos:**
+  - **Nome do Arquivo (`.file-name`):** ampliado para **`1.3rem` (~21px)** em peso semi-negrito (`font-weight: 600`), mantendo contenção horizontal contínua.
+  - **Badges de Metadados (`.badge-file-size`, `.badge-elapsed-time`, `.badge-md-size`):** ampliados para **`1.1rem–1.15rem`** com bordas e preenchimento proporcionais.
+  - **Rótulos e Percentuais de Progresso (`.mini-progress-label`, `.read-percent`, `.convert-percent`):** legibilidade elevada com tamanho de **`1.1rem–1.15rem`**.
+  - **Trilhos de Progresso (`.mini-progress-track`):** espessura ampliada de `4px` para **`6px`** para equilíbrio estético com a nova escala tipográfica.
 
 ---
 

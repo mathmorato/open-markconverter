@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.11') {
-  console.error('[ERRO] Versão diferente de v.1.4.11');
+if (APP_CONFIG.VERSION !== 'v.1.4.12') {
+  console.error('[ERRO] Versão diferente de v.1.4.12');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.11') {
+if (pkg.version !== '1.4.12') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.11')) {
-  console.error('[ERRO] index.html não contém v.1.4.11');
+if (!indexHtml.includes('v.1.4.12')) {
+  console.error('[ERRO] index.html não contém v.1.4.12');
   process.exit(1);
 }
 if (indexHtml.includes('toast-container') || indexHtml.includes('id="toast-container"')) {
@@ -86,7 +86,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.11, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.4.12, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -214,8 +214,16 @@ if (!stylesCss.includes('.file-badge-icon') || !stylesCss.includes('.file-sheet-
   console.error('[ERRO] css/styles.css não contém estilos do ícone com badge (.file-badge-icon / .file-sheet-svg / .file-extension-tag)');
   process.exit(1);
 }
-if (!stylesCss.includes('transform: scale(0.9)') || !stylesCss.includes('padding: 2px')) {
-  console.error('[ERRO] css/styles.css não contém redução de 10% (scale(0.9)) ou respiro anti-corte no ícone com badge');
+if (!stylesCss.includes('transform: scale(0.9)') || (!stylesCss.includes('width: 54px') && !stylesCss.includes('height: 66px'))) {
+  console.error('[ERRO] css/styles.css não contém dimensões ampliadas em 50% (54px x 66px) no ícone com badge');
+  process.exit(1);
+}
+if (!stylesCss.includes('min-height: 78px')) {
+  console.error('[ERRO] css/styles.css não contém expansão de 50% na altura mínima (.file-queue-item min-height: 78px)');
+  process.exit(1);
+}
+if (!stylesCss.includes('font-size: 1.3rem')) {
+  console.error('[ERRO] css/styles.css não contém ampliação de 50% no nome do arquivo (font-size: 1.3rem)');
   process.exit(1);
 }
 if (!stylesCss.includes('.is-completed')) {
@@ -246,27 +254,27 @@ if (!stylesCss.includes('.badge-error')) {
   console.error('[ERRO] css/styles.css não contém suporte a .badge-error');
   process.exit(1);
 }
-if (!stylesCss.includes('max-height: 5px') && !stylesCss.includes('height: 5px') && !stylesCss.includes('height: 4px')) {
-  console.error('[ERRO] css/styles.css não contém altura reduzida para barras de progresso');
+if (!stylesCss.includes('max-height: 6px') && !stylesCss.includes('height: 6px') && !stylesCss.includes('height: 5px')) {
+  console.error('[ERRO] css/styles.css não contém altura para barras de progresso');
   process.exit(1);
 }
 if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@media (max-width: 640px)') || !stylesCss.includes('@media (max-width: 480px)')) {
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém ícones animados com subida infinita, escala 10%, contenção e alinhamento linear');
+console.log('[OK] css/styles.css contém cards +50% expandidos, ícones e tipografia ampliados');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.11')) {
-  console.error('[ERRO] README.md não contém v.1.4.11');
+if (!readme.includes('v.1.4.12')) {
+  console.error('[ERRO] README.md não contém v.1.4.12');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.11 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.4.12 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

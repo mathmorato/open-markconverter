@@ -745,10 +745,10 @@ body {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
   width: 100%;
-  min-height: 52px;
-  padding: 0.65rem 1.25rem;
+  min-height: 78px; /* Aumento de 50% sobre a base anterior de ~52px */
+  padding: 1rem 1.4rem; /* Aumento proporcional do respiro vertical/horizontal */
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -782,7 +782,7 @@ body {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   overflow: hidden;
 }
 
@@ -793,16 +793,16 @@ body {
   flex: 1 1 auto;
 }
 
-/* Ícone Vetorial de Arquivo com Badge da Extensão (.XXX) com redução de 10% e respiros anti-corte */
+/* Ícone Vetorial de Arquivo com Badge da Extensão (.XXX) ampliado em 50% (54px x 66px) */
 .file-badge-icon {
   position: relative;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 44px;
-  padding: 2px;
+  width: 54px;
+  height: 66px;
+  padding: 3px;
   box-sizing: border-box;
   overflow: visible;
   color: #1E293B;
@@ -828,14 +828,14 @@ body {
 .file-extension-tag {
   position: absolute;
   left: 0px;
-  bottom: 6px;
+  bottom: 9px;
   background: var(--bg-surface);
-  border: 1.75px solid #1E293B;
+  border: 2px solid #1E293B;
   color: #1E293B;
-  border-radius: 3px;
-  padding: 1px 3px;
+  border-radius: 4px;
+  padding: 2px 5px;
   font-family: var(--font-mono), system-ui, sans-serif;
-  font-size: 0.52rem;
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -861,11 +861,11 @@ body {
   flex-shrink: 0;
 }
 
-/* Nome do Arquivo em Linha Única sem quebra indesejada */
+/* Nome do Arquivo ampliado em 50% (~21px / 1.3rem) em Linha Única */
 .item-block.item-info .file-name,
 .queue-item-name {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1.3rem;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -874,7 +874,7 @@ body {
   min-width: 0;
 }
 
-/* Badge do Peso Original posicionado imediatamente após a extensão */
+/* Badge do Peso Original ampliado em 50% (~18px / 1.1rem) */
 .badge-file-size,
 .queue-item-size,
 .item-block.item-info .file-meta,
@@ -884,10 +884,10 @@ body {
   background: #F1F5F9;
   color: #475569;
   border: 1px solid #E2E8F0;
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   font-weight: 500;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -902,7 +902,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   BLOCO 2 (Centro - Progresso Unificado): Barras compactas com auto-collapse ao concluir
+   BLOCO 2 (Centro - Progresso Unificado): Barras ampliadas com auto-collapse ao concluir
    -------------------------------------------------------------------------- */
 .item-block.item-progress,
 .queue-item-progress,
@@ -910,13 +910,13 @@ body {
   flex: 1 1 auto;
   min-width: 0; /* Previne estouro flex em navegadores modernos */
   width: 100%;
-  margin: 0 0.5rem;
+  margin: 0 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.45rem;
   box-sizing: border-box;
   transition: opacity 0.35s ease-out, max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.35s ease-out;
-  max-height: 80px;
+  max-height: 110px;
   opacity: 1;
 }
 
@@ -942,7 +942,7 @@ body {
 .progress-sub-step {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
   width: 100%;
 }
 
@@ -951,8 +951,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.72rem;
-  line-height: 1.2;
+  font-size: 1.1rem;
+  line-height: 1.3;
   color: #64748B;
 }
 
@@ -971,24 +971,27 @@ body {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
+  font-size: 1.1rem;
+  font-weight: 600;
+  gap: 6px;
 }
 
 .step-icon {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   vertical-align: middle;
-  margin-right: 4px;
+  margin-right: 6px;
   flex-shrink: 0;
   color: currentColor;
   transition: color 0.3s ease;
 }
 
 .step-icon-convert {
-  width: 16px;
-  height: 14px;
+  width: 26px;
+  height: 22px;
 }
 
 .step-icon svg {
@@ -1001,11 +1004,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   overflow: hidden; /* Mantém a seta contida no berço */
   vertical-align: middle;
-  margin-right: 4px;
+  margin-right: 6px;
   position: relative;
   flex-shrink: 0;
   color: currentColor;
@@ -1022,7 +1025,7 @@ body {
 /* Animação CSS de Upload Ascendente Infinito (@keyframes upload-ascend-infinite) */
 @keyframes upload-ascend-infinite {
   0% {
-    transform: translateY(4px);
+    transform: translateY(6px);
     opacity: 0;
   }
   20% {
@@ -1032,7 +1035,7 @@ body {
     opacity: 1;
   }
   100% {
-    transform: translateY(-8px);
+    transform: translateY(-12px);
     opacity: 0;
   }
 }
@@ -1109,7 +1112,7 @@ body {
 .upload-percent,
 .convert-percent {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 1.1rem;
   color: #64748B;
 }
 
@@ -1121,10 +1124,10 @@ body {
 
 /* Badge de telemetria de peso final do Markdown gerado */
 .md-output-size {
-  font-size: 0.72rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #10B981;
-  margin-left: 0.35rem;
+  margin-left: 0.5rem;
   display: inline-block;
   letter-spacing: -0.01em;
 }
@@ -1138,8 +1141,8 @@ body {
 .progress-track {
   width: 100%;
   max-width: 100%;
-  height: 4px;
-  max-height: 5px;
+  height: 6px;
+  max-height: 6px;
   background: var(--border-color);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -1199,7 +1202,7 @@ body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -1209,8 +1212,8 @@ body {
 .queue-item-time {
   color: #94A3B8;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 600;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -1226,7 +1229,7 @@ body {
 .queue-item-md-size {
   color: #10B981;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 1.15rem;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -1236,16 +1239,21 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  min-height: 24px;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .status-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+}
+
+.status-icon svg {
+  width: 28px;
+  height: 28px;
 }
 
 @keyframes spin-hourglass {
@@ -1287,13 +1295,22 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0.35rem;
+  padding: 0.5rem;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
   color: var(--text-secondary);
+}
+
+.btn-item-action svg,
+.btn-queue-item-download svg,
+.btn-queue-item-remove svg {
+  width: 24px;
+  height: 24px;
 }
 
 .btn-item-action.btn-download,
@@ -1435,8 +1452,9 @@ body {
   /* Cards de Arquivo na Fila (.file-queue-item / .queue-item) */
   .file-queue-item,
   .queue-item {
-    padding: 0.65rem 0.85rem;
-    gap: 0.75rem;
+    min-height: 78px;
+    padding: 0.85rem 1rem;
+    gap: 0.85rem;
   }
 
   .item-block.item-info,
@@ -1447,9 +1465,9 @@ body {
   .btn-item-action,
   .btn-queue-item-download,
   .btn-queue-item-remove {
-    padding: 0.4rem;
-    min-width: 36px;
-    min-height: 36px;
+    padding: 0.45rem;
+    min-width: 40px;
+    min-height: 40px;
   }
 }
 

@@ -1,7 +1,7 @@
 /**
- * Universal MarkConverter (doc2md)
+ * Open Mark (doc2md)
  * Design System & Estilos Globais
- * @version v.1.4.2
+ * @version v.1.7.5
  */
 
 /* ==========================================================================
@@ -167,15 +167,25 @@ body {
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--blue-primary), var(--blue-hover));
-  color: #FFFFFF;
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(37, 99, 255, 0.25);
+  color: var(--text-primary);
+  transition: transform var(--transition-fast), color var(--transition-normal);
+}
+
+.brand-logo-svg {
+  width: 42px;
+  height: auto;
+  aspect-ratio: 208 / 128;
+  display: block;
+  color: var(--text-primary);
+  transition: color var(--transition-normal), transform var(--transition-fast);
+}
+
+.brand:hover .brand-logo-svg {
+  color: var(--blue-primary);
+  transform: scale(1.05);
 }
 
 .brand-title {

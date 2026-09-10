@@ -1,7 +1,7 @@
 /**
- * Universal MarkConverter (doc2md)
+ * Open Mark (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.7.3
+ * @version v.1.7.5
  */
 
 export const CODE_EXTENSIONS_MAP = {
@@ -179,9 +179,9 @@ export const MIME_TYPE_MAP = {
 };
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.7.4',
-  APP_NAME: 'Universal MarkConverter',
-  TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
+  VERSION: 'v.1.7.5',
+  APP_NAME: 'Open Mark',
+  TAGLINE: 'Open Mark • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-mark',
   
   // Limite máximo rígido de tamanho por arquivo (1,5 GB = 1.610.612.736 bytes)

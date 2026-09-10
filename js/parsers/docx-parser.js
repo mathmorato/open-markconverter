@@ -1,5 +1,5 @@
 /**
- * Word (.docx) Parser para Universal MarkConverter
+ * Word (.docx) Parser para Open Mark
  * Utiliza Mammoth.js para conversão semântica HTML e Turndown para Markdown
  */
 

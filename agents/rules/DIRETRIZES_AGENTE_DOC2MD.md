@@ -1,4 +1,4 @@
-# Diretrizes e Regras do Agente - Plataforma Universal MarkConverter (doc2md)
+# Diretrizes e Regras do Agente - Plataforma Open Mark (doc2md)
 
 Estas diretrizes constituem autorização prévia para realizar todas as modificações necessárias no projeto, desde que estejam alinhadas ao contexto de um conversor universal de documentos para Markdown (100% client-side/local e compatível com GitHub Pages) e respeitem integralmente este documento.
 

@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.7.4`
+# Open Mark (doc2md) `v.1.7.5`
 
-[![Version](https://img.shields.io/badge/version-v.1.7.4-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.7.5-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -10,7 +10,7 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
-👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-mark/#)**
+👉 **[Acessar Open Mark](https://mathmorato.github.io/open-mark/#)**
 
 ---
 
@@ -33,7 +33,7 @@ O motor de conversão combina parsers documentais especializados com fallback he
 
 ## 🔒 Manifesto de Segurança e Privacidade (Data Privacy by Design)
 
-O **Universal MarkConverter** foi arquitetado sob a premissa fundamental de soberania de dados do usuário:
+O **Open Mark** foi arquitetado sob a premissa fundamental de soberania de dados do usuário:
 
 1. **Execução 100% Client-Side:** Toda a lógica de leitura binária, parsing de XML/ZIP e compilação de Markdown executa no sandbox do motor JavaScript do navegador do usuário (`V8`, `SpiderMonkey`, `JavaScriptCore`).
 2. **Zero Tráfego de Rede para Documentos:** Nenhum documento, fragmento de texto, nome de arquivo ou metadado trafega por redes externas ou servidores centrais. A aplicação funciona plenamente até mesmo em modo offline (*Air-Gapped*).
@@ -121,9 +121,9 @@ O projeto está 100% preparado para publicação contínua direta pelo GitHub Pa
 
 ## 🏷️ Licença e Versionamento SemVer
 
-- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.7.4`**, sincronizada nos pontos de governança do projeto:
+- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.7.5`**, sincronizada nos pontos de governança do projeto:
   1. Interface principal (`index.html`).
-  2. Arquivo `package.json` (`"version": "1.7.4"`).
+  2. Arquivo `package.json` (`"version": "1.7.5"`).
   3. Constante `APP_CONFIG.VERSION` em `js/config.js`.
   4. Badges e cabeçalho deste `README.md`.
 - **Licença de Uso:** Distribuído sob os termos da licença **MIT**. Para maiores detalhes, consulte o arquivo [LICENSE](LICENSE).

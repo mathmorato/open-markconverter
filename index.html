@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universal MarkConverter (doc2md) - Conversor 100% Client-Side para Markdown</title>
-  <meta name="description" content="Converta arquivos Word (.docx), Planilhas (.xlsx, .csv), Apresentações (.pptx), PDFs e textos para Markdown estruturado e limpo diretamente no navegador sem enviar dados para servidores.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z'/><polyline points='14 2 14 8 20 8'/><path d='m10 13-2 2 2 2'/><path d='m14 17 2-2-2-2'/></svg>">
+  <title>Open Mark - Conversor & Mesclador Universal de Documentos para Markdown</title>
+  <meta name="description" content="Open Mark: Converta documentos, planilhas, apresentações, PDFs, código e pacotes (.zip/.rar) para Markdown estruturado e limpo diretamente no navegador sem enviar dados para servidores.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/styles.css">
   
   <!-- Fontes modernas Google Fonts (Inter e JetBrains Mono) -->
@@ -18,18 +18,22 @@
   <!-- Topbar / Cabeçalho Principal -->
   <header class="topbar">
     <div class="topbar-container">
-      <a href="#" class="brand" aria-label="Universal MarkConverter Página Inicial">
+      <a href="#" class="brand" aria-label="Open Mark Página Inicial">
         <div class="brand-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <path d="m10 13-2 2 2 2"/>
-            <path d="m14 17 2-2-2-2"/>
+          <svg class="brand-logo-svg" viewBox="0 0 208 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Open Mark Logo">
+            <!-- Contorno externo retangular com cantos arredondados espessos -->
+            <rect x="5" y="5" width="198" height="118" rx="18" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="round"/>
+            
+            <!-- Letra M robusta e geométrica -->
+            <path d="M30 98V30H46L64 58L82 30H98V98H82V54L64 82L46 54V98H30Z" fill="currentColor"/>
+            
+            <!-- Seta para baixo -->
+            <path d="M140 30H158V68H176L149 100L122 68H140V30Z" fill="currentColor"/>
           </svg>
         </div>
         <div class="brand-title">
-          <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.7.4</span>
+          <span>Open <span class="accent">Mark</span></span>
+          <span class="version-badge" id="header-version">v.1.7.5</span>
         </div>
       </a>
 
@@ -249,7 +253,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.7.4</span>
+        <span class="version-badge" id="footer-version">v.1.7.5</span>
         <a href="https://github.com/mathmorato/open-mark" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

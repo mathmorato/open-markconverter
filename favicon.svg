@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 128" fill="none" aria-label="Open Mark Favicon">
+  <style>
+    rect { stroke: #0F172A; }
+    path { fill: #0F172A; }
+    @media (prefers-color-scheme: dark) {
+      rect { stroke: #FFFFFF; }
+      path { fill: #FFFFFF; }
+    }
+  </style>
+  <!-- Contorno externo retangular com cantos arredondados espessos -->
+  <rect x="5" y="5" width="198" height="118" rx="18" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Letra M robusta e geométrica -->
+  <path d="M30 98V30H46L64 58L82 30H98V98H82V54L64 82L46 54V98H30Z"/>
+  <!-- Seta para baixo -->
+  <path d="M140 30H158V68H176L149 100L122 68H140V30Z"/>
+</svg>

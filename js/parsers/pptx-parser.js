@@ -1,5 +1,5 @@
 /**
- * Apresentações (.pptx) Parser para Universal MarkConverter
+ * Apresentações (.pptx) Parser para Open Mark
  * Extração estruturada por slides (# Slide N e tópicos) via JSZip
  */
 

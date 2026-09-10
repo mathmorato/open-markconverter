@@ -1,7 +1,7 @@
 /**
- * Universal MarkConverter (doc2md)
+ * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.6.2
+ * @version v.1.7.5
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN

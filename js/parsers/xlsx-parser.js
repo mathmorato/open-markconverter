@@ -1,5 +1,5 @@
 /**
- * Planilhas (.xlsx, .csv, .ods) Parser para Universal MarkConverter
+ * Planilhas (.xlsx, .csv, .ods) Parser para Open Mark
  * Conversão matricial para tabelas Markdown nativas via SheetJS
  */
 

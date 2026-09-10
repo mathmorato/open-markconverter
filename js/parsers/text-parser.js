@@ -1,5 +1,5 @@
 /**
- * Plain Text / Code / HTML Parser para Universal MarkConverter
+ * Plain Text / Code / HTML Parser para Open Mark
  * Suporte a .txt, .json, .html, .rtf, .md, .xml, .yaml
  */
 

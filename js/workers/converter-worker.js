@@ -1,5 +1,5 @@
 /**
- * Web Worker para Universal MarkConverter
+ * Web Worker para Open Mark
  * Executa conversões pesadas fora da thread principal de interface
  */
 

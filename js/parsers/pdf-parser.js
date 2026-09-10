@@ -1,5 +1,5 @@
 /**
- * PDF (.pdf) Parser para Universal MarkConverter
+ * PDF (.pdf) Parser para Open Mark
  * Extração estruturada de fluxo de texto e seções via PDF.js
  */
 

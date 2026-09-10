@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.2)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.3)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -827,8 +827,8 @@ if (!htmlContent.includes('1,5 GB</strong> por arquivo ou pacote compactado')) {
   console.error('[FALHA] Badge informativa de limite expandido ausente no index.html');
   process.exit(1);
 }
-console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.2 validados com perfeição!');
+console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.3 validados com perfeição!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.2)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.3)');
 console.log('===============================================================');

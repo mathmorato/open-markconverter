@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.7.2`
+# Universal MarkConverter (doc2md) `v.1.7.3`
 
-[![Version](https://img.shields.io/badge/version-v.1.7.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.7.3-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -10,7 +10,16 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
-👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-mark/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.7.3
+
+- **Migração do Nome do Repositório (`open-mark`):**
+  - Atualização dos endpoints de repositório remoto Git, metadados em `package.json`, links no cabeçalho/rodapé e URL base do GitHub Pages (`mathmorato/open-mark`).
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.7.3`** rigorosamente sincronizada nos 4 pontos mandatórios (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 
@@ -312,7 +321,7 @@ O **Universal MarkConverter** foi arquitetado sob a premissa fundamental de sobe
 ## 📁 Estrutura do Repositório (Árvore Limpa)
 
 ```
-open-markconverter/
+open-mark/
 ├── index.html                   # Interface SPA semântica, Dropzone e Fila de Lote
 ├── package.json                 # Metadados do projeto e versão SemVer v.1.4.2
 ├── package-lock.json            # Travamento determinístico de dependências locais
@@ -346,8 +355,8 @@ Como se trata de uma Single Page Application construída com ES Modules nativos,
 
 ### 1. Clonar o repositório
 ```bash
-git clone https://github.com/mathmorato/open-markconverter.git
-cd open-markconverter
+git clone https://github.com/mathmorato/open-mark.git
+cd open-mark
 ```
 
 ### 2. Executar via servidor estático (escolha uma das opções abaixo)
@@ -381,7 +390,7 @@ O projeto está 100% preparado para publicação contínua direta pelo GitHub Pa
    - Em **Branch**, selecione `main` e a pasta `/ (root)`.
    - Clique em **Save**.
 4. **Deploy Concluído:** Em menos de 1 minuto, sua instância estará ativa e pronta para uso em:
-   `https://<seu-usuario>.github.io/open-markconverter/`
+   `https://<seu-usuario>.github.io/open-mark/`
 
 ---
 

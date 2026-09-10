@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.7') {
-  console.error('[ERRO] Versão diferente de v.1.4.7');
+if (APP_CONFIG.VERSION !== 'v.1.4.8') {
+  console.error('[ERRO] Versão diferente de v.1.4.8');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.7') {
+if (pkg.version !== '1.4.8') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.7')) {
-  console.error('[ERRO] index.html não contém v.1.4.7');
+if (!indexHtml.includes('v.1.4.8')) {
+  console.error('[ERRO] index.html não contém v.1.4.8');
   process.exit(1);
 }
 if (indexHtml.includes('toast-container') || indexHtml.includes('id="toast-container"')) {
@@ -86,7 +86,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.7, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.4.8, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -112,6 +112,14 @@ if (!appJs.includes('item-block item-info') || !appJs.includes('item-block item-
 }
 if (!appJs.includes('badge-file-size') || !appJs.includes('badge-md-size') || !appJs.includes('badge-elapsed-time')) {
   console.error('[ERRO] js/app.js não contém classes de posicionamento linear (.badge-file-size, .badge-md-size, .badge-elapsed-time)');
+  process.exit(1);
+}
+if (!appJs.includes('<span>Upload</span>') || !appJs.includes('<span>Conversão ')) {
+  console.error('[ERRO] js/app.js não contém os novos rótulos textuais "Upload" e "Conversão"');
+  process.exit(1);
+}
+if (appJs.includes('<span>Leitura</span>') || appJs.includes('<span>Conversão Markdown')) {
+  console.error('[ERRO] js/app.js ainda contém rótulos obsoletos "Leitura" ou "Conversão Markdown"');
   process.exit(1);
 }
 if (!appJs.includes('renderFileBadgeIcon') || !appJs.includes('file-badge-icon') || !appJs.includes('file-extension-tag')) {
@@ -150,12 +158,16 @@ if (appJs.includes('elements.toastContainer') || appJs.includes('toast.style.opa
   console.error('[ERRO] js/app.js ainda contém manipulação ativa de nós DOM de toast');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém badge-file-size, badge-md-size, layout linear e toasts neutralizados');
+console.log('[OK] js/app.js contém rótulos Upload/Conversão, badge-file-size, badge-md-size e layout linear');
 
-// 5. Verifica estilos CSS para layout linear, peso após extensão, peso MD à esquerda do check e ausência de toasts
+// 5. Verifica estilos CSS para layout linear, contenção de overflow, peso após extensão e peso MD à esquerda do check
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
 if (stylesCss.includes('.toast-container') || stylesCss.includes('.toast-error') || stylesCss.includes('.toast-success')) {
   console.error('[ERRO] css/styles.css ainda contém regras residuais de classes de toast flutuante');
+  process.exit(1);
+}
+if (!stylesCss.includes('overflow: hidden') || !stylesCss.includes('flex: 0 1 35%')) {
+  console.error('[ERRO] css/styles.css não contém regras de contenção de overflow no card e no Bloco 1');
   process.exit(1);
 }
 if (!stylesCss.includes('.badge-file-size') || !stylesCss.includes('.badge-md-size') || !stylesCss.includes('.badge-elapsed-time')) {
@@ -206,19 +218,19 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém .badge-file-size, .badge-md-size, auto-collapse e alinhamento linear');
+console.log('[OK] css/styles.css contém contenção de overflow, .badge-file-size, .badge-md-size e alinhamento linear');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.7')) {
-  console.error('[ERRO] README.md não contém v.1.4.7');
+if (!readme.includes('v.1.4.8')) {
+  console.error('[ERRO] README.md não contém v.1.4.8');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.7 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.4.8 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

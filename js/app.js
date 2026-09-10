@@ -426,7 +426,7 @@ function renderQueue() {
         <div class="item-block item-progress queue-item-progress file-progress-group">
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
-              <span>Leitura</span>
+              <span>Upload</span>
               <span class="read-percent upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
@@ -435,7 +435,7 @@ function renderQueue() {
           </div>
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
-              <span>Conversão Markdown <strong class="md-output-size">${mdSizeText}</strong></span>
+              <span>Conversão <strong class="md-output-size">${mdSizeText}</strong></span>
               <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
@@ -728,13 +728,13 @@ async function processQueueItem(item) {
       item.uploadText = `${readPercent}%`;
       item.convertProgress = 0;
       item.convertText = 'Aguardando...';
-      item.statusText = `Lendo arquivo... (${readPercent}%)`;
+      item.statusText = `Upload... (${readPercent}%)`;
       updateQueueItemDOM(item);
     });
 
     if (item.cancelled) return;
 
-    // Conclusão da etapa 1: Leitura 100%
+    // Conclusão da etapa 1: Upload 100%
     item.uploadProgress = 100;
     item.uploadText = '100%';
     item.convertProgress = 20;

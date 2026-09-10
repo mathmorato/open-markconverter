@@ -745,7 +745,8 @@ body {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
+  width: 100%;
   min-height: 52px;
   padding: 0.65rem 1.25rem;
   background: var(--bg-surface);
@@ -756,6 +757,7 @@ body {
   user-select: none;
   position: relative;
   box-sizing: border-box;
+  overflow: hidden; /* Garante que nada ultrapasse o raio da borda */
 }
 
 .file-queue-item:hover,
@@ -776,12 +778,19 @@ body {
    -------------------------------------------------------------------------- */
 .item-block.item-info,
 .queue-item-info {
-  flex: 1 1 auto;
+  flex: 0 1 35%;
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   overflow: hidden;
+}
+
+.file-queue-item.is-completed .queue-item-info,
+.file-queue-item.completed .queue-item-info,
+.queue-item.is-completed .queue-item-info,
+.queue-item.completed .queue-item-info {
+  flex: 1 1 auto;
 }
 
 /* Ícone Vetorial de Arquivo com Badge da Extensão (.XXX) */
@@ -891,13 +900,14 @@ body {
 .item-block.item-progress,
 .queue-item-progress,
 .file-progress-group {
-  flex: 1 1 35%;
-  min-width: 140px;
-  max-width: 380px;
-  margin: 0 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0; /* Previne estouro flex em navegadores modernos */
+  width: 100%;
+  margin: 0 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  box-sizing: border-box;
   transition: opacity 0.35s ease-out, max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.35s ease-out;
   max-height: 80px;
   opacity: 1;
@@ -978,13 +988,16 @@ body {
 }
 
 .mini-progress-track,
-.progress-bar-container {
+.progress-bar-container,
+.progress-track {
   width: 100%;
+  max-width: 100%;
   height: 4px;
   max-height: 5px;
   background: var(--border-color);
   border-radius: var(--radius-full);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mini-progress-fill,
@@ -1040,8 +1053,9 @@ body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* Tempo decorrido de execução (h min s) */

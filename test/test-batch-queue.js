@@ -8,7 +8,7 @@ import { APP_CONFIG } from '../js/config.js';
 import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & TEMPO (v.1.4.7)');
+console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & TEMPO (v.1.4.8)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -293,5 +293,5 @@ for (const ext of testExtensions) {
 console.log('  -> Ícones vetoriais com badge gerados com sucesso para PDF, DOCX, XLSX, PPTX, JSON e TXT!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.7)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.8)');
 console.log('===============================================================');

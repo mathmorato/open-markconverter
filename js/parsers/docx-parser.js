@@ -10,11 +10,12 @@ let turndownServiceInstance = null;
 function getTurndownService() {
   if (turndownServiceInstance) return turndownServiceInstance;
 
-  if (typeof window.TurndownService === 'undefined') {
+  const TurndownClass = (typeof window !== 'undefined' && window.TurndownService) || globalThis.TurndownService;
+  if (!TurndownClass) {
     throw new Error('TurndownService não carregado.');
   }
 
-  const service = new window.TurndownService({
+  const service = new TurndownClass({
     headingStyle: 'atx',
     hr: '---',
     bulletListMarker: '-',
@@ -22,9 +23,10 @@ function getTurndownService() {
     emDelimiter: '*'
   });
 
-  if (typeof window.turndownPluginGfm !== 'undefined') {
-    service.use(window.turndownPluginGfm.gfm);
-    service.use(window.turndownPluginGfm.tables);
+  const gfmPlugin = (typeof window !== 'undefined' && window.turndownPluginGfm) || globalThis.turndownPluginGfm;
+  if (gfmPlugin) {
+    service.use(gfmPlugin.gfm);
+    service.use(gfmPlugin.tables);
   }
 
   turndownServiceInstance = service;
@@ -39,7 +41,8 @@ export async function parseDocx(file) {
     loadScript(APP_CONFIG.CDN.TURNDOWN_GFM).catch(() => console.warn('GFM plugin fallback'))
   ]);
 
-  if (typeof window.mammoth === 'undefined') {
+  const Mammoth = (typeof window !== 'undefined' && window.mammoth) || globalThis.mammoth;
+  if (!Mammoth) {
     throw new Error('Não foi possível inicializar Mammoth.js para documentos Word.');
   }
 
@@ -56,7 +59,12 @@ export async function parseDocx(file) {
     ]
   };
 
-  const result = await window.mammoth.convertToHtml({ arrayBuffer }, options);
+  const input = {
+    arrayBuffer,
+    buffer: typeof Buffer !== 'undefined' ? Buffer.from(arrayBuffer) : (typeof Uint8Array !== 'undefined' ? new Uint8Array(arrayBuffer) : arrayBuffer)
+  };
+
+  const result = await Mammoth.convertToHtml(input, options);
   const rawHtml = result.value;
 
   if (!rawHtml || !rawHtml.trim()) {

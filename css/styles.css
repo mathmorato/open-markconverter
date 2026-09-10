@@ -401,12 +401,50 @@ body {
   font-weight: 600;
 }
 
+/* Seção de Exemplos Rápidos com Arquivos Reais */
+.quick-examples-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.quick-examples-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.btn-quick-example {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-quick-example:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--blue-primary);
+  color: var(--blue-primary);
+  transform: translateY(-1px);
+}
+
 .quick-actions {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .btn-link {

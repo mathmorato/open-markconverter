@@ -8,15 +8,18 @@ import { APP_CONFIG, loadScript } from '../config.js';
 export async function parsePdf(file) {
   await loadScript(APP_CONFIG.CDN.PDFJS);
 
-  if (typeof window.pdfjsLib === 'undefined') {
+  const pdfjsLib = (typeof window !== 'undefined' && window.pdfjsLib) || globalThis.pdfjsLib;
+  if (!pdfjsLib) {
     throw new Error('Não foi possível carregar a biblioteca PDF.js.');
   }
 
-  // Configura worker
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc = APP_CONFIG.CDN.PDFJS_WORKER;
+  // Configura worker no browser se ainda não configurado
+  if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = APP_CONFIG.CDN.PDFJS_WORKER;
+  }
 
   const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
   const pdfDoc = await loadingTask.promise;
 
   const docTitle = file.name.replace(/\.pdf$/i, '');

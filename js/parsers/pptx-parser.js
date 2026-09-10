@@ -8,12 +8,13 @@ import { APP_CONFIG, loadScript } from '../config.js';
 export async function parsePptx(file) {
   await loadScript(APP_CONFIG.CDN.JSZIP);
 
-  if (typeof window.JSZip === 'undefined') {
+  const JSZip = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+  if (!JSZip) {
     throw new Error('Não foi possível carregar a biblioteca JSZip.');
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const zip = await window.JSZip.loadAsync(arrayBuffer);
+  const zip = await JSZip.loadAsync(arrayBuffer);
 
   const docTitle = file.name.replace(/\.pptx$/i, '');
   const markdownSlides = [`# ${docTitle}\n`];
@@ -38,43 +39,54 @@ export async function parsePptx(file) {
     return `# ${docTitle}\n\n*(Nenhum slide com conteúdo detectado na apresentação)*\n`;
   }
 
-  const domParser = new DOMParser();
+  const DOMParserClass = (typeof DOMParser !== 'undefined') ? DOMParser : globalThis.DOMParser;
+  if (!DOMParserClass) {
+    throw new Error('DOMParser não disponível no ambiente.');
+  }
+  const domParser = new DOMParserClass();
+
+  // Helper para obter elementos por tag com ou sem namespace
+  const getTags = (parent, tagName) => {
+    const prefixed = parent.getElementsByTagName('p:' + tagName);
+    if (prefixed && prefixed.length > 0) return Array.from(prefixed);
+    const alphaPrefixed = parent.getElementsByTagName('a:' + tagName);
+    if (alphaPrefixed && alphaPrefixed.length > 0) return Array.from(alphaPrefixed);
+    return Array.from(parent.getElementsByTagName(tagName));
+  };
 
   for (let i = 0; i < slideEntries.length; i++) {
     const slideInfo = slideEntries[i];
     const slideXmlText = await slideInfo.entry.async('text');
     const xmlDoc = domParser.parseFromString(slideXmlText, 'application/xml');
 
-    // Tenta identificar o título do slide
     let slideTitle = '';
-    const titleShape = xmlDoc.querySelector('sp:has(ph[type="title"]), sp:has(ph[type="ctrTitle"])') ||
-                       xmlDoc.querySelector('p\\:sp:has(p\\:ph[type="title"]), p\\:sp:has(p\\:ph[type="ctrTitle"])');
-
-    // Coleta parágrafos de texto do slide
     const paragraphs = [];
-    const shapeElements = xmlDoc.querySelectorAll('sp, p\\:sp');
+
+    // Coleta todas as formas de texto (sp / p:sp)
+    const shapeElements = getTags(xmlDoc, 'sp');
 
     shapeElements.forEach(shape => {
-      // Verifica se é o placeholder de título
-      const ph = shape.querySelector('ph, p\\:ph');
-      const isTitlePh = ph && (ph.getAttribute('type') === 'title' || ph.getAttribute('type') === 'ctrTitle');
+      // Verifica se é placeholder de título
+      const phs = getTags(shape, 'ph');
+      const isTitleShape = phs.some(ph => {
+        const type = ph.getAttribute('type');
+        return type === 'title' || type === 'ctrTitle';
+      });
 
-      const pNodes = shape.querySelectorAll('p, a\\:p');
+      const pNodes = getTags(shape, 'p');
       pNodes.forEach(p => {
-        // Nível de indentação do marcador (0, 1, 2...)
-        const pPr = p.querySelector('pPr, a\\:pPr');
-        const level = pPr ? parseInt(pPr.getAttribute('lvl') || '0', 10) : 0;
+        const pPrs = getTags(p, 'pPr');
+        const level = pPrs.length > 0 ? parseInt(pPrs[0].getAttribute('lvl') || '0', 10) : 0;
 
-        // Texto concatenado do parágrafo
-        const tNodes = p.querySelectorAll('t, a\\:t');
+        const tNodes = getTags(p, 't');
         let text = '';
         tNodes.forEach(t => {
-          text += t.textContent;
+          text += t.textContent || '';
         });
 
         text = text.trim();
         if (text) {
-          if (isTitlePh && !slideTitle) {
+          if (isTitleShape && !slideTitle) {
             slideTitle = text;
           } else {
             paragraphs.push({ text, level });

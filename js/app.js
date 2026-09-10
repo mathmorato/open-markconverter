@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.0.3
+ * @version v.1.0.4
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -359,32 +359,29 @@ function initDropzone() {
   const { dropzone, fileInput, btnBrowse } = elements;
 
   // 1. Canal Botão Nativo Explícito
-  if (btnBrowse) {
+  if (btnBrowse && fileInput) {
     btnBrowse.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      fileInput.value = '';
       fileInput.click();
     });
   }
 
-  // Clique na área da dropzone também abre o seletor (se não clicou em outro botão)
-  dropzone.addEventListener('click', (e) => {
-    if (e.target !== btnBrowse && !e.target.closest('button')) {
-      fileInput.click();
-    }
-  });
-
   // Mudança de arquivo via input nativo
-  fileInput.addEventListener('change', (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      console.log(`[doc2md] Arquivo capturado via seletor nativo: "${files[0].name}"`);
-      convertFile(files[0]);
-    }
-    // Reseta input para permitir selecionar o mesmo arquivo novamente
-    fileInput.value = '';
-  });
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        console.log(`[doc2md] Arquivo capturado via seletor nativo: "${files[0].name}"`);
+        convertFile(files[0]);
+      }
+      // Reseta input para permitir selecionar o mesmo arquivo novamente
+      fileInput.value = '';
+    });
+  }
 
-  // 2. Canal Drag & Drop Blindado
+  // 2. Canal Drag & Drop Blindado (sem chamar fileInput.click() para evitar loops)
   window.addEventListener('dragover', (e) => {
     e.preventDefault();
   }, false);
@@ -393,36 +390,38 @@ function initDropzone() {
     e.preventDefault();
   }, false);
 
-  dropzone.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.add('drag-over');
-  });
+  if (dropzone) {
+    dropzone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('drag-over');
+    });
 
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-    dropzone.classList.add('drag-over');
-  });
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+      dropzone.classList.add('drag-over');
+    });
 
-  dropzone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropzone.classList.remove('drag-over');
-  });
+    dropzone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+    });
 
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.remove('drag-over');
-    const files = e.dataTransfer ? e.dataTransfer.files : null;
-    if (files && files.length > 0) {
-      console.log(`[doc2md] Arquivo recebido via Drop: "${files[0].name}"`);
-      convertFile(files[0]);
-    }
-  });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+      const files = e.dataTransfer ? e.dataTransfer.files : null;
+      if (files && files.length > 0) {
+        console.log(`[doc2md] Arquivo recebido via Drop: "${files[0].name}"`);
+        convertFile(files[0]);
+      }
+    });
+  }
 
   // 3. Canal Alternativo: Suporte a Colar (Paste / Clipboard)
   window.addEventListener('paste', async (e) => {
@@ -453,6 +452,40 @@ function initDropzone() {
       updateStatus('success', 'Texto da área de transferência carregado!');
       showToast('Texto colado carregado com sucesso!', 'success');
     }
+  });
+}
+
+/* ==========================================================================
+   Exemplos Rápidos da Interface (UI Quick-Test com pasta examples/)
+   ========================================================================== */
+function initQuickExamples() {
+  const exampleButtons = document.querySelectorAll('.btn-quick-example');
+  exampleButtons.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const fileName = btn.dataset.file;
+      if (!fileName) return;
+
+      const infoMsg = `[Exemplo]: Carregando "${fileName}" da pasta local...`;
+      console.log(`[doc2md] ${infoMsg}`);
+      updateDebugStatus(infoMsg);
+      showToast(`Carregando exemplo "${fileName}"...`, 'info', 2000);
+
+      try {
+        const response = await fetch(`examples/${encodeURIComponent(fileName)}`);
+        if (!response.ok) {
+          throw new Error(`Falha HTTP ${response.status} ao obter arquivo`);
+        }
+        const arrayBuf = await response.arrayBuffer();
+        const file = new File([arrayBuf], fileName);
+        await convertFile(file);
+      } catch (err) {
+        const errMsg = `Erro ao carregar exemplo "${fileName}": ${err.message}`;
+        console.error(`[doc2md] ${errMsg}`, err);
+        updateDebugStatus(`[Falha]: ${errMsg}`, true);
+        showToast(errMsg, 'error', 4500);
+      }
+    });
   });
 }
 
@@ -635,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initViewMode();
   initDropzone();
+  initQuickExamples();
   initActions();
   updateEditorMetrics('');
 });

@@ -11,14 +11,14 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.0.3') {
-  console.error('[ERRO] Versão diferente de v.1.0.3');
+if (APP_CONFIG.VERSION !== 'v.1.0.4') {
+  console.error('[ERRO] Versão diferente de v.1.0.4');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.0.3') {
+if (pkg.version !== '1.0.4') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -26,8 +26,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html e componentes de upload
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.0.3')) {
-  console.error('[ERRO] index.html não contém v.1.0.3');
+if (!indexHtml.includes('v.1.0.4')) {
+  console.error('[ERRO] index.html não contém v.1.0.4');
   process.exit(1);
 }
 if (!indexHtml.includes('id="btn-browse"')) {
@@ -38,7 +38,15 @@ if (!indexHtml.includes('id="debug-status"')) {
   console.error('[ERRO] index.html não contém barra técnica #debug-status');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.0.3, #btn-browse e #debug-status');
+if (!indexHtml.includes('quick-examples-section') || !indexHtml.includes('btn-quick-example')) {
+  console.error('[ERRO] index.html não contém seção de exemplos rápidos quick-examples-section');
+  process.exit(1);
+}
+if (!indexHtml.includes('left: -9999px')) {
+  console.error('[ERRO] index.html não contém posicionamento neutro do file-input');
+  process.exit(1);
+}
+console.log('[OK] index.html contém v.1.0.4, #btn-browse, #debug-status e quick-examples');
 
 // 4. Verifica listeners e telemetria no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -50,15 +58,19 @@ if (!appJs.includes('window.onerror') || !appJs.includes('window.onunhandledreje
   console.error('[ERRO] js/app.js não contém telemetria de erros globais');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém listener de paste e telemetria global onerror/onunhandledrejection');
+if (!appJs.includes('initQuickExamples')) {
+  console.error('[ERRO] js/app.js não contém inicialização de exemplos rápidos');
+  process.exit(1);
+}
+console.log('[OK] js/app.js contém listener de paste, telemetria global e initQuickExamples');
 
 // 5. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.0.3')) {
-  console.error('[ERRO] README.md não contém v.1.0.3');
+if (!readme.includes('v.1.0.4')) {
+  console.error('[ERRO] README.md não contém v.1.0.4');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.0.3');
+console.log('[OK] README.md contém cabeçalho v.1.0.4');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

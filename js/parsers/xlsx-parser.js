@@ -50,12 +50,13 @@ function matrixToMarkdownTable(matrix) {
 export async function parseSpreadsheet(file) {
   await loadScript(APP_CONFIG.CDN.SHEETJS);
 
-  if (typeof window.XLSX === 'undefined') {
+  const XLSX = (typeof window !== 'undefined' && window.XLSX) || globalThis.XLSX;
+  if (!XLSX) {
     throw new Error('Não foi possível carregar o motor SheetJS.');
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = window.XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
   const docTitle = file.name.replace(/\.[^/.]+$/, '');
   const markdownSections = [`# ${docTitle}\n`];
@@ -70,7 +71,7 @@ export async function parseSpreadsheet(file) {
       markdownSections.push(`## ${sheetName}\n`);
     }
 
-    const data = window.XLSX.utils.sheet_to_json(sheet, {
+    const data = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: '',
       blankrows: false

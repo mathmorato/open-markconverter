@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.0.3</span>
+          <span class="version-badge" id="header-version">v.1.0.4</span>
         </div>
       </a>
 
@@ -76,7 +76,7 @@
       <!-- Dropzone Drag & Drop -->
       <div class="dropzone-container">
         <div class="dropzone" id="dropzone" aria-label="Zona para arrastar e soltar arquivos">
-          <input type="file" id="file-input" style="display: none;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log" aria-label="Selecionar arquivo">
+          <input type="file" id="file-input" style="position: absolute; left: -9999px; opacity: 0;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log" aria-label="Selecionar arquivo">
           
           <div class="dropzone-inner">
             <div class="dropzone-icon-wrap" aria-hidden="true">
@@ -122,6 +122,27 @@
 
         <!-- Telemetria e Diagnóstico Visual Técnico -->
         <div id="debug-status" class="debug-status" aria-live="polite">Sistema pronto. Nenhuma falha detectada.</div>
+
+        <!-- Seção de Exemplos Rápidos com Arquivos Reais -->
+        <div class="quick-examples-section">
+          <span class="quick-examples-label">Testar exemplos reais:</span>
+          <button type="button" class="btn-quick-example" data-file="2025_CTE_M1_Historico(ATUALIZADO).pptx" title="Testar apresentação real PPTX (26 MB)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="3" rx="2"/><path d="M7 21h10"/><path d="M12 17v4"/></svg>
+            Testar PPTX
+          </button>
+          <button type="button" class="btn-quick-example" data-file="Moraes et al. 2025 - Manuscript forests.docx" title="Testar manuscrito científico DOCX (248 KB)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Testar DOCX
+          </button>
+          <button type="button" class="btn-quick-example" data-file="CONTROLE INVESTIMENTO - Diogo.xlsx" title="Testar planilha financeira XLSX (92 KB)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12v5"/><path d="M12 9v8"/><path d="M17 6v11"/></svg>
+            Testar XLSX
+          </button>
+          <button type="button" class="btn-quick-example" data-file="Currículo - Marcirene.pdf" title="Testar currículo estruturado PDF (60 KB)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Testar PDF
+          </button>
+        </div>
 
         <!-- Ação rápida: Carregar Exemplo -->
         <div class="quick-actions">
@@ -301,7 +322,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.0.3</span>
+        <span class="version-badge" id="footer-version">v.1.0.4</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

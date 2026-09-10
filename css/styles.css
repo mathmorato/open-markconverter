@@ -836,7 +836,9 @@ body {
 .unified-action-row,
 .unified-download-container {
   display: none;
-  justify-content: flex-end; /* Alinha o botão azul exatamente abaixo dos botões superiores */
+  align-items: center;
+  justify-content: flex-end; /* Alinha os botões exatamente abaixo dos botões superiores */
+  gap: 0.65rem;
   width: 100%;
   padding-top: 0.25rem;
   transition: opacity 0.25s ease-out;
@@ -852,6 +854,45 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.merge-sort-container {
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-sort:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--blue-primary);
+}
+
+.btn-sort:active {
+  transform: scale(0.98);
+}
+
+.btn-sort .icon-sort {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  flex-shrink: 0;
 }
 
 .btn-unified,

@@ -45,7 +45,8 @@ const state = {
   queue: [],
   maxConcurrency: 2,
   userIsScrolling: false,
-  isMergeEnabled: false
+  isMergeEnabled: false,
+  sortAscending: true
 };
 
 // Elementos DOM
@@ -68,6 +69,8 @@ const elements = typeof document !== 'undefined' ? {
   btnQueueClear: document.getElementById('btn-queue-clear'),
   btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
   toggleMergeMarkdown: document.getElementById('toggle-merge-markdown'),
+  btnSortFiles: document.getElementById('btn-sort-files'),
+  sortFilesLabel: document.getElementById('sort-files-label'),
   btnQueueDownloadMerged: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
   btnDownloadUnified: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
   unifiedActionRow: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
@@ -271,11 +274,29 @@ function downloadMarkdownFile(baseName, content) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${baseName}.md`;
+  a.download = baseName.endsWith('.md') ? baseName : `${baseName}.md`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Gera timestamp padronizado com data, hora e minuto para nomenclatura de downloads.
+ * Formato padrão: YYYY-MM-DD_HHhMMmin (ex.: 2026-09-10_10h30min)
+ * @param {Date} [date] Instância de data opcional
+ * @returns {string} Timestamp formatado
+ */
+export function getFormattedTimestamp(date = new Date()) {
+  const now = date instanceof Date && !isNaN(date) ? date : new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  // Retorna ex: 2026-09-10_10h30min
+  return `${year}-${month}-${day}_${hours}h${minutes}min`;
 }
 
 function readFileWithProgress(file, onProgress) {
@@ -1366,7 +1387,7 @@ async function downloadAllZip() {
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `documentos_markdown_${new Date().toISOString().slice(0, 10)}.zip`;
+    a.download = `documentos_markdown_${getFormattedTimestamp()}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1413,15 +1434,59 @@ export function mergeMarkdownOutputs(items) {
 }
 
 export async function downloadUnifiedMarkdown() {
-  const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
+  const completed = state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput));
   if (completed.length === 0) {
     return;
   }
 
-  const mergedContent = mergeMarkdownOutputs(completed);
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const fileName = `documentos_unificados_${dateStr}`;
+  // Garante que a mesclagem respeite rigorosamente a ordem alfanumérica dos itens na fila
+  const orderedItems = [...completed];
+  const mergedContent = mergeMarkdownOutputs(orderedItems);
+  const fileName = `documento_unificado_${getFormattedTimestamp()}.md`;
   downloadMarkdownFile(fileName, mergedContent);
+}
+
+/**
+ * Ordena os itens da fila de documentos por nome em ordem alfanumérica natural (A-Z / Z-A).
+ * Respeita numeração de volumes e dossiers (ex.: Volume 01, Volume 02, Volume 10).
+ * @param {boolean} [ascending=true] true para A-Z, false para Z-A
+ */
+export function sortQueueByName(ascending = true) {
+  if (!state || !state.queue) return;
+  state.sortAscending = ascending;
+  state.queue.sort((a, b) => {
+    const nameA = a.file ? a.file.name : (a.name || '');
+    const nameB = b.file ? b.file.name : (b.name || '');
+    const comp = nameA.localeCompare(nameB, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+    return ascending ? comp : -comp;
+  });
+  renderQueueUI();
+  updateSortButtonUI();
+}
+
+/**
+ * Atualiza visualmente a lista de itens da fila renderizada no DOM
+ */
+export function renderQueueUI() {
+  renderQueue();
+}
+
+/**
+ * Atualiza o texto e título do botão de ordenação na interface
+ */
+export function updateSortButtonUI() {
+  const btn = (elements && elements.btnSortFiles) || (typeof document !== 'undefined' ? document.getElementById('btn-sort-files') : null);
+  const label = (elements && elements.sortFilesLabel) || (typeof document !== 'undefined' ? document.getElementById('sort-files-label') : null);
+  if (!btn) return;
+
+  const isAsc = state.sortAscending !== false;
+  btn.title = isAsc ? 'Classificar arquivos por ordem alfabética inversa (Z-A)' : 'Classificar arquivos por ordem alfabética (A-Z)';
+  if (label) {
+    label.textContent = isAsc ? 'Ordenar A-Z' : 'Ordenar Z-A';
+  }
 }
 
 function updateMergeButtonVisibility() {
@@ -1456,17 +1521,29 @@ function initQueueEvents() {
     });
   }
 
+  if (elements.btnSortFiles) {
+    elements.btnSortFiles.addEventListener('click', () => {
+      state.sortAscending = !state.sortAscending;
+      sortQueueByName(state.sortAscending);
+    });
+  }
+
   if (elements.toggleMergeMarkdown) {
     const saved = (typeof localStorage !== 'undefined') ? localStorage.getItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN) : null;
     if (saved !== null) {
       elements.toggleMergeMarkdown.checked = (saved === 'true');
     }
     updateMergeButtonVisibility();
+    updateSortButtonUI();
 
     elements.toggleMergeMarkdown.addEventListener('change', (e) => {
       state.isMergeEnabled = e.target.checked;
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN, String(state.isMergeEnabled));
+      }
+      if (state.isMergeEnabled) {
+        // Ordena automaticamente em ordem alfanumérica natural ao habilitar a mesclagem
+        sortQueueByName(state.sortAscending ?? true);
       }
       const unifiedRow = elements.unifiedActionRow || elements.unifiedDownloadContainer || (typeof document !== 'undefined' ? document.getElementById('unified-action-row') : null);
       if (unifiedRow) {

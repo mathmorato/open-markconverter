@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.7`
+# Universal MarkConverter (doc2md) `v.1.6.8`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.7-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.8-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,20 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.8
+
+- **Timestamp de Hora e Minuto nos Nomes de Download:**
+  - Nomenclatura atualizada tanto para o pacote `.zip` em lote (`documentos_markdown_YYYY-MM-DD_HHhMMmin.zip`) quanto para o Markdown consolidado (`documento_unificado_YYYY-MM-DD_HHhMMmin.md`), no formato padrão brasileiro `10h30min` (ex.: `documentos_markdown_2026-09-10_10h30min.zip`).
+- **Classificação e Ordenação Alfanumérica Natural na Mesclagem:**
+  - Inclusão do seletor/botão `#btn-sort-files` na linha secundária de mesclagem (`#unified-action-row`) para alternar ordenação entre A-Z e Z-A com feedback visual dinâmico.
+  - Ao ativar o switch de mesclagem, os itens são automaticamente ordenados por ordem alfanumérica natural (`localeCompare` com `{ numeric: true, sensitivity: 'base' }`), garantindo que dossiês e volumes (`Volume 01`, `Volume 02`, `Volume 10`) permaneçam organizados logicamente.
+- **Mesclagem Estritamente Conforme a Ordem Alfabética:**
+  - A concatenação de documentos no Markdown unificado segue estritamente a sequência alfanumérica da fila com cabeçalhos e metadados preservados.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.8`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

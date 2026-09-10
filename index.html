@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.6.7</span>
+          <span class="version-badge" id="header-version">v.1.6.8</span>
         </div>
       </a>
 
@@ -188,8 +188,17 @@
             </div>
           </div>
 
-          <!-- LINHA 2: ÁREA EXCLUSIVA PARA DOWNLOAD UNIFICADO (SURGE ABAIXO) -->
+          <!-- LINHA 2: ÁREA EXCLUSIVA PARA DOWNLOAD UNIFICADO & ORDENAÇÃO (SURGE ABAIXO) -->
           <div id="unified-action-row" class="unified-action-row unified-download-container" style="display: none;">
+            <div class="merge-sort-container">
+              <button type="button" id="btn-sort-files" class="btn-sort" title="Classificar arquivos por ordem alfabética">
+                <svg viewBox="0 0 24 24" class="icon-sort" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <!-- Ícone linear de ordenação A-Z -->
+                  <path d="M3 6h18M3 12h12M3 18h6" />
+                </svg>
+                <span id="sort-files-label">Ordenar A-Z</span>
+              </button>
+            </div>
             <button type="button" id="btn-download-unified" class="btn btn-primary btn-sm btn-unified btn-unified-pulse btn-queue-download-merged" title="Baixar todos os documentos mesclados em um único arquivo .md">
               <span class="icon-merge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -220,7 +229,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.6.7</span>
+        <span class="version-badge" id="footer-version">v.1.6.8</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

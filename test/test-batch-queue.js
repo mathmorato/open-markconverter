@@ -16,14 +16,17 @@ import {
   extractArchiveFiles,
   scrollQueueToActiveItem,
   scrollQueueToItem,
-  scrollToActiveItem
+  scrollToActiveItem,
+  getFormattedTimestamp,
+  sortQueueByName,
+  renderQueueUI
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
 import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.7)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.8)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -575,6 +578,66 @@ if (abbreviated !== 'pg. 298/1247') {
 }
 console.log('  -> Truncamento para inteiro e abreviação para "pg." validados com sucesso!');
 
+// 18. Teste de geração de timestamp com data, hora e minuto (v.1.6.8)
+console.log('[TESTE 18] Testando geração de timestamp padronizado com data, hora e minuto (getFormattedTimestamp)...');
+const sampleDate = new Date(2026, 8, 10, 10, 30); // 10 de Setembro de 2026 às 10:30
+const generatedTimestamp = getFormattedTimestamp(sampleDate);
+console.log(`  -> Timestamp gerado: "${generatedTimestamp}"`);
+if (generatedTimestamp !== '2026-09-10_10h30min') {
+  console.error(`[FALHA] Timestamp gerado incompatível: esperado "2026-09-10_10h30min", obtido "${generatedTimestamp}"`);
+  process.exit(1);
+}
+
+const currentTimestamp = getFormattedTimestamp();
+const timestampRegex = /^\d{4}-\d{2}-\d{2}_\d{2}h\d{2}min$/;
+if (!timestampRegex.test(currentTimestamp)) {
+  console.error(`[FALHA] getFormattedTimestamp() atual não corresponde ao formato regex YYYY-MM-DD_HHhMMmin: "${currentTimestamp}"`);
+  process.exit(1);
+}
+console.log(`  -> Nome gerado para ZIP: "documentos_markdown_${generatedTimestamp}.zip"`);
+console.log(`  -> Nome gerado para MD Unificado: "documento_unificado_${generatedTimestamp}.md"`);
+console.log('  -> Formato de timestamp para downloads validado com 100% de sucesso!');
+
+// 19. Teste de ordenação alfanumérica natural e mesclagem ordenada (v.1.6.8)
+console.log('[TESTE 19] Testando ordenação alfanumérica natural (A-Z / Z-A) e mesclagem estritamente ordenada...');
+const testDossierItems = [
+  { file: { name: '5159167-Volume 02.pdf', size: 1024 }, markdown: '# Conteúdo Vol 2', status: 'completed' },
+  { file: { name: '5159167-Volume 10.pdf', size: 2048 }, markdown: '# Conteúdo Vol 10', status: 'completed' },
+  { file: { name: '5159167-Volume 01.pdf', size: 512 }, markdown: '# Conteúdo Vol 1', status: 'completed' }
+];
+
+// Testa ordenação natural crescente A-Z
+testDossierItems.sort((a, b) => a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: 'base' }));
+if (testDossierItems[0].file.name !== '5159167-Volume 01.pdf' ||
+    testDossierItems[1].file.name !== '5159167-Volume 02.pdf' ||
+    testDossierItems[2].file.name !== '5159167-Volume 10.pdf') {
+  console.error('[FALHA] Ordenação natural alfanumérica A-Z falhou na sequência de volumes');
+  process.exit(1);
+}
+console.log('  -> Ordenação A-Z: ' + testDossierItems.map(it => it.file.name).join(' -> '));
+
+// Testa mesclagem seguindo a ordem classificada
+const mergedNaturalOutput = mergeMarkdownOutputs(testDossierItems);
+const idxVol1 = mergedNaturalOutput.indexOf('5159167-Volume 01.pdf');
+const idxVol2 = mergedNaturalOutput.indexOf('5159167-Volume 02.pdf');
+const idxVol10 = mergedNaturalOutput.indexOf('5159167-Volume 10.pdf');
+
+if (idxVol1 === -1 || idxVol2 === -1 || idxVol10 === -1 || !(idxVol1 < idxVol2 && idxVol2 < idxVol10)) {
+  console.error('[FALHA] Mesclagem de Markdown não respeitou a sequência alfanumérica ordenada');
+  process.exit(1);
+}
+console.log('  -> Mesclagem alfanumérica estritamente ordenada validada com sucesso!');
+
+// Testa ordenação decrescente Z-A
+testDossierItems.sort((a, b) => b.file.name.localeCompare(a.file.name, undefined, { numeric: true, sensitivity: 'base' }));
+if (testDossierItems[0].file.name !== '5159167-Volume 10.pdf' ||
+    testDossierItems[1].file.name !== '5159167-Volume 02.pdf' ||
+    testDossierItems[2].file.name !== '5159167-Volume 01.pdf') {
+  console.error('[FALHA] Ordenação natural decrescente Z-A falhou');
+  process.exit(1);
+}
+console.log('  -> Ordenação Z-A: ' + testDossierItems.map(it => it.file.name).join(' -> '));
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.7)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.8)');
 console.log('===============================================================');

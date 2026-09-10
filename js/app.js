@@ -214,6 +214,46 @@ export function renderFileBadgeIcon(extension) {
   `;
 }
 
+/**
+ * Renderiza o ícone vetorial animado da etapa de Upload
+ */
+export function renderUploadStepIcon() {
+  return `
+    <span class="step-icon step-icon-upload" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Bandeja / Base de apoio -->
+        <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        <!-- Seta com haste móvel -->
+        <g class="arrow-up-group">
+          <polyline points="16 8 12 4 8 8" />
+          <line x1="12" y1="4" x2="12" y2="16" />
+        </g>
+      </svg>
+    </span>
+  `.trim();
+}
+
+/**
+ * Renderiza o ícone vetorial animado da etapa de Conversão
+ */
+export function renderConvertStepIcon() {
+  return `
+    <span class="step-icon step-icon-convert" aria-hidden="true">
+      <svg viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Folha de origem (esquerda) -->
+        <path d="M4 3h7l4 4v14H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+        <!-- Folha de destino (direita) -->
+        <path d="M17 3h7l4 4v14h-11" />
+        <!-- Seta de transição central -->
+        <g class="arrow-convert-group">
+          <line x1="10" y1="12" x2="20" y2="12" />
+          <polyline points="17 9 20 12 17 15" />
+        </g>
+      </svg>
+    </span>
+  `.trim();
+}
+
 function getFormatIcon(category, fileName = '') {
   const ext = fileName ? (fileName.split('.').pop() || category) : category;
   return renderFileBadgeIcon(ext);
@@ -410,11 +450,14 @@ function renderQueue() {
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
-    const mdSizeText = (isCompleted && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
+    const isUploadDone = (item.uploadProgress >= 100) || isCompleted;
+    const isConvertDone = (item.convertProgress >= 100) || isCompleted;
+    const uploadDoneClass = isUploadDone ? 'upload-done' : '';
+    const convertDoneClass = isConvertDone ? 'convert-done' : '';
     const completedClass = isCompleted ? 'completed is-completed' : '';
 
     return `
-      <div class="file-queue-item queue-item ${statusClass} ${completedClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+      <div class="file-queue-item queue-item ${statusClass} ${completedClass} ${uploadDoneClass} ${convertDoneClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO (Ícone + Nome + Peso Original) -->
         <div class="item-block item-info queue-item-info">
           ${formatIcon}
@@ -426,7 +469,10 @@ function renderQueue() {
         <div class="item-block item-progress queue-item-progress file-progress-group">
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
-              <span>Upload</span>
+              <span class="label-with-icon">
+                ${renderUploadStepIcon()}
+                Upload
+              </span>
               <span class="read-percent upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
@@ -435,7 +481,10 @@ function renderQueue() {
           </div>
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
-              <span>Conversão <strong class="md-output-size">${mdSizeText}</strong></span>
+              <span class="label-with-icon">
+                ${renderConvertStepIcon()}
+                Conversão <strong class="md-output-size">${mdSizeText}</strong>
+              </span>
               <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
@@ -530,7 +579,12 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
-  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''}`.trim();
+  const isUploadDone = (item.uploadProgress >= 100) || item.status === 'completed';
+  const isConvertDone = (item.convertProgress >= 100) || item.status === 'completed';
+  const uploadDoneClass = isUploadDone ? 'upload-done' : '';
+  const convertDoneClass = isConvertDone ? 'convert-done' : '';
+
+  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''} ${uploadDoneClass} ${convertDoneClass}`.trim();
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {

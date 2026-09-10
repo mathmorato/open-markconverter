@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.8`
+# Universal MarkConverter (doc2md) `v.1.4.9`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.8-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.9-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -14,8 +14,12 @@ Além da instalação e execução local, você pode utilizar a versão em produ
 
 ---
 
-## 🚀 Destaques da Versão v.1.4.8
+## 🚀 Destaques da Versão v.1.4.9
 
+- **Ícones Vetoriais Animados nas Etapas de Upload e Conversão:**
+  - **Ícone Animado de Upload:** Posicionado ao lado do rótulo **"Upload"**, inspirado em uma seta ascendente com berço/bandeja (`.step-icon-upload`). Executa microanimação suave de flutuação vertical (`@keyframes upload-bounce` com `translateY(-3px)`) enquanto o buffer estiver sendo lido.
+  - **Ícone Animado de Conversão:** Posicionado ao lado do rótulo **"Conversão"**, inspirado na estrutura de duas folhas de documentos unidas por uma seta de transição horizontal apontando da esquerda para a direita (`.step-icon-convert`). Executa microanimação direcional contínua (`@keyframes convert-slide` com `translateX(2px)`) durante o parsing do documento.
+  - **Traço Linear Consistente & Zero Repaints:** Renderização SVG vetorial pura (`stroke-width: 2`, `stroke-linecap: round`, `stroke-linejoin: round`), proporções equilibradas (14px a 16px), aceleração por GPU via `transform` e transição automática para a cor de sucesso verde esmeralda (`#10B981`) ou colapso suave após a conclusão.
 - **Contenção Total de Overflow e Encaixe de Layout na Fila:**
   - Ajuste de flexbox e contenção de largura (`min-width: 0; overflow: hidden;` no card e no Bloco 1 com `flex: 0 1 35%`, `flex: 1 1 auto;` no Bloco 2 e `flex: 0 0 auto;` no Bloco 3), impedindo que as barras de progresso estourem a borda direita ou desalinhem os botões de ação e status.
 - **Atualização dos Rótulos Textuais das Etapas:**

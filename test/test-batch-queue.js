@@ -5,10 +5,10 @@
  */
 
 import { APP_CONFIG } from '../js/config.js';
-import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon } from '../js/app.js';
+import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon, renderUploadStepIcon, renderConvertStepIcon } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & TEMPO (v.1.4.8)');
+console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.4.9)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -292,6 +292,21 @@ for (const ext of testExtensions) {
 }
 console.log('  -> Ícones vetoriais com badge gerados com sucesso para PDF, DOCX, XLSX, PPTX, JSON e TXT!');
 
+// 9. Teste unitário para renderUploadStepIcon e renderConvertStepIcon
+console.log('[TESTE 9] Testando geração dos ícones vetoriais de etapas (renderUploadStepIcon e renderConvertStepIcon)...');
+const uploadIconHtml = renderUploadStepIcon();
+if (!uploadIconHtml.includes('step-icon-upload') || !uploadIconHtml.includes('arrow-up-group') || !uploadIconHtml.includes('viewBox="0 0 24 24"')) {
+  console.error('[FALHA] renderUploadStepIcon() não gerou SVG vetorial esperado');
+  process.exit(1);
+}
+
+const convertIconHtml = renderConvertStepIcon();
+if (!convertIconHtml.includes('step-icon-convert') || !convertIconHtml.includes('arrow-convert-group') || !convertIconHtml.includes('viewBox="0 0 32 24"')) {
+  console.error('[FALHA] renderConvertStepIcon() não gerou SVG vetorial esperado');
+  process.exit(1);
+}
+console.log('  -> Ícones vetoriais animados de Upload e Conversão validados com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.8)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.9)');
 console.log('===============================================================');

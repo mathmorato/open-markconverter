@@ -22,6 +22,10 @@ import {
   renderQueueUI,
   buildBacklogSection,
   buildDirectoryTreeAscii,
+  addFilesToQueue as realAddFilesToQueue,
+  dispatchNext,
+  processQueue,
+  getDynamicConcurrency,
   state as appState
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
@@ -29,7 +33,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.6)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.7)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -827,8 +831,73 @@ if (!htmlContent.includes('1,5 GB</strong> por arquivo ou pacote compactado')) {
   console.error('[FALHA] Badge informativa de limite expandido ausente no index.html');
   process.exit(1);
 }
-console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.6 validados com perfeição!');
+console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.7 validados com perfeição!');
+
+// 23. Teste de Escalonamento Dinâmico de Concorrência (50 Workers para Lotes Grandes e Descompactação)
+console.log('[TESTE 23] Testando escalonamento dinâmico de concorrência com lote de 60 arquivos (até 50 workers paralelos)...');
+
+// Cria lote de 60 arquivos válidos
+const batch60 = [];
+for (let i = 1; i <= 60; i++) {
+  const content = `# Documento ${i}\nConteúdo de teste para validação de throughput com 50 workers paralelos.`;
+  batch60.push(new File([content], `doc_concorrente_${String(i).padStart(2, '0')}.md`, { type: 'text/markdown' }));
+}
+
+// Limpa estado anterior da fila do appState
+appState.queue = [];
+appState.maxConcurrency = 4; // Começa com padrão moderado
+
+// Adiciona os 60 arquivos via realAddFilesToQueue
+await realAddFilesToQueue(batch60);
+
+// Verifica se a concorrência escalou dinamicamente para 50
+if (appState.maxConcurrency !== 50) {
+  console.error(`[FALHA] maxConcurrency não escalou para 50 com lote de 60 arquivos: ${appState.maxConcurrency}`);
+  process.exit(1);
+}
+console.log(`  -> [OK] Concorrência escalada com sucesso para ${appState.maxConcurrency} workers!`);
+
+// Verifica quantidade de itens processando simultaneamente
+const processingNow = appState.queue.filter(it => it.status === 'processing').length;
+if (processingNow !== 50) {
+  console.error(`[FALHA] Quantidade inicial de itens processando simultaneamente deveria ser 50, mas é: ${processingNow}`);
+  process.exit(1);
+}
+console.log(`  -> [OK] Exatamente ${processingNow} itens iniciaram processamento concorrente em paralelo!`);
+
+// Aguarda conclusão de todos os 60 itens sem deadlock
+const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout de processamento: possível deadlock')), 5000));
+const completionPromise = new Promise((resolve) => {
+  const checkInterval = setInterval(() => {
+    const completedCount = appState.queue.filter(it => it.status === 'completed').length;
+    if (completedCount === 60) {
+      clearInterval(checkInterval);
+      resolve();
+    }
+  }, 25);
+});
+
+await Promise.race([completionPromise, timeoutPromise]);
+console.log('  -> [OK] Todos os 60 arquivos foram processados e concluídos com sucesso sem deadlock!');
+
+// Valida também se pacote descompactado com poucos arquivos ativa modo de alta concorrência (50 workers)
+const extractedFilesMock = [
+  new File(['conteudo 1'], 'extraido_01.md', { type: 'text/markdown' }),
+  new File(['conteudo 2'], 'extraido_02.md', { type: 'text/markdown' })
+];
+extractedFilesMock[0].archiveOrigin = 'documentos.zip';
+extractedFilesMock[1].archiveOrigin = 'documentos.zip';
+
+appState.queue = [];
+appState.maxConcurrency = 4;
+await realAddFilesToQueue(extractedFilesMock);
+
+if (appState.maxConcurrency !== 50) {
+  console.error(`[FALHA] Arquivos extraídos de pacote deveriam ativar alta concorrência (50), mas maxConcurrency é: ${appState.maxConcurrency}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Extração de pacote compactado ativou alta concorrência (50 workers) com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.6)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.7)');
 console.log('===============================================================');

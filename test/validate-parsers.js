@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.4') {
-  console.error('[ERRO] Versão diferente de v.1.4.4');
+if (APP_CONFIG.VERSION !== 'v.1.4.5') {
+  console.error('[ERRO] Versão diferente de v.1.4.5');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.4') {
+if (pkg.version !== '1.4.5') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central e ausência de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.4')) {
-  console.error('[ERRO] index.html não contém v.1.4.4');
+if (!indexHtml.includes('v.1.4.5')) {
+  console.error('[ERRO] index.html não contém v.1.4.5');
   process.exit(1);
 }
 if (!indexHtml.includes('limit-badge') || !indexHtml.includes('1,5 GB')) {
@@ -82,7 +82,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.4, limit-badge 1,5 GB, app-main-container e fila em lote');
+console.log('[OK] index.html contém v.1.4.5, limit-badge 1,5 GB, app-main-container e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -104,6 +104,14 @@ if (!appJs.includes('MAX_FILE_SIZE_BYTES')) {
 }
 if (!appJs.includes('item-block item-info') || !appJs.includes('item-block item-progress') || !appJs.includes('item-block item-actions')) {
   console.error('[ERRO] js/app.js não renderiza os 3 blocos horizontais (.item-info, .item-progress, .item-actions)');
+  process.exit(1);
+}
+if (!appJs.includes('renderFileBadgeIcon') || !appJs.includes('file-badge-icon') || !appJs.includes('file-extension-tag')) {
+  console.error('[ERRO] js/app.js não contém renderFileBadgeIcon ou classes do novo ícone com badge');
+  process.exit(1);
+}
+if (!appJs.includes('is-completed')) {
+  console.error('[ERRO] js/app.js não adiciona a classe is-completed ao concluir o item');
   process.exit(1);
 }
 if (!appJs.includes('formatElapsedTime')) {
@@ -130,12 +138,20 @@ if (!appJs.includes('file-progress-group') || !appJs.includes('bar-upload') || !
   console.error('[ERRO] js/app.js não contém estrutura de dupla barra de progresso (bar-upload e bar-convert)');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém formatElapsedTime, md-output-size, layout em 3 blocos e transição ampulheta->check');
+console.log('[OK] js/app.js contém renderFileBadgeIcon, is-completed, formatElapsedTime, md-output-size e layout em 3 blocos');
 
-// 5. Verifica estilos CSS para transição suave, barras compactas, badge-error e animações
+// 5. Verifica estilos CSS para ícone badge, expansão de nome, auto-collapse, transição suave, barras compactas e badge-error
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
 if (!stylesCss.includes('.app-main-container') || !stylesCss.includes('.file-progress-group') || !stylesCss.includes('.bar-upload') || !stylesCss.includes('.bar-convert')) {
   console.error('[ERRO] css/styles.css não contém classes de container unificado ou dupla barra de progresso');
+  process.exit(1);
+}
+if (!stylesCss.includes('.file-badge-icon') || !stylesCss.includes('.file-sheet-svg') || !stylesCss.includes('.file-extension-tag')) {
+  console.error('[ERRO] css/styles.css não contém estilos do ícone com badge (.file-badge-icon / .file-sheet-svg / .file-extension-tag)');
+  process.exit(1);
+}
+if (!stylesCss.includes('.is-completed') || !stylesCss.includes('max-height: 0')) {
+  console.error('[ERRO] css/styles.css não contém regras de auto-collapse suave para barras concluídas (.is-completed)');
   process.exit(1);
 }
 if (!stylesCss.includes('.limit-badge')) {
@@ -170,15 +186,19 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém md-output-size, limit-badge, animações spin/pop, 3 blocos em linha e media queries');
+console.log('[OK] css/styles.css contém .file-badge-icon, auto-collapse (.is-completed), limit-badge, animações spin/pop e 3 blocos');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.4')) {
-  console.error('[ERRO] README.md não contém v.1.4.4');
+if (!readme.includes('v.1.4.5')) {
+  console.error('[ERRO] README.md não contém v.1.4.5');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.4');
+if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
+  console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
+  process.exit(1);
+}
+console.log('[OK] README.md contém cabeçalho v.1.4.5 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

@@ -198,20 +198,28 @@ function updateDebugStatus(message, isError = false) {
   }
 }
 
-function getFormatIcon(category) {
-  switch (category) {
-    case 'docx':
-      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
-    case 'xlsx':
-      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12v5"/><path d="M12 9v8"/><path d="M17 6v11"/></svg>`;
-    case 'pptx':
-      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="3" rx="2"/><path d="M7 21h10"/><path d="M12 17v4"/></svg>`;
-    case 'pdf':
-      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15v-6h2a2 2 0 0 1 0 4H9"/></svg>`;
-    case 'text':
-    default:
-      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
-  }
+/**
+ * Renderiza o ícone vetorial de folha com dobra e etiqueta de extensão (.XXX)
+ * @param {string} extension Extensão do arquivo (ex: 'pdf', 'docx', 'xlsx', 'txt')
+ */
+export function renderFileBadgeIcon(extension) {
+  const cleanExt = (extension || '').replace(/^\./, '').toUpperCase() || 'DOC';
+  return `
+    <div class="file-badge-icon file-icon queue-item-icon" aria-hidden="true" title=".${cleanExt}">
+      <svg viewBox="0 0 40 48" class="file-sheet-svg" fill="none" stroke="currentColor">
+        <!-- Contorno da folha com dobra superior -->
+        <path d="M6 4a2 2 0 0 1 2-2h18l10 10v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4z" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M26 2v10h10" stroke-width="2.5" stroke-linejoin="round"/>
+      </svg>
+      <!-- Etiqueta sobreposta com a extensão -->
+      <span class="file-extension-tag">${cleanExt}</span>
+    </div>
+  `;
+}
+
+function getFormatIcon(category, fileName = '') {
+  const ext = fileName ? (fileName.split('.').pop() || category) : category;
+  return renderFileBadgeIcon(ext);
 }
 
 function downloadMarkdownFile(baseName, content) {
@@ -397,7 +405,8 @@ function renderQueue() {
   }
 
   elements.fileQueueList.innerHTML = state.queue.map(item => {
-    const formatIcon = getFormatIcon(item.formatInfo.parser);
+    const ext = item.file.name.split('.').pop() || item.formatInfo.parser;
+    const formatIcon = renderFileBadgeIcon(ext);
     const statusClass = item.status;
     const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
     const timeText = item.durationMs ? formatElapsedTime(item.durationMs) : '';
@@ -406,16 +415,18 @@ function renderQueue() {
     const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
     const mdSizeText = (isCompleted && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
+    const completedClass = isCompleted ? 'completed is-completed' : '';
 
     return `
-      <div class="file-queue-item queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+      <div class="file-queue-item queue-item ${statusClass} ${completedClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO -->
         <div class="item-block item-info queue-item-info">
-          <span class="file-icon queue-item-icon" aria-hidden="true">${formatIcon}</span>
+          ${formatIcon}
           <span class="file-name queue-item-name" title="${item.file.name}">${item.file.name}</span>
           <span class="file-meta queue-item-meta">
             <span class="queue-item-size">${formatBytes(item.file.size)}</span>
             ${timeText ? `<span class="queue-item-time">• ${timeText}</span>` : ''}
+            <span class="queue-item-md-size md-output-size">${(isCompleted && item.formattedMdSize) ? `• (MD: ${item.formattedMdSize})` : ''}</span>
           </span>
         </div>
 
@@ -522,7 +533,7 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
-  itemEl.className = `file-queue-item queue-item ${item.status}`;
+  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''}`.trim();
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
@@ -603,9 +614,14 @@ function updateQueueItemDOM(item) {
   }
 
   // Telemetria do tamanho do Markdown gerado
-  const mdSizeEl = itemEl.querySelector('.md-output-size');
+  const mdSizeEl = itemEl.querySelector('.mini-progress-label .md-output-size');
   if (mdSizeEl) {
     mdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
+  }
+
+  const cardMdSizeEl = itemEl.querySelector('.queue-item-md-size');
+  if (cardMdSizeEl) {
+    cardMdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `• (MD: ${item.formattedMdSize})` : '';
   }
 
   const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download`);

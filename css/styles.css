@@ -820,17 +820,70 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   BLOCO 1 (Esquerda - Identificação): Ícone + Nome com ellipsis + Badge tamanho
+   BLOCO 1 (Esquerda - Identificação): Ícone com Badge + Nome Completo + Metadados
    -------------------------------------------------------------------------- */
 .item-block.item-info,
 .queue-item-info {
-  flex: 0 0 28%;
-  min-width: 200px;
+  flex: 1 1 auto;
+  min-width: 240px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Ícone Vetorial de Arquivo com Badge da Extensão (.XXX) */
+.file-badge-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  flex-shrink: 0;
+  color: #1E293B;
+}
+
+.file-sheet-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  stroke: #1E293B;
+  color: #1E293B;
+}
+
+[data-theme="dark"] .file-badge-icon,
+[data-theme="dark"] .file-sheet-svg {
+  stroke: #F1F5F9;
+  color: #F1F5F9;
+}
+
+.file-extension-tag {
+  position: absolute;
+  left: -2px;
+  bottom: 8px;
+  background: var(--bg-surface);
+  border: 2px solid #1E293B;
+  color: #1E293B;
+  border-radius: 4px;
+  padding: 1px 3px;
+  font-family: var(--font-mono), system-ui, sans-serif;
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
-  overflow: hidden;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .file-extension-tag {
+  background: #0F172A;
+  border-color: #F1F5F9;
+  color: #F1F5F9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
 .item-block.item-info .file-icon,
@@ -838,18 +891,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--blue-primary);
   flex-shrink: 0;
 }
 
+/* Nome Completo do Arquivo sem truncamento agressivo */
 .item-block.item-info .file-name,
 .queue-item-name {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -887,7 +941,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   BLOCO 2 (Centro - Progresso Unificado): Barras compactas finas (3-4px)
+   BLOCO 2 (Centro - Progresso Unificado): Barras compactas com auto-collapse ao concluir
    -------------------------------------------------------------------------- */
 .item-block.item-progress,
 .file-progress-group {
@@ -897,6 +951,24 @@ body {
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
+  transition: opacity 0.35s ease-out, max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.35s ease-out;
+  max-height: 80px;
+  opacity: 1;
+}
+
+/* Desaparecimento das Barras de Progresso ao Concluir (Auto-Collapse) */
+.file-queue-item.completed .item-progress,
+.file-queue-item.is-completed .item-progress,
+.queue-item.completed .item-progress,
+.queue-item.is-completed .item-progress,
+.queue-item.completed .file-progress-group,
+.queue-item.is-completed .file-progress-group {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .mini-progress-wrapper,

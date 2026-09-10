@@ -5,10 +5,10 @@
  */
 
 import { APP_CONFIG } from '../js/config.js';
-import { formatElapsedTime, formatBytes, formatFileSize } from '../js/app.js';
+import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, DOWNLOADS, TEMPO H/MIN/S & PESO MD (v.1.4.4)');
+console.log('  TESTANDO FILA, BADGE ICON, AUTO-COLLAPSE & TEMPO (v.1.4.5)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -276,6 +276,22 @@ if (sampleMdSize <= 0 || !sampleFormattedSize.includes('Bytes')) {
 }
 console.log('  -> Telemetria de peso do Markdown validada com sucesso!');
 
+// 8. Teste unitário para renderFileBadgeIcon(extension)
+console.log('[TESTE 8] Testando geração do ícone vetorial com etiqueta de extensão (renderFileBadgeIcon)...');
+const testExtensions = ['pdf', 'docx', 'xlsx', 'pptx', 'json', 'txt'];
+for (const ext of testExtensions) {
+  const iconHtml = renderFileBadgeIcon(ext);
+  if (!iconHtml.includes('file-badge-icon') || !iconHtml.includes('file-sheet-svg') || !iconHtml.includes('file-extension-tag')) {
+    console.error(`[FALHA] renderFileBadgeIcon("${ext}") não gerou estrutura vetorial completa`);
+    process.exit(1);
+  }
+  if (!iconHtml.includes(ext.toUpperCase())) {
+    console.error(`[FALHA] renderFileBadgeIcon("${ext}") não incluiu a extensão em caixa alta`);
+    process.exit(1);
+  }
+}
+console.log('  -> Ícones vetoriais com badge gerados com sucesso para PDF, DOCX, XLSX, PPTX, JSON e TXT!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA, TEMPO E PESO PASSARAM (v.1.4.4)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.5)');
 console.log('===============================================================');

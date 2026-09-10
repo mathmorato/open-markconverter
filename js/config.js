@@ -1,11 +1,11 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.0.0
+ * @version v.1.0.1
  */
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.0.0',
+  VERSION: 'v.1.0.1',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',
@@ -31,6 +31,14 @@ export const APP_CONFIG = {
     DOMPURIFY: 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js'
   },
 
+  // Formatos binários conhecidamente não suportados (rejeição rápida com orientação clara)
+  UNSUPPORTED_BINARY_EXTENSIONS: [
+    '.exe', '.bin', '.dll', '.iso', '.dmg', '.apk', '.app',
+    '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+    '.mp3', '.wav', '.ogg', '.flac', '.mp4', '.avi', '.mov', '.mkv',
+    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.psd'
+  ],
+
   // Formatos suportados e metadados
   SUPPORTED_FORMATS: {
     docx: {
@@ -41,14 +49,15 @@ export const APP_CONFIG = {
       parser: 'docx'
     },
     sheet: {
-      ext: ['.xlsx', '.xls', '.csv', '.ods'],
+      ext: ['.xlsx', '.xls', '.csv', '.tsv', '.ods'],
       mime: [
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.ms-excel',
         'text/csv',
+        'text/tab-separated-values',
         'application/vnd.oasis.opendocument.spreadsheet'
       ],
-      name: 'Planilhas (.xlsx, .csv, .ods)',
+      name: 'Planilhas (.xlsx, .csv, .tsv, .ods)',
       category: 'spreadsheet',
       parser: 'xlsx'
     },
@@ -67,9 +76,9 @@ export const APP_CONFIG = {
       parser: 'pdf'
     },
     text: {
-      ext: ['.txt', '.json', '.html', '.htm', '.rtf', '.xml', '.md', '.log', '.yaml', '.yml'],
+      ext: ['.txt', '.json', '.html', '.htm', '.rtf', '.xml', '.md', '.markdown', '.log', '.yaml', '.yml'],
       mime: ['text/plain', 'application/json', 'text/html', 'application/rtf', 'text/xml', 'text/markdown'],
-      name: 'Texto / Código (.txt, .json, .html, .rtf)',
+      name: 'Texto / Código (.txt, .json, .html, .rtf, .md)',
       category: 'text',
       parser: 'text'
     }

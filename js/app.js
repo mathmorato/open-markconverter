@@ -223,6 +223,32 @@ function getFormatCategory(fileName) {
 async function convertFile(file) {
   if (!file) return;
 
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+
+  // Validação: Arquivo vazio
+  if (file.size === 0) {
+    state.currentFile = file;
+    updateStatus('error', 'Arquivo vazio (0 bytes)');
+    elements.metricFileName.textContent = file.name;
+    elements.metricFileSize.textContent = '0 Bytes';
+    elements.metricFormat.textContent = 'VAZIO';
+    elements.metricFormat.className = 'metric-badge error';
+    showToast(`O arquivo "${file.name}" está vazio (0 bytes).`, 'error', 4000);
+    return;
+  }
+
+  // Validação: Formatos binários não suportados
+  if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
+    state.currentFile = file;
+    updateStatus('error', 'Formato não suportado');
+    elements.metricFileName.textContent = file.name;
+    elements.metricFileSize.textContent = formatBytes(file.size);
+    elements.metricFormat.textContent = ext.toUpperCase();
+    elements.metricFormat.className = 'metric-badge error';
+    showToast(`Formato ${ext} não suportado para conversão em Markdown. Envie .docx, planilhas, .pptx, .pdf ou textos.`, 'error', 4500);
+    return;
+  }
+
   const formatInfo = getFormatCategory(file.name);
   state.currentFile = file;
 
@@ -230,6 +256,7 @@ async function convertFile(file) {
   elements.metricFileName.textContent = file.name;
   elements.metricFileSize.textContent = formatBytes(file.size);
   elements.metricFormat.textContent = formatInfo.ext.toUpperCase();
+  elements.metricFormat.className = 'metric-badge';
 
   const startTime = performance.now();
 
@@ -269,11 +296,12 @@ async function convertFile(file) {
     await renderMarkdown(markdown);
 
     updateStatus('success', 'Conversão concluída com sucesso!');
-    showToast(`Arquivo ${file.name} convertido em ${duration} ms`);
+    showToast(`Arquivo ${file.name} convertido em ${duration} ms`, 'success');
   } catch (error) {
     console.error('Falha na conversão do arquivo:', error);
     updateStatus('error', 'Erro ao converter documento');
-    showToast(`Erro: ${error.message || 'Falha ao processar arquivo'}`);
+    elements.metricFormat.className = 'metric-badge error';
+    showToast(`Erro ao processar ${file.name}: ${error.message || 'Falha ao processar arquivo'}`, 'error', 4500);
   }
 }
 
@@ -283,6 +311,31 @@ async function convertFile(file) {
 function initDropzone() {
   const { dropzone, fileInput } = elements;
 
+  // Previne comportamento padrão do navegador de abrir arquivos soltos fora da dropzone
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  }, false);
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+  }, false);
+
+  // Manipulação de clique na dropzone
+  dropzone.addEventListener('click', (e) => {
+    if (e.target !== fileInput) {
+      fileInput.click();
+    }
+  });
+
+  // Acessibilidade via teclado (Enter ou Barra de Espaço)
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  // Efeitos visuais e tratamento de Drag & Drop
   ['dragenter', 'dragover'].forEach(eventName => {
     dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
@@ -291,7 +344,7 @@ function initDropzone() {
     });
   });
 
-  ['dragleave', 'drop'].forEach(eventName => {
+  ['dragleave', 'dragend'].forEach(eventName => {
     dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -300,22 +353,31 @@ function initDropzone() {
   });
 
   dropzone.addEventListener('drop', (e) => {
-    const files = e.dataTransfer.files;
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.remove('drag-over');
+    const files = e.dataTransfer ? e.dataTransfer.files : null;
     if (files && files.length > 0) {
       convertFile(files[0]);
     }
   });
 
+  // Previne que o clique no input propague de volta ao dropzone
+  fileInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Mudança de arquivo via input nativo
   fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       convertFile(files[0]);
     }
-    // Reseta input para permitir mesmo arquivo novamente
+    // Reseta input para permitir selecionar o mesmo arquivo novamente
     fileInput.value = '';
   });
 
-  // Suporte a colar (Ctrl+V)
+  // Suporte a colar arquivos ou texto da área de transferência (Ctrl+V)
   window.addEventListener('paste', (e) => {
     // Se o usuário estiver editando o textarea diretamente, não intercepta texto simples
     if (document.activeElement === elements.rawEditor) {
@@ -331,7 +393,7 @@ function initDropzone() {
     const pastedText = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
     if (pastedText && pastedText.trim()) {
       e.preventDefault();
-      const mockFile = new File([pastedText], 'clipboard.txt', { type: 'text/plain' });
+      const mockFile = new File([pastedText], 'texto-colado.txt', { type: 'text/plain' });
       convertFile(mockFile);
     }
   });
@@ -472,18 +534,33 @@ console.log(\`Executando Universal MarkConverter \${APP_CONFIG.VERSION}\`);
 /* ==========================================================================
    Sistema de Toasts
    ========================================================================== */
-function showToast(message, duration = 3000) {
+function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  toast.className = `toast ${type === 'error' ? 'toast-error' : type === 'success' ? 'toast-success' : ''}`.trim();
+
+  let iconSvg = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <line x1="12" y1="16" x2="12" y2="12"/>
       <line x1="12" y1="8" x2="12.01" y2="8"/>
-    </svg>
-    <span>${message}</span>
-  `;
+    </svg>`;
 
+  if (type === 'error') {
+    iconSvg = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>`;
+  } else if (type === 'success') {
+    iconSvg = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>`;
+  }
+
+  toast.innerHTML = `${iconSvg}<span>${message}</span>`;
   elements.toastContainer.appendChild(toast);
 
   setTimeout(() => {

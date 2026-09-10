@@ -303,6 +303,9 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
 }
 
 .dropzone-icon-wrap {
@@ -364,6 +367,7 @@ body {
   height: 100%;
   opacity: 0;
   cursor: pointer;
+  z-index: 10;
 }
 
 .quick-actions {
@@ -905,6 +909,41 @@ body {
   align-items: center;
   gap: 0.6rem;
   animation: slide-in 200ms ease-out forwards;
+}
+
+.toast-error {
+  border-color: var(--error-border);
+  background-color: var(--error-bg);
+  color: var(--error-color);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.toast-error svg {
+  color: var(--error-color) !important;
+  stroke: var(--error-color) !important;
+}
+
+.toast-success {
+  border-color: var(--success-border);
+  background-color: var(--success-bg);
+  color: var(--success-color);
+}
+
+.toast-success svg {
+  color: var(--success-color) !important;
+  stroke: var(--success-color) !important;
+}
+
+.metric-badge.error {
+  background-color: var(--error-bg);
+  color: var(--error-color);
+  border-color: var(--error-border);
+}
+
+.metric-badge.success {
+  background-color: var(--success-bg);
+  color: var(--success-color);
+  border-color: var(--success-border);
 }
 
 @keyframes slide-in {

@@ -2,109 +2,144 @@
 
 [![Version](https://img.shields.io/badge/version-v.1.3.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
-[![Privacy: 100% Client--Side](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green.svg)](#privacidade-e-segurança)
-[![Static Deploy](https://img.shields.io/badge/Deploy-GitHub%20Pages-informational.svg)](#instruções-de-deploy-github-pages)
+[![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
+[![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
+[![Deploy: GitHub Pages Ready](https://img.shields.io/badge/Deploy-GitHub%20Pages%20Ready-brightgreen.svg)](#-instruções-de-deploy-no-github-pages)
 
-Uma plataforma web estática moderna, ultrarrápida e universal para conversão local de múltiplos formatos de documentos em **Markdown semântico e estruturado**, projetada para rodar 100% no navegador (*client-side*) com zero dependências de backend ou telemetria.
-
----
-
-## 🚀 Recursos Principais
-
-- **100% Client-Side e Privado:** Todos os documentos são processados exclusivamente na máquina do usuário via JavaScript ES Modules e Web Workers. Seus dados nunca saem do seu navegador.
-- **Detecção e Conversão Universal:**
-  - 📄 **Word (`.docx`):** Conversão semântica via [Mammoth.js](https://github.com/mwilliamson/mammoth.js) e Turndown (preservação de títulos hierárquicos, listas, ênfases, tabelas e links).
-  - 📊 **Planilhas (`.xlsx`, `.csv`, `.ods`):** Conversão matricial direta para tabelas Markdown nativas (`| coluna | coluna |`) via [SheetJS](https://sheetjs.com/).
-  - 📽️ **Apresentações (`.pptx`):** Extração estruturada por slides (`# Slide N`), tópicos hierárquicos e anotações do apresentador via [JSZip](https://stuk.github.io/jszip/).
-  - 📕 **Documentos (`.pdf`):** Extração de fluxo contínuo de texto, quebras de linha e separação de seções via [PDF.js](https://mozilla.github.io/pdf.js/).
-  - 📝 **Texto puro / Código (`.txt`, `.json`, `.html`, `.rtf`, `.md`, `.xml`):** Conversão direta, formatação de blocos de código com syntax highlighting e higienização.
-- **Painel Duplo (Split View Responsivo):**
-  - **Raw Markdown:** Editor de texto com contador de caracteres, linhas e palavras.
-  - **Rendered Preview:** Pré-visualização HTML formatada em tempo real com estilos GitHub-Flavored Markdown.
-  - **Modos de Exibição:** Alternância com 1 clique entre Lado a Lado (Split), Somente Raw e Somente Preview.
-- **Ações Rápidas com Feedback:**
-  - Botão de **Copiar Markdown** com feedback visual imediato e animação.
-  - Botão de **Download `.md`** com nomenclatura automática compatível.
-  - Suporte a **Arrastar & Soltar (Drag & Drop)** e **Colar da Área de Transferência (Ctrl+V)**.
-- **Design System Técnico e Elegante:**
-  - Suporte nativo a **Modo Escuro (Dark Mode)** e **Modo Claro (Light Mode)** com detecção de preferência de sistema e persistência em `localStorage`.
-  - Tipografia moderna (*Inter* e *JetBrains Mono*).
-  - Ícones lineares técnicos e leves (estilo Lucide / Feather).
+Uma plataforma web estática moderna, ultrarrápida e universal para processamento e conversão de múltiplos formatos de documento em **Markdown semântico e estruturado** (`.md`). Desenvolvida em Vanilla JavaScript modular (ES Modules), a ferramenta roda **100% no navegador do usuário**, eliminando qualquer dependência de servidores, containers ou transmissão de dados para a nuvem.
 
 ---
 
-## 📂 Arquitetura do Projeto
+## 🚀 Destaques da Versão v.1.3.0
+
+- **Fila de Processamento em Lote (Batch Queue Pipeline):**
+  - Adição de múltiplos documentos simultâneos via botão nativo de seleção, arrastar e soltar (*Drag & Drop*) ou colagem direta via atalho de teclado (`Ctrl+V`).
+  - Concorrência assíncrona controlada (processamento de 2 itens em paralelo) para garantir fluidez da interface e gerenciamento estável da memória RAM do navegador.
+- **Dupla Barra de Progresso por Arquivo:**
+  - **Etapa 1 (Leitura do Arquivo):** Cálculo visual em tempo real baseado nos bytes lidos pelo evento nativo `FileReader.onprogress` (Azul Tech `#3B82F6`).
+  - **Etapa 2 (Conversão Markdown):** Indicador de status dos parsers semânticos (20% carregamento do parser, 60% extração de dados e 100% conclusão com transição para verde Esmeralda `#10B981` ou Coral `#EF4444` em caso de erro).
+- **Exportação Flexível e Download em Massa:**
+  - **Download Individual Imediato:** Cada card de documento possui ação direta para baixar seu respectivo arquivo `.md`.
+  - **Download em Lote (.zip):** Compactação coletiva instantânea de todos os arquivos convertidos gerando um arquivo `.zip` via biblioteca JSZip em memória local.
+  - **Descarte e Cancelamento:** Remoção individual de qualquer arquivo da fila com liberação imediata dos buffers de memória alocados.
+- **Harmonização Visual e Design Mobile-First:**
+  - Grid central unificado (`.app-main-container`) com largura balanceada entre container de upload e cards de fila.
+  - Interface adaptativa para smartphones e tablets (320px a 768px), com botões acessíveis ao polegar, quebra inteligente de nomes longos e prevenção de scroll horizontal.
+  - Suporte nativo e persistente a **Modo Escuro (Dark Mode)** e **Modo Claro (Light Mode)** com contraste em conformidade com WCAG AA.
+
+---
+
+## 📊 Matriz Universal de Formatos Suportados (+30 Extensões)
+
+O motor de conversão combina parsers documentais especializados com fallback heurístico para decodificação textual em UTF-8:
+
+| Categoria | Extensões Suportadas | Motor Técnico de Conversão | Estrutura de Saída Markdown |
+| :--- | :--- | :--- | :--- |
+| **Documentos de Texto** | `.docx`, `.odt`, `.rtf` | Mammoth.js + Turndown Service + DOMParser | Títulos (`#` a `######`), parágrafos, listas ordenadas/não-ordenadas, ênfases (`*itálico*`, `**negrito**`), tabelas e hiperlinks. |
+| **Planilhas & Matrizes** | `.xlsx`, `.xls`, `.csv`, `.tsv`, `.ods` | SheetJS (xlsx.full.min.js) | Matrizes tabulares com cabeçalhos estruturados e alinhamento padronizado (`\| coluna \|`). Múltiplas abas são convertidas em seções Markdown dedicadas. |
+| **Apresentações** | `.pptx`, `.odp` | JSZip + DOMParser XML | Extração hierárquica slide a slide (`# Slide N`), tópicos em listas e anotações do apresentador. |
+| **Documentos Fechados & E-books** | `.pdf`, `.epub` | PDF.js (Mozilla) | Fluxo contínuo de texto, preservação de quebras de parágrafo, paginação semântica e blocos destacados. |
+| **Marcação & Dados** | `.html`, `.htm`, `.xml`, `.json`, `.yaml`, `.yml`, `.svg` | Turndown + Prettifier Nativo | Elementos semânticos convertidos para sintaxe Markdown; dados estruturados organizados em blocos de código com identificação de linguagem (ex: ````json ... ````). |
+| **Código-Fonte & Scripts** | `.js`, `.ts`, `.py`, `.java`, `.c`, `.cpp`, `.cs`, `.go`, `.rs`, `.php`, `.rb`, `.sql`, `.sh`, `.bash`, etc. | TextDecoder UTF-8 | Blocos de código cercados (fenced code blocks) com indicação automática de sintaxe para visualizadores e LLMs. |
+| **Texto Puro & Configurações** | `.txt`, `.md`, `.markdown`, `.log`, `.ini`, `.env`, `.toml` | Leitor Nativo de Streams UTF-8 | Higienização de quebras de linha (CRLF -> LF) e formatação de texto preservada. |
+| **Fallback Universal** | Qualquer arquivo de texto válido | Heurística de decodificação UTF-8 | Detecção dinâmica e conversão direta para bloco Markdown higienizado. |
+
+---
+
+## 🔒 Manifesto de Segurança e Privacidade (Data Privacy by Design)
+
+O **Universal MarkConverter** foi arquitetado sob a premissa fundamental de soberania de dados do usuário:
+
+1. **Execução 100% Client-Side:** Toda a lógica de leitura binária, parsing de XML/ZIP e compilação de Markdown executa no sandbox do motor JavaScript do navegador do usuário (`V8`, `SpiderMonkey`, `JavaScriptCore`).
+2. **Zero Tráfego de Rede para Documentos:** Nenhum documento, fragmento de texto, nome de arquivo ou metadado trafega por redes externas ou servidores centrais. A aplicação funciona plenamente até mesmo em modo offline (*Air-Gapped*).
+3. **Telemetria Zero:** Sem ferramentas invasivas de analytics, cookies de rastreamento ou chamadas ocultas a APIs de terceiros. Apenas bibliotecas de parsing abertas são carregadas via CDNs consolidadas e imutáveis.
+4. **Ciclo de Vida de Memória Efêmero:** Os buffers binários (`ArrayBuffer`) e strings geradas residem estritamente na memória da sessão da aba aberta. Ao remover um item da fila ou recarregar a página, todos os recursos são descartados pelo *Garbage Collector*.
+5. **Conformidade Corporativa:** Ideal para ambientes regulados que lidam com propriedade intelectual confidencial, dados pessoais (LGPD/GDPR) e diretrizes rígidas de segurança corporativa.
+
+---
+
+## 📁 Estrutura do Repositório (Árvore Limpa)
 
 ```
 open-markconverter/
-├── index.html            # Estrutura semântica, Split View e componentes
-├── package.json          # Metadados e versão SemVer v.1.0.0
+├── index.html                   # Interface SPA semântica, Dropzone e Fila de Lote
+├── package.json                 # Metadados do projeto e versão SemVer v.1.3.0
+├── package-lock.json            # Travamento determinístico de dependências locais
+├── LICENSE                      # Termos de licença open-source MIT
+├── README.md                    # Documentação técnica integral da plataforma
+├── .gitignore                   # Regras de exclusão de arquivos e diretórios
 ├── css/
-│   └── styles.css        # Variáveis CSS, temas claro/escuro e layout responsivo
+│   └── styles.css               # Design system, temas Claro/Escuro e media queries mobile
 ├── js/
-│   ├── config.js         # Constantes de versão SemVer e extensões aceitas
-│   ├── app.js            # Controle de UI, Drag & Drop, temas e ciclo de eventos
-│   ├── parsers/
-│   │   ├── docx-parser.js # Parser Mammoth + Turndown para .docx
-│   │   ├── xlsx-parser.js # Parser SheetJS para tabelas matriciais
-│   │   ├── pptx-parser.js # Parser JSZip para slides e tópicos
-│   │   ├── pdf-parser.js  # Parser PDF.js para fluxo de texto
-│   │   └── text-parser.js # Parser para txt, json, html, rtf, code
+│   ├── config.js                # Configuração central, constantes e CDN loaders
+│   ├── app.js                   # Controlador da aplicação, ciclo de vida da fila e Web APIs
+│   ├── parsers/                 # Módulos de conversão especializados
+│   │   ├── docx-parser.js       # Motor Mammoth + Turndown para DOCX/ODT
+│   │   ├── xlsx-parser.js       # Motor SheetJS para planilhas e tabelas matriciais
+│   │   ├── pptx-parser.js       # Motor JSZip para apresentações e anotações de slides
+│   │   ├── pdf-parser.js        # Motor PDF.js para documentos e fluxo textual
+│   │   └── text-parser.js       # Motor para texto puro, código-fonte e formatos de dados
 │   └── workers/
-│       └── converter-worker.js # Web Worker para conversão assíncrona
-└── README.md             # Documentação técnica e arquitetura
+│       └── converter-worker.js  # Web Worker para processamento assíncrono em background
+└── test/                        # Suíte completa de testes automatizados
+    ├── test-batch-queue.js      # Validação de concorrência, fila e dupla barra de progresso
+    ├── test-dropzone-logic.js   # Validação de extensões, detecção de MIME e filtros
+    ├── test-real-examples.js    # Testes funcionais ponta a ponta com arquivos reais
+    └── validate-parsers.js      # Validação de sintaxe, SemVer e integridade de arquivos
 ```
 
 ---
 
-## 🔒 Privacidade e Segurança
+## 🛠️ Guia de Instalação e Execução Local
 
-- **Zero Chamadas de API Externas:** Nenhum dado é enviado para servidores remotos, APIs de IA de terceiros ou serviços de telemetria.
-- **Isolamento de Memória:** O ciclo de vida dos arquivos termina na aba aberta do navegador.
-- **Sanitização de Saída:** Todo o HTML gerado na pré-visualização é higienizado via DOMPurify para evitar injeções XSS.
+Como se trata de uma Single Page Application construída com ES Modules nativos, é recomendável servi-la via HTTP local para evitar bloqueios de CORS em navegadores modernos:
 
----
-
-## 🛠️ Execução Local
-
-Você pode rodar localmente com qualquer servidor estático HTTP simples:
-
+### 1. Clonar o repositório
 ```bash
-# Clone o repositório
 git clone https://github.com/mathmorato/open-markconverter.git
 cd open-markconverter
+```
 
-# Com npx serve:
+### 2. Executar via servidor estático (escolha uma das opções abaixo)
+
+**Opção A — Usando Node.js / npx serve:**
+```bash
 npx serve . -l 3000
+```
 
-# Ou com Python 3:
+**Opção B — Usando Python 3:**
+```bash
 python -m http.server 3000
 ```
 
-Abra no navegador em `http://localhost:3000`.
+**Opção C — Usando a extensão Live Server (VS Code / Antigravity IDE):**
+Clique com o botão direito em `index.html` e selecione **Open with Live Server**.
+
+### 3. Acessar a aplicação
+Abra o navegador em `http://localhost:3000` (ou porta indicada no terminal).
 
 ---
 
-## 🌐 Instruções de Deploy (GitHub Pages)
+## 🌐 Instruções de Deploy no GitHub Pages
 
-Por ser uma aplicação 100% estática sem necessidade de build complexo no servidor:
+O projeto está 100% preparado para publicação contínua direta pelo GitHub Pages sem etapas intermediárias de build:
 
-1. Acesse as **Settings** do seu repositório no GitHub.
-2. Vá até a seção **Pages** (no menu lateral esquerdo).
-3. Em **Build and deployment > Source**, selecione **Deploy from a branch**.
-4. Em **Branch**, selecione `main` e a pasta `/ (root)`.
-5. Clique em **Save**. Em instantes seu MarkConverter estará no ar em `https://<seu-usuario>.github.io/open-markconverter/`.
-
----
-
-## 🏷️ Versionamento SemVer
-
-O projeto segue estritamente a especificação [SemVer](https://semver.org/) no formato `v.X.Y.Z`:
-- **Versão Atual:** `v.1.0.3`
-- A versão está sincronizada no rodapé e cabeçalho de `index.html`, em `js/config.js`, no `package.json` e neste `README.md`.
+1. **Acessar Configurações:** No repositório no GitHub, clique na aba **Settings**.
+2. **Navegar para Pages:** No menu lateral esquerdo, selecione a opção **Pages**.
+3. **Configurar Publicação:**
+   - Em **Build and deployment > Source**, certifique-se de selecionar **Deploy from a branch**.
+   - Em **Branch**, selecione `main` e a pasta `/ (root)`.
+   - Clique em **Save**.
+4. **Deploy Concluído:** Em menos de 1 minuto, sua instância estará ativa e pronta para uso em:
+   `https://<seu-usuario>.github.io/open-markconverter/`
 
 ---
 
-## 📄 Licença
+## 🏷️ Licença e Versionamento SemVer
 
-Distribuído sob a licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para obter mais informações.
+- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.3.0`**, sincronizada nos quatro pontos do projeto:
+  1. Cabeçalho e rodapé do `index.html`.
+  2. Arquivo `package.json` (`"version": "1.3.0"`).
+  3. Constante `APP_CONFIG.VERSION` em `js/config.js`.
+  4. Badges e títulos deste `README.md`.
+- **Licença de Uso:** Distribuído sob os termos da licença **MIT**. Para maiores detalhes, consulte o arquivo [LICENSE](LICENSE).

@@ -459,6 +459,8 @@ function renderQueue() {
       ? `(MD: ${item.formattedMdSize || formatBytes(mdSizeInBytes)})`
       : '';
 
+    const isReading = !!item.isReading;
+    const readingClass = isReading ? 'is-reading' : '';
     const isUploadDone = (item.uploadProgress >= 100) || isCompleted;
     const isConvertDone = (item.convertProgress >= 100) || isCompleted;
     const uploadDoneClass = isUploadDone ? 'upload-done' : '';
@@ -466,7 +468,7 @@ function renderQueue() {
     const completedClass = isCompleted ? 'completed is-completed' : '';
 
     return `
-      <div class="file-queue-item queue-item ${statusClass} ${completedClass} ${uploadDoneClass} ${convertDoneClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+      <div class="file-queue-item queue-item ${statusClass} ${completedClass} ${readingClass} ${uploadDoneClass} ${convertDoneClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO (Ícone + Nome + Peso Original) -->
         <div class="item-block item-info queue-item-info">
           ${formatIcon}
@@ -588,12 +590,14 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
+  const isReading = !!item.isReading;
+  const readingClass = isReading ? 'is-reading' : '';
   const isUploadDone = (item.uploadProgress >= 100) || item.status === 'completed';
   const isConvertDone = (item.convertProgress >= 100) || item.status === 'completed';
   const uploadDoneClass = isUploadDone ? 'upload-done' : '';
   const convertDoneClass = isConvertDone ? 'convert-done' : '';
 
-  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''} ${uploadDoneClass} ${convertDoneClass}`.trim();
+  itemEl.className = `file-queue-item queue-item ${item.status} ${item.status === 'completed' ? 'is-completed' : ''} ${readingClass} ${uploadDoneClass} ${convertDoneClass}`.trim();
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
@@ -776,6 +780,7 @@ async function processQueueItem(item) {
   }
 
   item.status = 'processing';
+  item.isReading = true;
   item.statusText = 'Lendo arquivo... (0%)';
   item.uploadProgress = 0;
   item.uploadText = '0%';
@@ -790,6 +795,7 @@ async function processQueueItem(item) {
   try {
     const arrayBuffer = await readFileWithProgress(item.file, (readPercent) => {
       if (item.cancelled) return;
+      item.isReading = readPercent < 100;
       item.uploadProgress = readPercent;
       item.uploadText = `${readPercent}%`;
       item.convertProgress = 0;
@@ -798,9 +804,13 @@ async function processQueueItem(item) {
       updateQueueItemDOM(item);
     });
 
-    if (item.cancelled) return;
+    if (item.cancelled) {
+      item.isReading = false;
+      return;
+    }
 
     // Conclusão da etapa 1: Upload 100%
+    item.isReading = false;
     item.uploadProgress = 100;
     item.uploadText = '100%';
     item.convertProgress = 20;
@@ -897,6 +907,7 @@ async function processQueueItem(item) {
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
   } catch (error) {
     if (item.cancelled) return;
+    item.isReading = false;
     const duration = Math.round(performance.now() - startTime);
     item.status = 'error';
     item.convertProgress = 100;

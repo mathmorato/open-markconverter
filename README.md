@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.10`
+# Universal MarkConverter (doc2md) `v.1.4.11`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.10-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.11-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -14,8 +14,12 @@ Além da instalação e execução local, você pode utilizar a versão em produ
 
 ---
 
-## 🚀 Destaques da Versão v.1.4.10
+## 🚀 Destaques da Versão v.1.4.11
 
+- **Animação Ascendente Infinita da Seta de Upload (`upload-ascend-infinite`):**
+  - Implementação de loop contínuo e infinito de subida vertical da seta (`@keyframes upload-ascend-infinite`), subindo a partir da base (`translateY(4px)`), atingindo opacidade máxima e desaparecendo no topo (`translateY(-8px); opacity: 0`) em ciclo perpétuo enquanto o buffer estiver sendo lido.
+  - Correção de renderização SVG via `transform-box: fill-box; transform-origin: center;` e contenção perfeitamente alinhada no ícone (`.step-icon-upload { width: 16px; height: 16px; overflow: hidden; position: relative; }`), mantendo o berço/bandeja estável e a seta sem invadir elementos adjacentes.
+  - Sincronização reativa no pipeline via classe `.is-reading` e cessação suave da animação com transição cromática ao atingir `.upload-done`.
 - **Redução Dimensional de 10% e Respiro Anti-Corte no Ícone de Arquivo:**
   - Aplicação de escala reduzida em 10% (`transform: scale(0.9)`) e expansão do viewBox do SVG para `-2 -2 44 52` com container seguro (`width: 36px; height: 44px; padding: 2px; box-sizing: border-box; overflow: visible`), eliminando qualquer ceifamento nas extremidades da folha dobrada e na etiqueta da extensão.
   - Ajuste na tipografia da etiqueta `.file-extension-tag` (`font-size: 0.52rem; border-width: 1.75px`) com proporções perfeitas tanto no tema claro quanto no escuro.

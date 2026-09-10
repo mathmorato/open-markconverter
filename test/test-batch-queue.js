@@ -8,7 +8,7 @@ import { APP_CONFIG } from '../js/config.js';
 import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon, renderUploadStepIcon, renderConvertStepIcon } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.4.10)');
+console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.4.11)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -312,5 +312,5 @@ if (!convertIconHtml.includes('step-icon-convert') || !convertIconHtml.includes(
 console.log('  -> Ícones vetoriais animados de Upload e Conversão validados com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.10)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.11)');
 console.log('===============================================================');

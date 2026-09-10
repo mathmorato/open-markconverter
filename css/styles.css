@@ -997,24 +997,64 @@ body {
   display: block;
 }
 
-/* Animação CSS de Upload (@keyframes upload-bounce) */
-@keyframes upload-bounce {
-  0%, 100% {
-    transform: translateY(0);
+.step-icon-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  overflow: hidden; /* Mantém a seta contida no berço */
+  vertical-align: middle;
+  margin-right: 4px;
+  position: relative;
+  flex-shrink: 0;
+  color: currentColor;
+  transition: color 0.3s ease;
+}
+
+.step-icon-upload svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Animação CSS de Upload Ascendente Infinito (@keyframes upload-ascend-infinite) */
+@keyframes upload-ascend-infinite {
+  0% {
+    transform: translateY(4px);
+    opacity: 0;
   }
-  50% {
-    transform: translateY(-3px);
+  20% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-8px);
+    opacity: 0;
   }
 }
 
-.file-queue-item:not(.upload-done) .arrow-up-group {
-  animation: upload-bounce 1.1s ease-in-out infinite;
+/* Aplicação direta da animação contínua enquanto ativo */
+.step-icon-upload .arrow-up-group,
+.file-queue-item.is-reading .step-icon-upload .arrow-up-group,
+.file-queue-item:not(.upload-done) .step-icon-upload .arrow-up-group {
+  display: inline-block;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: upload-ascend-infinite 1s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
 }
 
-.file-queue-item.upload-done .arrow-up-group,
-.file-queue-item.completed .arrow-up-group,
-.file-queue-item.queued .arrow-up-group {
-  animation: none;
+/* Desativação da animação ao concluir ou em repouso */
+.file-queue-item.upload-done .step-icon-upload .arrow-up-group,
+.file-queue-item.completed .step-icon-upload .arrow-up-group,
+.file-queue-item.queued:not(.is-reading) .step-icon-upload .arrow-up-group,
+.file-queue-item.error .step-icon-upload .arrow-up-group {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 /* Animação CSS de Conversão (@keyframes convert-slide) */
@@ -1033,14 +1073,22 @@ body {
   }
 }
 
+.step-icon-convert .arrow-convert-group {
+  display: inline-block;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .file-queue-item:not(.convert-done) .arrow-convert-group {
   animation: convert-slide 1s ease-in-out infinite;
 }
 
 .file-queue-item.convert-done .arrow-convert-group,
 .file-queue-item.completed .arrow-convert-group,
-.file-queue-item.queued .arrow-convert-group {
-  animation: none;
+.file-queue-item.queued .arrow-convert-group,
+.file-queue-item.error .arrow-convert-group {
+  animation: none !important;
+  transform: none !important;
 }
 
 /* Transição de cores para Verde Esmeralda quando a etapa for concluída */

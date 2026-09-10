@@ -120,6 +120,7 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -133,6 +134,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--transition-normal), color var(--transition-normal);
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -173,7 +175,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 2px 8px rgba(37, 99, 255, 0.25);
 }
 
 .brand-title {
@@ -232,14 +234,22 @@ body {
 }
 
 /* ==========================================================================
-   Layout Principal
+   Layout Principal e Container Unificado (Desktop & Mobile)
    ========================================================================== */
 .main-content {
   flex: 1;
-  max-width: 1440px;
   width: 100%;
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-container {
+  width: 100%;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -250,8 +260,9 @@ body {
    ========================================================================== */
 .hero-section {
   text-align: center;
-  max-width: 800px;
-  margin: 0.5rem auto 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .hero-title {
@@ -269,9 +280,9 @@ body {
 }
 
 .dropzone-container {
-  max-width: 900px;
-  margin: 0 auto;
   width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .dropzone {
@@ -728,8 +739,9 @@ body {
    ========================================================================== */
 .file-queue-section {
   width: 100%;
-  max-width: 1200px;
-  margin: 1.5rem auto 0 auto;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .file-queue-card {
@@ -970,7 +982,43 @@ body {
   background: var(--error-bg);
 }
 
-/* Barra de Progresso Individual */
+/* ==========================================================================
+   Dupla Barra de Progresso por Arquivo (Leitura vs. Conversão)
+   ========================================================================== */
+.file-progress-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  width: 100%;
+}
+
+.progress-sub-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.progress-label span:first-child {
+  font-weight: 500;
+}
+
+.upload-percent,
+.convert-percent {
+  font-family: var(--font-mono);
+  font-size: 0.725rem;
+  color: var(--text-muted);
+}
+
 .progress-bar-container {
   width: 100%;
   height: 5px;
@@ -982,21 +1030,36 @@ body {
 .progress-bar-fill {
   height: 100%;
   width: 0%;
-  background: var(--blue-primary);
   border-radius: var(--radius-full);
   transition: width 0.25s ease, background-color 0.3s ease;
 }
 
-.queue-item.completed .progress-bar-fill {
-  background: var(--success-color);
+/* Barra 1: Leitura do Arquivo (Azul Tech suave #3B82F6) */
+.progress-bar-fill.bar-upload {
+  background-color: #3B82F6;
 }
 
-.queue-item.error .progress-bar-fill {
-  background: var(--error-color);
+/* Barra 2: Conversão para Markdown (Azul Royal #2563EB em processamento, Esmeralda #10B981 no sucesso, Coral #EF4444 no erro) */
+.progress-bar-fill.bar-convert {
+  background-color: #2563EB;
+}
+
+.progress-bar-fill.bar-convert.completed,
+.queue-item.completed .progress-bar-fill.bar-convert {
+  background-color: #10B981;
+}
+
+.progress-bar-fill.bar-convert.error,
+.queue-item.error .progress-bar-fill.bar-convert {
+  background-color: #EF4444;
+}
+
+.queue-item.completed .progress-bar-fill.bar-upload {
+  background-color: #10B981;
 }
 
 /* ==========================================================================
-   Responsividade Mobile / Tablets
+   Responsividade Mobile-First (Tablets & Smartphones: 768px e 480px)
    ========================================================================== */
 @media (max-width: 960px) {
   .hero-title {
@@ -1004,27 +1067,142 @@ body {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .main-content {
-    padding: 1rem;
+    padding: 1rem 0;
   }
 
-  .topbar {
-    padding: 0.6rem 1rem;
+  .app-main-container {
+    padding: 0 1rem;
+    gap: 1.25rem;
+  }
+
+  .hero-title {
+    font-size: 1.35rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Dropzone no Celular: redução de padding, botão com largura 100% e altura de toque confortável (min-height 48px) */
+  .dropzone {
+    padding: 1.5rem 1rem;
+  }
+
+  .btn-browse {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    font-size: 0.9375rem;
+    margin: 0.75rem 0;
+  }
+
+  .format-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+
+  /* Cabeçalho da Fila de Documentos */
+  .file-queue-header {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .file-queue-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .file-queue-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  /* Cards de Arquivo na Fila (.file-queue-item / .queue-item) */
+  .queue-item-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .queue-item-left {
+    width: 100%;
+  }
+
+  .queue-item-name {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .queue-item-right {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .queue-item-actions {
+    gap: 0.65rem;
+  }
+
+  .btn-queue-item-download,
+  .btn-queue-item-remove {
+    padding: 0.5rem;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .footer-container {
     flex-direction: column;
     text-align: center;
+    gap: 0.75rem;
   }
 
-  .file-queue-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main-container {
+    padding: 0 0.75rem;
   }
 
-  .file-queue-actions {
-    width: 100%;
-    justify-content: space-between;
+  .dropzone {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .dropzone-prompt {
+    font-size: 1rem;
+  }
+
+  .btn-browse {
+    font-size: 0.875rem;
+  }
+
+  .quick-examples-section {
+    gap: 0.35rem;
+  }
+
+  .btn-quick-example {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .topbar-container {
+    padding: 0 0.5rem;
   }
 }

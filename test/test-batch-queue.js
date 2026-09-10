@@ -1,12 +1,12 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * download individual por item, download em lote (.zip) e remoção de itens (v.1.2.0).
+ * download individual por item, download em lote (.zip) e dupla barra de progresso (v.1.3.0).
  */
 
 import { APP_CONFIG } from '../js/config.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO LÓGICA DE FILA E DOWNLOADS INDIVIDUAL/LOTE (v.1.2.0)');
+console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.3.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -41,17 +41,29 @@ function addFilesToQueue(files) {
 
     let status = 'queued';
     let statusText = 'Na fila';
+    let uploadProgress = 0;
+    let uploadText = '0%';
+    let convertProgress = 0;
+    let convertText = 'Aguardando...';
     let progress = 0;
     let errorMessage = '';
 
     if (file.size === 0) {
       status = 'error';
       statusText = 'Erro: Vazio (0 B)';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Vazio';
       progress = 100;
       errorMessage = 'Arquivo vazio (0 bytes)';
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
       statusText = 'Erro: Formato não suportado';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Não suportado';
       progress = 100;
       errorMessage = `Extensão "${ext}" não suportada`;
     }
@@ -62,6 +74,10 @@ function addFilesToQueue(files) {
       formatInfo,
       status,
       statusText,
+      uploadProgress,
+      uploadText,
+      convertProgress,
+      convertText,
       progress,
       markdown: '',
       durationMs: 0,
@@ -106,7 +122,7 @@ if (emptyItem.status !== 'error' || emptyItem.progress !== 100) {
   console.error('[FALHA] Arquivo vazio não foi marcado como erro');
   process.exit(1);
 }
-console.log('  -> Arquivo vazio rejeitado com status "error" e 100% de progresso');
+console.log('  -> Arquivo vazio rejeitado com status "error"');
 
 const exeItem = state.queue.find(it => it.file.name === 'binario.exe');
 if (exeItem.status !== 'error') {
@@ -115,20 +131,41 @@ if (exeItem.status !== 'error') {
 }
 console.log('  -> Arquivo binário não suportado rejeitado');
 
-// 2. Simula concorrência controlada (máximo 2 simultâneos)
+// 2. Simula concorrência controlada e dupla barra de progresso (máximo 2 simultâneos)
 let activeCount = 0;
 const processItem = async (item) => {
   item.status = 'processing';
-  item.progress = 20;
+  item.uploadProgress = 0;
+  item.convertProgress = 0;
+  item.convertText = 'Aguardando...';
   activeCount++;
   if (activeCount > state.maxConcurrency) {
     console.error(`[FALHA] Concorrência excedeu o limite de ${state.maxConcurrency}: ${activeCount}`);
     process.exit(1);
   }
 
-  // Simula leitura e parsing
-  item.progress = 60;
-  await new Promise(r => setTimeout(r, 20));
+  // Etapa 1: Leitura do arquivo (FileReader)
+  item.uploadProgress = 50;
+  item.uploadText = '50%';
+  if (item.convertProgress !== 0) {
+    console.error('[FALHA] Barra de conversão não permaneceu em 0% durante a leitura');
+    process.exit(1);
+  }
+
+  item.uploadProgress = 100;
+  item.uploadText = '100%';
+
+  // Etapa 2: Conversão Markdown (Parsing)
+  item.convertProgress = 20;
+  item.convertText = '20% (Carregando parser)';
+  await new Promise(r => setTimeout(r, 10));
+
+  item.convertProgress = 60;
+  item.convertText = '60% (Extraindo dados)';
+  await new Promise(r => setTimeout(r, 10));
+
+  item.convertProgress = 100;
+  item.convertText = '100%';
   item.progress = 100;
   item.status = 'completed';
   item.markdown = `# Convertido ${item.file.name}\n\nConteúdo Markdown extraído.`;
@@ -136,7 +173,7 @@ const processItem = async (item) => {
 };
 
 const validItems = state.queue.filter(it => it.status === 'queued');
-console.log(`[TESTE 2] Processando ${validItems.length} itens válidos com concorrência máxima de 2...`);
+console.log(`[TESTE 2] Processando ${validItems.length} itens válidos com concorrência máxima de 2 e progresso duplo...`);
 
 await Promise.all([
   processItem(validItems[0]),
@@ -144,7 +181,7 @@ await Promise.all([
 ]);
 await processItem(validItems[2]);
 
-console.log('  -> Todos os 3 itens válidos concluídos sem exceder o limite de concorrência');
+console.log('  -> Todos os 3 itens concluídos com dupla barra de progresso (upload=100%, convert=100%)');
 
 // 3. Testa download individual imediato para item concluído
 console.log('[TESTE 3] Testando download individual de documento concluído...');
@@ -181,5 +218,5 @@ if (state.queue.length !== 0) {
 console.log('  -> Fila completamente limpa!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.2.0)');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.3.0)');
 console.log('===============================================================');

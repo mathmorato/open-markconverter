@@ -11,23 +11,27 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.2.0') {
-  console.error('[ERRO] Versão diferente de v.1.2.0');
+if (APP_CONFIG.VERSION !== 'v.1.3.0') {
+  console.error('[ERRO] Versão diferente de v.1.3.0');
   process.exit(1);
 }
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.2.0') {
+if (pkg.version !== '1.3.0') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html, fila de downloads e remoção do editor antigo
+// 3. Verifica sincronização no index.html, fila de downloads e container central unificado
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.2.0')) {
-  console.error('[ERRO] index.html não contém v.1.2.0');
+if (!indexHtml.includes('v.1.3.0')) {
+  console.error('[ERRO] index.html não contém v.1.3.0');
+  process.exit(1);
+}
+if (!indexHtml.includes('app-main-container')) {
+  console.error('[ERRO] index.html não contém o container unificado app-main-container');
   process.exit(1);
 }
 if (!indexHtml.includes('id="btn-browse"')) {
@@ -58,9 +62,9 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.2.0, fila de arquivos e remoção completa do editor obsoleto');
+console.log('[OK] index.html contém v.1.3.0, app-main-container, fila de arquivos e remoção do editor obsoleto');
 
-// 4. Verifica listeners, download individual e telemetria no js/app.js
+// 4. Verifica listeners, download individual, telemetria e dupla barra de progresso no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
 if (!appJs.includes("window.addEventListener('paste'")) {
   console.error('[ERRO] js/app.js não contém listener de paste');
@@ -74,15 +78,31 @@ if (!appJs.includes('addFilesToQueue') || !appJs.includes('downloadQueueItem') |
   console.error('[ERRO] js/app.js não contém rotinas de download individual ou fila de lote');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém listener de paste, telemetria global, addFilesToQueue e downloadQueueItem');
-
-// 5. Verifica README.md
-const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.2.0')) {
-  console.error('[ERRO] README.md não contém v.1.2.0');
+if (!appJs.includes('file-progress-group') || !appJs.includes('bar-upload') || !appJs.includes('bar-convert') || !appJs.includes('upload-percent') || !appJs.includes('convert-percent')) {
+  console.error('[ERRO] js/app.js não contém estrutura de dupla barra de progresso (bar-upload e bar-convert)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.2.0');
+console.log('[OK] js/app.js contém listener de paste, telemetria, addFilesToQueue e dupla barra de progresso');
+
+// 5. Verifica estilos CSS para alinhamento unificado e dupla barra de progresso
+const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
+if (!stylesCss.includes('.app-main-container') || !stylesCss.includes('.file-progress-group') || !stylesCss.includes('.bar-upload') || !stylesCss.includes('.bar-convert')) {
+  console.error('[ERRO] css/styles.css não contém classes de container unificado ou dupla barra de progresso');
+  process.exit(1);
+}
+if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@media (max-width: 480px)')) {
+  console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
+  process.exit(1);
+}
+console.log('[OK] css/styles.css contém app-main-container, dupla barra de progresso e media queries mobile');
+
+// 6. Verifica README.md
+const readme = fs.readFileSync('./README.md', 'utf8');
+if (!readme.includes('v.1.3.0')) {
+  console.error('[ERRO] README.md não contém v.1.3.0');
+  process.exit(1);
+}
+console.log('[OK] README.md contém cabeçalho v.1.3.0');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

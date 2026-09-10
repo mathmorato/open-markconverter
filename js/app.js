@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.2.0
+ * @version v.1.3.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -209,7 +209,7 @@ function readFileWithProgress(file, onProgress) {
 }
 
 /* ==========================================================================
-   Pipeline de Fila em Lote e Central de Documentos (v.1.2.0)
+   Pipeline de Fila em Lote e Central de Documentos (v.1.3.0)
    ========================================================================== */
 function addFilesToQueue(files) {
   if (!files || files.length === 0) return;
@@ -224,17 +224,29 @@ function addFilesToQueue(files) {
 
     let status = 'queued';
     let statusText = 'Na fila';
+    let uploadProgress = 0;
+    let uploadText = '0%';
+    let convertProgress = 0;
+    let convertText = 'Aguardando...';
     let progress = 0;
     let errorMessage = '';
 
     if (file.size === 0) {
       status = 'error';
       statusText = 'Erro: Vazio (0 B)';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Arquivo vazio';
       progress = 100;
       errorMessage = 'Arquivo vazio (0 bytes)';
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
       statusText = 'Erro: Formato não suportado';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Formato não suportado';
       progress = 100;
       errorMessage = `Extensão "${ext}" não suportada`;
     }
@@ -245,6 +257,10 @@ function addFilesToQueue(files) {
       formatInfo,
       status,
       statusText,
+      uploadProgress,
+      uploadText,
+      convertProgress,
+      convertText,
       progress,
       markdown: '',
       durationMs: 0,
@@ -280,10 +296,11 @@ function renderQueue() {
     const statusClass = item.status;
     const timeText = item.durationMs ? `${item.durationMs} ms` : '';
     const isCompleted = item.status === 'completed';
+    const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
 
     return `
-      <div class="queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+      <div class="queue-item file-queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
         <div class="queue-item-main">
           <div class="queue-item-left">
             <div class="queue-item-icon" aria-hidden="true">${formatIcon}</div>
@@ -317,8 +334,27 @@ function renderQueue() {
             </div>
           </div>
         </div>
-        <div class="progress-bar-container" aria-hidden="true">
-          <div class="progress-bar-fill" id="progress-${item.id}" style="width: ${item.progress}%;"></div>
+        <div class="file-progress-group">
+          <!-- Barra 1: Leitura do Arquivo -->
+          <div class="progress-sub-step">
+            <div class="progress-label">
+              <span>Leitura do arquivo</span>
+              <span class="upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill bar-upload" style="width: ${item.uploadProgress}%;"></div>
+            </div>
+          </div>
+          <!-- Barra 2: Conversão para Markdown -->
+          <div class="progress-sub-step">
+            <div class="progress-label">
+              <span>Conversão Markdown</span>
+              <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill bar-convert ${isCompleted ? 'completed' : (isError ? 'error' : '')}" style="width: ${item.convertProgress}%;"></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -346,7 +382,7 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
-  itemEl.className = `queue-item ${item.status}`;
+  itemEl.className = `queue-item file-queue-item ${item.status}`;
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
@@ -354,9 +390,33 @@ function updateQueueItemDOM(item) {
     statusBadge.textContent = item.statusText;
   }
 
-  const progressBar = itemEl.querySelector(`#progress-${item.id}`);
-  if (progressBar) {
-    progressBar.style.width = `${item.progress}%`;
+  // Barra 1: Leitura do Arquivo
+  const uploadBar = itemEl.querySelector(`.bar-upload`);
+  const uploadPercent = itemEl.querySelector(`.upload-percent`);
+  if (uploadBar) {
+    uploadBar.style.width = `${item.uploadProgress}%`;
+  }
+  if (uploadPercent) {
+    uploadPercent.textContent = item.uploadText || `${item.uploadProgress}%`;
+  }
+
+  // Barra 2: Conversão para Markdown
+  const convertBar = itemEl.querySelector(`.bar-convert`);
+  const convertPercent = itemEl.querySelector(`.convert-percent`);
+  if (convertBar) {
+    convertBar.style.width = `${item.convertProgress}%`;
+    if (item.status === 'completed') {
+      convertBar.classList.add('completed');
+      convertBar.classList.remove('error');
+    } else if (item.status === 'error') {
+      convertBar.classList.add('error');
+      convertBar.classList.remove('completed');
+    } else {
+      convertBar.classList.remove('completed', 'error');
+    }
+  }
+  if (convertPercent) {
+    convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
   }
 
   const downloadBtn = itemEl.querySelector(`.btn-queue-item-download[data-id="${item.id}"]`);
@@ -427,8 +487,12 @@ async function processQueueItem(item) {
   if (item.cancelled) return;
 
   item.status = 'processing';
-  item.progress = 10;
-  item.statusText = 'Lendo arquivo... (10%)';
+  item.statusText = 'Lendo arquivo... (0%)';
+  item.uploadProgress = 0;
+  item.uploadText = '0%';
+  item.convertProgress = 0;
+  item.convertText = 'Aguardando...';
+  item.progress = 0;
   updateQueueItemDOM(item);
 
   const startTime = performance.now();
@@ -437,19 +501,31 @@ async function processQueueItem(item) {
   try {
     const arrayBuffer = await readFileWithProgress(item.file, (readPercent) => {
       if (item.cancelled) return;
-      const overall = Math.round(10 + (readPercent * 0.4));
-      item.progress = overall;
-      item.statusText = `Processando... (${overall}%)`;
+      item.uploadProgress = readPercent;
+      item.uploadText = `${readPercent}%`;
+      item.convertProgress = 0;
+      item.convertText = 'Aguardando...';
+      item.statusText = `Lendo arquivo... (${readPercent}%)`;
       updateQueueItemDOM(item);
     });
 
     if (item.cancelled) return;
 
-    item.progress = 60;
-    item.statusText = 'Convertendo documento... (60%)';
+    // Conclusão da etapa 1: Leitura 100%
+    item.uploadProgress = 100;
+    item.uploadText = '100%';
+    item.convertProgress = 20;
+    item.convertText = '20% (Carregando parser)';
+    item.statusText = 'Carregando parser... (20%)';
     updateQueueItemDOM(item);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
+
+    // Etapa 2: Extração / conversão em andamento
+    item.convertProgress = 60;
+    item.convertText = '60% (Extraindo dados)';
+    item.statusText = 'Convertendo Markdown... (60%)';
+    updateQueueItemDOM(item);
 
     let markdown = '';
     switch (item.formatInfo.parser) {
@@ -475,6 +551,10 @@ async function processQueueItem(item) {
 
     const duration = Math.round(performance.now() - startTime);
     item.status = 'completed';
+    item.uploadProgress = 100;
+    item.uploadText = '100%';
+    item.convertProgress = 100;
+    item.convertText = '100%';
     item.progress = 100;
     item.statusText = 'Concluído';
     item.markdown = markdown;
@@ -487,6 +567,8 @@ async function processQueueItem(item) {
     if (item.cancelled) return;
     const duration = Math.round(performance.now() - startTime);
     item.status = 'error';
+    item.convertProgress = 100;
+    item.convertText = 'Erro';
     item.progress = 100;
     item.statusText = 'Erro';
     item.errorMessage = error.message || 'Falha durante o processamento';

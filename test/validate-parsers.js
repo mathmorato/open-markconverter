@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.7.3') {
-  console.error('[ERRO] Versão diferente de v.1.7.3');
+if (APP_CONFIG.VERSION !== 'v.1.7.4') {
+  console.error('[ERRO] Versão diferente de v.1.7.4');
   process.exit(1);
 }
 // Garante que versões inválidas como v.1.4.11 sejam expressamente rejeitadas
@@ -43,7 +43,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.7.3' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.7.4' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -51,8 +51,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.7.3')) {
-  console.error('[ERRO] index.html não contém v.1.7.3');
+if (!indexHtml.includes('v.1.7.4')) {
+  console.error('[ERRO] index.html não contém v.1.7.4');
   process.exit(1);
 }
 if (!indexHtml.includes('id="toggle-merge-markdown"') || (!indexHtml.includes('btn-queue-download-merged') && !indexHtml.includes('btn-download-unified'))) {
@@ -132,7 +132,7 @@ if (!indexHtml.includes('+todas linguagens de código')) {
   console.error('[ERRO] index.html não contém a badge destacada +todas linguagens de código');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.7.3, novo cabeçalho, dropzone semântica e limit-badge 1,5 GB');
+console.log('[OK] index.html contém v.1.7.4, novo cabeçalho, dropzone semântica e limit-badge 1,5 GB');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -244,7 +244,11 @@ if (appJs.includes('elements.toastContainer') || appJs.includes('toast.style.opa
   console.error('[ERRO] js/app.js ainda contém manipulação ativa de nós DOM de toast');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém rótulos Upload/Conversão com ícones animados, is-reading, badge-file-size e layout linear');
+if (!appJs.includes('getFileExtension') || !appJs.includes('parseYaml')) {
+  console.error('[ERRO] js/app.js não contém getFileExtension ou parseYaml para suporte a YAML');
+  process.exit(1);
+}
+console.log('[OK] js/app.js contém rótulos Upload/Conversão com ícones animados, is-reading, badge-file-size, getFileExtension e layout linear');
 
 // 5. Verifica estilos CSS para layout linear, contenção de overflow, ícones vetoriais animados e peso MD
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
@@ -372,15 +376,15 @@ console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), e
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.7.3')) {
-  console.error('[ERRO] README.md não contém v.1.7.3');
+if (!readme.includes('v.1.7.4')) {
+  console.error('[ERRO] README.md não contém v.1.7.4');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-mark/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-mark/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.7.3 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.7.4 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

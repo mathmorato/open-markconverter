@@ -179,6 +179,46 @@ export function parseSourceCode(input, extension, fileName = 'codigo') {
     `\`\`\`\n`;
 }
 
+/**
+ * Converte documentos YAML (.yaml / .yml) para Markdown estruturado
+ * com metadados semânticos e bloco de código fenced.
+ * @param {string|ArrayBuffer|Uint8Array} input Conteúdo do YAML ou buffer
+ * @param {string} fileName Nome do arquivo (ex: 'config.yml')
+ * @returns {string} Markdown estruturado
+ */
+export function parseYaml(input, fileName = 'documento.yaml') {
+  let textContent = '';
+  if (typeof input === 'string') {
+    textContent = input;
+  } else if (input instanceof ArrayBuffer) {
+    textContent = new TextDecoder('utf-8').decode(input);
+  } else if (input && input.buffer instanceof ArrayBuffer) {
+    textContent = new TextDecoder('utf-8').decode(input);
+  } else {
+    textContent = String(input || '');
+  }
+
+  const lines = textContent.split(/\r\n|\r|\n/).length;
+  const sizeInBytes = (typeof Blob !== 'undefined')
+    ? new Blob([textContent]).size
+    : (typeof Buffer !== 'undefined' ? Buffer.byteLength(textContent, 'utf8') : textContent.length);
+
+  const formatSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+  const formattedSize = formatSize(sizeInBytes);
+
+  return `# ${fileName}\n\n` +
+    `> **Formato:** YAML | **Linhas:** ${lines} | **Tamanho:** ${formattedSize}\n\n` +
+    `\`\`\`yaml\n` +
+    `${textContent}\n` +
+    `\`\`\`\n`;
+}
+
 export async function parseText(file, onProgress = null) {
   if (typeof onProgress === 'function') {
     onProgress(50, 'Lendo conteúdo textual...');
@@ -211,7 +251,7 @@ export async function parseText(file, onProgress = null) {
   }
 
   const cleanExt = (ext || '').replace(/^\./, '');
-  if (CODE_EXTENSIONS_MAP[cleanExt] && !['json', 'html', 'htm', 'rtf', 'md', 'markdown', 'txt', 'log'].includes(cleanExt)) {
+  if (CODE_EXTENSIONS_MAP[cleanExt] && !['json', 'html', 'htm', 'rtf', 'md', 'markdown', 'txt', 'log', 'yaml', 'yml'].includes(cleanExt)) {
     return parseSourceCode(textContent, cleanExt, fileName);
   }
 
@@ -278,10 +318,13 @@ export async function parseText(file, onProgress = null) {
       return textContent;
     }
 
-    case 'xml':
+    case 'xml': {
+      return `# ${docTitle}\n\n\`\`\`xml\n${textContent}\n\`\`\`\n`;
+    }
+
     case 'yaml':
     case 'yml': {
-      return `# ${docTitle}\n\n\`\`\`${ext}\n${textContent}\n\`\`\`\n`;
+      return parseYaml(textContent, fileName);
     }
 
     case 'txt':

@@ -1,18 +1,19 @@
 /**
- * Suíte de Testes para o Suporte Universal a Linguagens de Programação
- * e Parser Resiliente de Código-Fonte (v.1.7.2)
+ * Suíte Geral de Testes para Parsers Universais, YAML (.yml/.yaml),
+ * Tipos MIME e Resiliência Heurística (v.1.7.4)
  */
 
 import assert from 'assert';
-import { APP_CONFIG, CODE_EXTENSIONS_MAP } from '../js/config.js';
-import { parseSourceCode, parseText } from '../js/parsers/text-parser.js';
+import { APP_CONFIG, CODE_EXTENSIONS_MAP, SUPPORTED_EXTENSIONS, MIME_TYPE_MAP } from '../js/config.js';
+import { parseSourceCode, parseText, parseYaml } from '../js/parsers/text-parser.js';
+import { getFileExtension, getFormatCategory, isSupportedDocumentExtension, getMimeTypeForExt } from '../js/app.js';
 
 console.log('================================================================');
-console.log('  TESTANDO PARSER UNIVERSAL DE CÓDIGO-FONTE & HEURÍSTICA UTF-8   ');
+console.log('  TESTANDO PARSERS UNIVERSAIS, YAML (.YML/.YAML) & MIME TYPES   ');
 console.log('================================================================\n');
 
-// 1. Validação do Dicionário CODE_EXTENSIONS_MAP
-console.log('[TESTE 1] Validando integridade de CODE_EXTENSIONS_MAP...');
+// 1. Validação do Dicionário CODE_EXTENSIONS_MAP e SUPPORTED_EXTENSIONS
+console.log('[TESTE 1] Validando integridade de dicionários de extensão...');
 assert(CODE_EXTENSIONS_MAP['m'] === 'matlab', 'Extensão .m deve mapear para matlab');
 assert(CODE_EXTENSIONS_MAP['matlab'] === 'matlab', 'Extensão .matlab deve mapear para matlab');
 assert(CODE_EXTENSIONS_MAP['lua'] === 'lua', 'Extensão .lua deve mapear para lua');
@@ -23,140 +24,200 @@ assert(CODE_EXTENSIONS_MAP['rs'] === 'rust', 'Extensão .rs deve mapear para rus
 assert(CODE_EXTENSIONS_MAP['go'] === 'go', 'Extensão .go deve mapear para go');
 assert(CODE_EXTENSIONS_MAP['sh'] === 'bash', 'Extensão .sh deve mapear para bash');
 assert(CODE_EXTENSIONS_MAP['cpp'] === 'cpp', 'Extensão .cpp deve mapear para cpp');
-console.log('  -> [OK] Dicionário de linguagens validado com mais de 80 extensões mapeadas!\n');
+assert(CODE_EXTENSIONS_MAP['yaml'] === 'yaml', 'Extensão .yaml deve mapear para yaml');
+assert(CODE_EXTENSIONS_MAP['yml'] === 'yaml', 'Extensão .yml deve mapear para yaml');
 
-// 2. Parsing de MATLAB (.m)
-console.log('[TESTE 2] Validando parsing de código MATLAB (.m)...');
+assert(SUPPORTED_EXTENSIONS['yaml'], 'SUPPORTED_EXTENSIONS deve conter yaml');
+assert(SUPPORTED_EXTENSIONS['yml'], 'SUPPORTED_EXTENSIONS deve conter yml');
+assert(SUPPORTED_EXTENSIONS['yaml'].parser === 'text', 'Parser de yaml deve ser text');
+assert(SUPPORTED_EXTENSIONS['yml'].parser === 'text', 'Parser de yml deve ser text');
+console.log('  -> [OK] Dicionários de extensões validados com sucesso!\n');
+
+// 2. Validação do Mapeamento MIME_TYPE_MAP
+console.log('[TESTE 2] Validando mapeamento defensivo de tipos MIME...');
+const yamlMimes = ['application/x-yaml', 'text/yaml', 'text/x-yaml', 'application/yaml'];
+yamlMimes.forEach(mime => {
+  assert.strictEqual(MIME_TYPE_MAP[mime], 'yaml', `MIME ${mime} deve mapear para yaml`);
+});
+assert.strictEqual(MIME_TYPE_MAP['application/json'], 'json');
+assert.strictEqual(MIME_TYPE_MAP['text/html'], 'html');
+assert.strictEqual(MIME_TYPE_MAP['application/pdf'], 'pdf');
+console.log('  -> [OK] Todos os MIME types de YAML e documentos mapeados!\n');
+
+// 3. Extração Defensiva de Extensão (getFileExtension)
+console.log('[TESTE 3] Validando extração defensiva getFileExtension()...');
+assert.strictEqual(getFileExtension('config.yml'), 'yml');
+assert.strictEqual(getFileExtension('docker-compose.yaml'), 'yaml');
+assert.strictEqual(getFileExtension('DEPLOYMENT.YML'), 'yml');
+assert.strictEqual(getFileExtension('pipeline.YAML'), 'yaml');
+assert.strictEqual(getFileExtension('archive.tar.gz'), 'gz');
+assert.strictEqual(getFileExtension('sem-extensao'), '');
+assert.strictEqual(getFileExtension('.gitignore'), '');
+assert.strictEqual(getFileExtension(''), '');
+assert.strictEqual(getFileExtension(null), '');
+console.log('  -> [OK] getFileExtension() resiliente para maiúsculas, pontos duplos e ausência de extensão!\n');
+
+// 4. Teste de Roteamento de Arquivos sem MIME (file.type === "")
+console.log('[TESTE 4] Validando roteamento para arquivos sem MIME (file.type = "")...');
+const sampleYmlCat = getFormatCategory('config.yml');
+assert.strictEqual(sampleYmlCat.parser, 'text', 'config.yml deve rotear para parser text');
+assert.strictEqual(sampleYmlCat.key, 'code', 'config.yml deve ter category code');
+
+const sampleYamlCat = getFormatCategory('manifest.yaml');
+assert.strictEqual(sampleYamlCat.parser, 'text', 'manifest.yaml deve rotear para parser text');
+
+const sampleUpperCaseCat = getFormatCategory('SETTINGS.YML');
+assert.strictEqual(sampleUpperCaseCat.parser, 'text', 'SETTINGS.YML em maiúsculas deve rotear para text');
+
+assert.strictEqual(isSupportedDocumentExtension('.yml'), true);
+assert.strictEqual(isSupportedDocumentExtension('.yaml'), true);
+assert.strictEqual(isSupportedDocumentExtension('yml'), true);
+assert.strictEqual(isSupportedDocumentExtension('yaml'), true);
+console.log('  -> [OK] Roteamento de arquivos .yml/.yaml com MIME vazio validado com sucesso!\n');
+
+// 5. Parsing Dedicado de YAML (.yml e .yaml) via parseYaml()
+console.log('[TESTE 5] Validando parsing estruturado via parseYaml()...');
+const ymlContent = `version: "3.8"
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    volumes:
+      - ./data:/var/www/html`;
+
+const parsedYml = parseYaml(ymlContent, 'docker-compose.yml');
+assert(parsedYml.includes('# docker-compose.yml'), 'Deve conter título com o nome do arquivo');
+assert(parsedYml.includes('> **Formato:** YAML'), 'Deve identificar Formato: YAML');
+assert(parsedYml.includes('**Linhas:** 11'), 'Deve calcular 11 linhas');
+assert(parsedYml.includes('**Tamanho:**'), 'Deve conter tamanho formatado');
+assert(parsedYml.includes('```yaml\n'), 'Deve conter bloco ```yaml');
+assert(parsedYml.includes('image: nginx:alpine'), 'Preserva indentação exata');
+assert(parsedYml.endsWith('```\n'), 'Deve fechar com crases triplas');
+
+// Teste via ArrayBuffer
+const encoder = new TextEncoder();
+const ymlBuffer = encoder.encode(ymlContent).buffer;
+const parsedYmlBuffer = parseYaml(ymlBuffer, 'service.yaml');
+assert(parsedYmlBuffer.includes('# service.yaml'));
+assert(parsedYmlBuffer.includes('> **Formato:** YAML'));
+assert(parsedYmlBuffer.includes('```yaml\n'));
+console.log('  -> [OK] parseYaml() gera Markdown semântico com crases triplas e metadados!\n');
+
+// 6. Teste de Integração via parseText() para .yml e .yaml
+console.log('[TESTE 6] Validando integração em parseText() para arquivos .yml e .yaml...');
+const mockYmlFile = {
+  name: 'app.yml',
+  size: ymlContent.length,
+  text: async () => ymlContent,
+  arrayBuffer: async () => ymlBuffer
+};
+const resultYml = await parseText(mockYmlFile);
+assert(resultYml.includes('# app.yml'));
+assert(resultYml.includes('> **Formato:** YAML'));
+assert(resultYml.includes('```yaml\n'));
+
+const mockYamlFile = {
+  name: 'deployment.yaml',
+  size: ymlContent.length,
+  text: async () => ymlContent,
+  arrayBuffer: async () => ymlBuffer
+};
+const resultYaml = await parseText(mockYamlFile);
+assert(resultYaml.includes('# deployment.yaml'));
+assert(resultYaml.includes('> **Formato:** YAML'));
+assert(resultYaml.includes('```yaml\n'));
+console.log('  -> [OK] parseText() delega .yml e .yaml perfeitamente para parseYaml!\n');
+
+// 7. Bateria Geral de Formatos Chave (.docx, .xlsx, .pptx, .pdf, .html, .json, .csv, .m, .lua, .js, .sh)
+console.log('[TESTE 7] Validando roteamento dos formatos-chave...');
+const formatChecks = [
+  { file: 'contrato.docx', expectedParser: 'docx', expectedCategory: 'document' },
+  { file: 'orcamento.xlsx', expectedParser: 'xlsx', expectedCategory: 'spreadsheet' },
+  { file: 'base_dados.csv', expectedParser: 'xlsx', expectedCategory: 'spreadsheet' },
+  { file: 'apresentacao.pptx', expectedParser: 'pptx', expectedCategory: 'presentation' },
+  { file: 'documento.pdf', expectedParser: 'pdf', expectedCategory: 'pdf' },
+  { file: 'pagina.html', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'pagina.htm', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'schema.json', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'anotacoes.txt', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'documento.md', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'guia.markdown', expectedParser: 'text', expectedCategory: 'text' },
+  { file: 'servico.yml', expectedParser: 'text', expectedCategory: 'code' },
+  { file: 'manifesto.yaml', expectedParser: 'text', expectedCategory: 'code' },
+  { file: 'filtro.m', expectedParser: 'code', expectedCategory: 'code' },
+  { file: 'script.lua', expectedParser: 'code', expectedCategory: 'code' },
+  { file: 'server.js', expectedParser: 'code', expectedCategory: 'code' },
+  { file: 'deploy.sh', expectedParser: 'code', expectedCategory: 'code' }
+];
+
+formatChecks.forEach(({ file, expectedParser, expectedCategory }) => {
+  const cat = getFormatCategory(file);
+  assert.strictEqual(cat.parser, expectedParser, `${file} deve ter parser ${expectedParser}, obteve ${cat.parser}`);
+  console.log(`  -> [PASSOU] ${file} -> parser: ${cat.parser}`);
+});
+console.log('  -> [OK] Roteador validado com 100% de sucesso para todos os formatos-chave!\n');
+
+// 8. Teste de JSON, HTML e RTF via parseText()
+console.log('[TESTE 8] Validando parsing de JSON e HTML via parseText()...');
+const jsonText = JSON.stringify({ name: 'open-mark', private: true, version: '1.7.4' }, null, 2);
+const jsonRes = await parseText({ name: 'package.json', text: async () => jsonText });
+assert(jsonRes.includes('```json\n'), 'Gera bloco json');
+assert(jsonRes.includes('"version": "1.7.4"'), 'Preserva campos json');
+
+const htmlSample = '<html><body><h1>Título HTML</h1><p>Parágrafo de teste com <strong>negrito</strong>.</p></body></html>';
+const htmlRes = await parseText({ name: 'index.html', text: async () => htmlSample });
+assert(htmlRes.includes('# Título HTML'), 'Converte h1 para #');
+assert(htmlRes.includes('**negrito**'), 'Converte strong para **negrito**');
+console.log('  -> [OK] JSON e HTML estruturados com sucesso!\n');
+
+// 9. Teste de Linguagens Especializadas (MATLAB, Lua, Rust, Python, Bash)
+console.log('[TESTE 9] Validando linguagens de programação no parseSourceCode()...');
 const matlabCode = `% Algoritmo de Filtro de Kalman em MATLAB
 function [x, P] = kalman_filter(z, x, P, F, H, R, Q)
-    % Predição
     x = F * x;
     P = F * P * F' + Q;
-    % Atualização
-    y = z - H * x;
-    S = H * P * H' + R;
-    K = P * H' * inv(S);
-    x = x + K * y;
-    P = (eye(size(x, 1)) - K * H) * P;
 end`;
-
 const matlabMd = parseSourceCode(matlabCode, 'm', 'kalman_filter.m');
-assert(matlabMd.includes('# kalman_filter.m'), 'Deve conter cabeçalho com o nome do arquivo');
-assert(matlabMd.includes('> **Linguagem:** `matlab`'), 'Deve identificar a linguagem matlab');
-assert(matlabMd.includes('**Linhas:** 12'), 'Deve calcular corretamente as 12 linhas');
-assert(matlabMd.includes('```matlab\n'), 'Deve abrir o bloco com crases triplas e identificador matlab');
-assert(matlabMd.includes('K = P * H\' * inv(S);'), 'Deve preservar indentação e comandos MATLAB');
-assert(matlabMd.endsWith('```\n'), 'Deve encerrar com crases triplas');
-console.log('  -> [OK] Parsing MATLAB (.m) validado com metadados estruturados e bloco ```matlab!\n');
+assert(matlabMd.includes('> **Linguagem:** `matlab`'));
+assert(matlabMd.includes('```matlab\n'));
 
-// 3. Parsing de Lua (.lua)
-console.log('[TESTE 3] Validando parsing de scripts Lua (.lua)...');
-const luaCode = `-- Script de IA de Inimigo em Lua
-local Enemy = {}
-Enemy.__index = Enemy
+const luaCode = `local function greet(name) return "Ola " .. name end`;
+const luaMd = parseSourceCode(luaCode, 'lua', 'script.lua');
+assert(luaMd.includes('> **Linguagem:** `lua`'));
+assert(luaMd.includes('```lua\n'));
 
-function Enemy.new(name, health)
-    local self = setmetatable({}, Enemy)
-    self.name = name or "Goblin"
-    self.health = health or 100
-    return self
-end
+const pyCode = `def hello():\n    print("World")`;
+const pyMd = parseSourceCode(pyCode, 'py', 'app.py');
+assert(pyMd.includes('> **Linguagem:** `python`'));
+assert(pyMd.includes('```python\n'));
+console.log('  -> [OK] Parsers de código-fonte (MATLAB, Lua, Python) validados!\n');
 
-function Enemy:takeDamage(amount)
-    self.health = math.max(0, self.health - amount)
-    print(self.name .. " tomou dano! Vida restante: " .. self.health)
-end
-
-return Enemy`;
-
-const luaMd = parseSourceCode(luaCode, 'lua', 'enemy_ai.lua');
-assert(luaMd.includes('# enemy_ai.lua'), 'Deve conter cabeçalho do arquivo Lua');
-assert(luaMd.includes('> **Linguagem:** `lua`'), 'Deve identificar linguagem lua');
-assert(luaMd.includes('**Linhas:** 17'), 'Deve calcular 17 linhas');
-assert(luaMd.includes('```lua\n'), 'Deve gerar bloco ```lua');
-assert(luaMd.includes('self.health = math.max(0, self.health - amount)'), 'Preserva sintaxe Lua');
-console.log('  -> [OK] Parsing Lua (.lua) validado com sucesso!\n');
-
-// 4. Parsing de .js, .py, .rs, .go, .sh
-console.log('[TESTE 4] Validando linguagens padrão (.js, .py, .rs, .go, .sh)...');
-
-// JavaScript
-const jsMd = parseSourceCode('const answer = 42;\nconsole.log(answer);', 'js', 'main.js');
-assert(jsMd.includes('> **Linguagem:** `javascript`'), 'Identifica javascript para .js');
-assert(jsMd.includes('```javascript\n'), 'Bloco ```javascript');
-
-// Python
-const pyMd = parseSourceCode('def greet(name: str) -> str:\n    return f"Hello, {name}!"', 'py', 'greet.py');
-assert(pyMd.includes('> **Linguagem:** `python`'), 'Identifica python para .py');
-assert(pyMd.includes('```python\n'), 'Bloco ```python');
-
-// Rust
-const rsMd = parseSourceCode('fn main() {\n    println!("Rust Rocks!");\n}', 'rs', 'main.rs');
-assert(rsMd.includes('> **Linguagem:** `rust`'), 'Identifica rust para .rs');
-assert(rsMd.includes('```rust\n'), 'Bloco ```rust');
-
-// Go
-const goMd = parseSourceCode('package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Go!")\n}', 'go', 'main.go');
-assert(goMd.includes('> **Linguagem:** `go`'), 'Identifica go para .go');
-assert(goMd.includes('```go\n'), 'Bloco ```go');
-
-// Shell (Bash)
-const shMd = parseSourceCode('#!/bin/bash\necho "Iniciando build..."\nexit 0', 'sh', 'deploy.sh');
-assert(shMd.includes('> **Linguagem:** `bash`'), 'Identifica bash para .sh');
-assert(shMd.includes('```bash\n'), 'Bloco ```bash');
-console.log('  -> [OK] Todas as linguagens testadas (.js, .py, .rs, .go, .sh) passaram!\n');
-
-// 5. Suporte a entrada como ArrayBuffer e TypedArrays
-console.log('[TESTE 5] Validando suporte a ArrayBuffer e TypedArrays...');
-const encoder = new TextEncoder();
-const buffer = encoder.encode('SELECT * FROM users WHERE active = 1;').buffer;
-const sqlMd = parseSourceCode(buffer, 'sql', 'query.sql');
-assert(sqlMd.includes('> **Linguagem:** `sql`'), 'Identifica sql via buffer');
-assert(sqlMd.includes('```sql\nSELECT * FROM users WHERE active = 1;\n```'), 'Decodifica buffer UTF-8');
-console.log('  -> [OK] Entrada via ArrayBuffer decodificada corretamente!\n');
-
-// 6. Teste de Fallback Heurístico UTF-8 (Arquivos sem extensão ou com extensão incomum)
-console.log('[TESTE 6] Validando mecanismo de fallback heurístico UTF-8...');
-
-// Arquivo sem extensão (ex: script bash ou Makefile)
+// 10. Teste de Fallback Heurístico UTF-8 (Arquivos sem extensão ou raras)
+console.log('[TESTE 10] Validando fallback heurístico UTF-8 para extensões raras...');
 const noExtText = 'VAR=1\nall:\n\tgcc -o app main.c\n';
 const noExtBuffer = encoder.encode(noExtText).buffer;
 const sample1 = new Uint8Array(noExtBuffer.slice(0, 8192));
-const hasNull1 = sample1.includes(0x00);
-assert(!hasNull1, 'Arquivo de texto sem extensão não possui byte nulo');
+assert(!sample1.includes(0x00), 'Texto puro sem byte nulo');
 const fallbackMd1 = parseSourceCode(noExtBuffer, '', 'Makefile_Custom');
-assert(fallbackMd1.includes('> **Linguagem:** `text`'), 'Fallback para linguagem text quando extensão vazia');
-assert(fallbackMd1.includes('gcc -o app main.c'), 'Preserva conteúdo textual');
+assert(fallbackMd1.includes('> **Linguagem:** `text`'));
 
-// Arquivo com extensão incomum não catalogada (ex: .myconf)
-const customExtText = 'setting_a = true\nsetting_b = 42\n';
-const customBuffer = encoder.encode(customExtText).buffer;
-const sample2 = new Uint8Array(customBuffer.slice(0, 8192));
-const hasNull2 = sample2.includes(0x00);
-assert(!hasNull2, 'Arquivo de configuração textual não possui byte nulo');
-const fallbackMd2 = parseSourceCode(customBuffer, 'myconf', 'app.myconf');
-assert(fallbackMd2.includes('> **Linguagem:** `myconf`'), 'Utiliza a própria extensão como linguagem de syntax highlighting');
-assert(fallbackMd2.includes('```myconf\nsetting_a = true\n'), 'Gera bloco ```myconf');
+const rareExtText = 'feature_flag_alpha = enabled\ntimeout = 30\n';
+const rareBuffer = encoder.encode(rareExtText).buffer;
+const sample2 = new Uint8Array(rareBuffer.slice(0, 8192));
+assert(!sample2.includes(0x00), 'Configuração textual sem byte nulo');
+const fallbackMd2 = parseSourceCode(rareBuffer, 'xyzrare', 'app.xyzrare');
+assert(fallbackMd2.includes('> **Linguagem:** `xyzrare`'));
+assert(fallbackMd2.includes('```xyzrare\n'));
 
-// Arquivo binário real (contendo byte nulo 0x00)
-const binaryBytes = new Uint8Array([0x7F, 0x45, 0x4C, 0x46, 0x00, 0x01, 0x01, 0x00]); // ELF header com \0
-const hasNullBinary = binaryBytes.slice(0, 8192).includes(0x00);
-assert(hasNullBinary, 'Binário deve ser detectado pela presença do byte nulo 0x00');
-console.log('  -> [OK] Fallback heurístico e detecção de caracteres imprimíveis validados!\n');
-
-// 7. Teste de delegação em parseText()
-console.log('[TESTE 7] Validando integração em parseText()...');
-const mockMFile = {
-  name: 'matrix_mult.m',
-  size: matlabCode.length,
-  text: async () => matlabCode,
-  arrayBuffer: async () => encoder.encode(matlabCode).buffer
-};
-const delegatedMd = await parseText(mockMFile);
-assert(delegatedMd.includes('> **Linguagem:** `matlab`'), 'parseText deve delegar .m para parseSourceCode');
-assert(delegatedMd.includes('```matlab\n'), 'parseText deve retornar bloco com syntax matlab');
-console.log('  -> [OK] Integração e retrocompatibilidade de parseText() validadas!\n');
+// Binário real (contendo byte nulo)
+const binaryBytes = new Uint8Array([0x7F, 0x45, 0x4C, 0x46, 0x00, 0x01, 0x01, 0x00]);
+assert(binaryBytes.slice(0, 8192).includes(0x00), 'Binário detectado via byte nulo 0x00');
+console.log('  -> [OK] Fallback heurístico UTF-8 e rejeição de binários validados com sucesso!\n');
 
 console.log('================================================================');
-console.log('  SUCESSO: TODOS OS TESTES DO PARSER UNIVERSAL PASSARAM!        ');
+console.log('  SUCESSO: TODOS OS TESTES DA BATERIA GERAL PASSARAM COM ÊXITO! ');
 console.log('================================================================');

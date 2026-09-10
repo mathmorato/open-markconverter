@@ -32,12 +32,12 @@ if (typeof window !== 'undefined') {
   };
 }
 
-import { APP_CONFIG, loadScript, ERROR_CATALOG, CODE_EXTENSIONS_MAP } from './config.js';
+import { APP_CONFIG, loadScript, ERROR_CATALOG, CODE_EXTENSIONS_MAP, SUPPORTED_EXTENSIONS, MIME_TYPE_MAP } from './config.js';
 import { parseDocx } from './parsers/docx-parser.js';
 import { parseSpreadsheet } from './parsers/xlsx-parser.js';
 import { parsePptx } from './parsers/pptx-parser.js';
 import { parsePdf } from './parsers/pdf-parser.js';
-import { parseText, parseSourceCode } from './parsers/text-parser.js';
+import { parseText, parseSourceCode, parseYaml } from './parsers/text-parser.js';
 
 // Estado global da sessão local com suporte a fila em lote
 export const state = {
@@ -174,17 +174,42 @@ export function formatElapsedTime(ms) {
   return parts.join(' ');
 }
 
-function getFormatCategory(fileName) {
-  const ext = '.' + fileName.split('.').pop().toLowerCase();
+/**
+ * Extrai a extensão do arquivo de forma defensiva e canônica
+ * @param {string} filename Nome do arquivo (ex: 'config.yml', 'DOCUMENTO.YAML')
+ * @returns {string} Extensão em minúsculas sem ponto (ex: 'yml', 'yaml')
+ */
+export function getFileExtension(filename) {
+  if (!filename || !filename.includes('.')) return '';
+  return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toLowerCase().trim();
+}
 
+export function getFormatCategory(fileName) {
+  const cleanExt = getFileExtension(fileName);
+  const ext = cleanExt ? `.${cleanExt}` : '';
+
+  // 1. Mapeamento Unificado de Extensões (SUPPORTED_EXTENSIONS)
+  if (cleanExt && SUPPORTED_EXTENSIONS && SUPPORTED_EXTENSIONS[cleanExt]) {
+    const item = SUPPORTED_EXTENSIONS[cleanExt];
+    return {
+      key: item.category,
+      ext,
+      name: item.label || `Arquivo (${ext})`,
+      category: item.category,
+      parser: item.parser,
+      lang: item.lang
+    };
+  }
+
+  // 2. Mapeamento Geral por Grupo (APP_CONFIG.SUPPORTED_FORMATS)
   for (const [key, format] of Object.entries(APP_CONFIG.SUPPORTED_FORMATS)) {
     if (format.ext.includes(ext)) {
       return { key, ...format, ext };
     }
   }
 
-  const cleanExt = ext.replace(/^\./, '');
-  if (CODE_EXTENSIONS_MAP[cleanExt]) {
+  // 3. Matriz Universal de Linguagens de Código-Fonte (CODE_EXTENSIONS_MAP)
+  if (cleanExt && CODE_EXTENSIONS_MAP[cleanExt]) {
     return {
       key: 'code',
       ext,
@@ -197,7 +222,7 @@ function getFormatCategory(fileName) {
   return {
     key: 'text',
     ext,
-    name: `Arquivo (${ext})`,
+    name: `Arquivo (${ext || 'texto'})`,
     category: 'text',
     parser: 'text'
   };
@@ -396,17 +421,26 @@ export function isArchiveExtension(ext) {
 
 export function isSupportedDocumentExtension(ext) {
   if (!ext) return false;
-  const clean = ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+  const raw = ext.toLowerCase().replace(/^\./, '');
+  const dotted = `.${raw}`;
+  if (SUPPORTED_EXTENSIONS && SUPPORTED_EXTENSIONS[raw]) return true;
   for (const format of Object.values(APP_CONFIG.SUPPORTED_FORMATS)) {
-    if (format.ext.includes(clean)) return true;
+    if (format.ext.includes(dotted)) return true;
   }
+  if (CODE_EXTENSIONS_MAP && CODE_EXTENSIONS_MAP[raw]) return true;
   return false;
 }
 
 export function getMimeTypeForExt(ext) {
-  const clean = ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+  const raw = (ext || '').toLowerCase().replace(/^\./, '');
+  const dotted = `.${raw}`;
+  if (MIME_TYPE_MAP) {
+    for (const [mime, targetExt] of Object.entries(MIME_TYPE_MAP)) {
+      if (targetExt === raw) return mime;
+    }
+  }
   for (const format of Object.values(APP_CONFIG.SUPPORTED_FORMATS)) {
-    if (format.ext.includes(clean) && format.mime && format.mime[0]) {
+    if (format.ext.includes(dotted) && format.mime && format.mime[0]) {
       return format.mime[0];
     }
   }
@@ -544,7 +578,8 @@ export async function addFilesToQueue(files) {
   const queueCandidates = [];
 
   for (const file of fileList) {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const cleanExt = getFileExtension(file.name);
+    const ext = cleanExt ? `.${cleanExt}` : '';
     if (isArchiveExtension(ext)) {
       if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
         queueCandidates.push({
@@ -591,7 +626,8 @@ export async function addFilesToQueue(files) {
 
   const newItems = [];
   queueCandidates.forEach(({ file, isArchiveError, errorMessage: archiveErrMsg, archiveOrigin, relativePath, folderPath }) => {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const cleanExt = getFileExtension(file.name);
+    const ext = cleanExt ? `.${cleanExt}` : '';
     const formatInfo = getFormatCategory(file.name);
     const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -1293,7 +1329,7 @@ async function processQueueItem(item) {
 
     let markdown = '';
     try {
-      const cleanExt = (item.file.name.includes('.') ? item.file.name.split('.').pop() : item.file.name).toLowerCase().replace(/^\./, '');
+      const cleanExt = getFileExtension(item.file.name) || (item.file.name.includes('.') ? item.file.name.split('.').pop().toLowerCase() : '');
 
       switch (item.formatInfo.parser) {
         case 'docx':
@@ -1309,16 +1345,25 @@ async function processQueueItem(item) {
           markdown = await parsePdf(item.file, onParserSubProgress);
           break;
         case 'code':
-          markdown = parseSourceCode(arrayBuffer, cleanExt, item.file.name);
+          if (cleanExt === 'yaml' || cleanExt === 'yml') {
+            markdown = parseYaml(arrayBuffer, item.file.name);
+          } else {
+            markdown = parseSourceCode(arrayBuffer, cleanExt, item.file.name);
+          }
           break;
         case 'text':
         default: {
-          if (CODE_EXTENSIONS_MAP[cleanExt] && !['txt', 'html', 'htm', 'rtf', 'md', 'markdown', 'log'].includes(cleanExt)) {
+          if (cleanExt === 'yaml' || cleanExt === 'yml') {
+            markdown = parseYaml(arrayBuffer, item.file.name);
+            break;
+          }
+
+          if (CODE_EXTENSIONS_MAP[cleanExt] && !['txt', 'html', 'htm', 'rtf', 'md', 'markdown', 'log', 'yaml', 'yml'].includes(cleanExt)) {
             markdown = parseSourceCode(arrayBuffer, cleanExt, item.file.name);
             break;
           }
 
-          if (['txt', 'json', 'html', 'htm', 'rtf', 'md', 'markdown', 'log'].includes(cleanExt)) {
+          if (['txt', 'json', 'html', 'htm', 'rtf', 'md', 'markdown', 'log', 'yaml', 'yml'].includes(cleanExt)) {
             markdown = await parseText(item.file, onParserSubProgress);
             break;
           }

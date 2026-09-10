@@ -97,8 +97,89 @@ export const CODE_EXTENSIONS_MAP = {
   'proto': 'protobuf', 'env': 'bash'
 };
 
+/**
+ * Catálogo Unificado de Extensões Suportadas & Metadados de Roteamento
+ */
+export const SUPPORTED_EXTENSIONS = {
+  // Documentos
+  'docx': { category: 'document', label: 'Word (.docx)', parser: 'docx' },
+  'odt': { category: 'document', label: 'OpenDocument (.odt)', parser: 'docx' },
+  'rtf': { category: 'text', label: 'Rich Text (.rtf)', parser: 'text', lang: 'plaintext' },
+  
+  // Planilhas & Matrizes
+  'xlsx': { category: 'spreadsheet', label: 'Excel (.xlsx)', parser: 'xlsx' },
+  'xls': { category: 'spreadsheet', label: 'Excel 97-2004 (.xls)', parser: 'xlsx' },
+  'csv': { category: 'spreadsheet', label: 'CSV (.csv)', parser: 'xlsx' },
+  'tsv': { category: 'spreadsheet', label: 'TSV (.tsv)', parser: 'xlsx' },
+  'ods': { category: 'spreadsheet', label: 'OpenDocument (.ods)', parser: 'xlsx' },
+  
+  // Apresentações
+  'pptx': { category: 'presentation', label: 'PowerPoint (.pptx)', parser: 'pptx' },
+  'odp': { category: 'presentation', label: 'OpenDocument (.odp)', parser: 'pptx' },
+  
+  // Documentos Fechados
+  'pdf': { category: 'pdf', label: 'PDF (.pdf)', parser: 'pdf' },
+  
+  // Serialização, Configuração & Dados
+  'yaml': { category: 'code', label: 'YAML', parser: 'text', lang: 'yaml' },
+  'yml':  { category: 'code', label: 'YAML', parser: 'text', lang: 'yaml' },
+  'json': { category: 'text', label: 'JSON', parser: 'text', lang: 'json' },
+  'json5': { category: 'text', label: 'JSON5', parser: 'text', lang: 'json' },
+  'jsonc': { category: 'text', label: 'JSON with Comments', parser: 'text', lang: 'json' },
+  'xml': { category: 'text', label: 'XML', parser: 'text', lang: 'xml' },
+  'toml': { category: 'code', label: 'TOML', parser: 'code', lang: 'toml' },
+  'ini': { category: 'code', label: 'INI', parser: 'code', lang: 'ini' },
+  'cfg': { category: 'code', label: 'Config', parser: 'code', lang: 'ini' },
+  'conf': { category: 'code', label: 'Config', parser: 'code', lang: 'ini' },
+  
+  // Texto & Marcação
+  'html': { category: 'text', label: 'HTML', parser: 'text', lang: 'html' },
+  'htm': { category: 'text', label: 'HTML', parser: 'text', lang: 'html' },
+  'xhtml': { category: 'text', label: 'XHTML', parser: 'text', lang: 'html' },
+  'md': { category: 'text', label: 'Markdown', parser: 'text', lang: 'markdown' },
+  'markdown': { category: 'text', label: 'Markdown', parser: 'text', lang: 'markdown' },
+  'txt': { category: 'text', label: 'Texto Puro', parser: 'text', lang: 'plaintext' },
+  'log': { category: 'text', label: 'Log', parser: 'text', lang: 'plaintext' }
+};
+
+/**
+ * Mapeamento defensivo de tipos MIME para extensões canônicas
+ */
+export const MIME_TYPE_MAP = {
+  'application/x-yaml': 'yaml',
+  'text/yaml': 'yaml',
+  'text/x-yaml': 'yaml',
+  'application/yaml': 'yaml',
+  'application/json': 'json',
+  'text/html': 'html',
+  'text/plain': 'txt',
+  'text/markdown': 'md',
+  'text/x-markdown': 'md',
+  'text/xml': 'xml',
+  'application/xml': 'xml',
+  'application/rtf': 'rtf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-excel': 'xls',
+  'text/csv': 'csv',
+  'text/tab-separated-values': 'tsv',
+  'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/pdf': 'pdf',
+  'application/javascript': 'js',
+  'text/javascript': 'js',
+  'application/typescript': 'ts',
+  'text/x-python': 'py',
+  'text/x-c': 'c',
+  'text/x-c++': 'cpp',
+  'text/x-shellscript': 'sh',
+  'application/zip': 'zip',
+  'application/x-zip-compressed': 'zip',
+  'application/x-rar-compressed': 'rar'
+};
+
 export const APP_CONFIG = {
-  VERSION: 'v.1.7.3',
+  VERSION: 'v.1.7.4',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-mark',
@@ -176,8 +257,11 @@ export const APP_CONFIG = {
     },
     text: {
       ext: ['.txt', '.json', '.html', '.htm', '.rtf', '.xml', '.md', '.markdown', '.log', '.yaml', '.yml'],
-      mime: ['text/plain', 'application/json', 'text/html', 'application/rtf', 'text/xml', 'text/markdown'],
-      name: 'Texto (.txt, .json, .html, .rtf, .md)',
+      mime: [
+        'text/plain', 'application/json', 'text/html', 'application/rtf', 'text/xml', 'text/markdown',
+        'application/x-yaml', 'text/yaml', 'text/x-yaml', 'application/yaml'
+      ],
+      name: 'Texto / YAML / Dados (.txt, .json, .html, .rtf, .md, .yaml, .yml)',
       category: 'text',
       parser: 'text'
     },

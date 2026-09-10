@@ -3,26 +3,9 @@
  */
 
 import { APP_CONFIG } from '../js/config.js';
+import { getFormatCategory, getFileExtension, isSupportedDocumentExtension } from '../js/app.js';
 
-console.log('--- Testando lógica de detecção e validações ---');
-
-function getFormatCategory(fileName) {
-  const ext = '.' + fileName.split('.').pop().toLowerCase();
-
-  for (const [key, format] of Object.entries(APP_CONFIG.SUPPORTED_FORMATS)) {
-    if (format.ext.includes(ext)) {
-      return { key, ...format, ext };
-    }
-  }
-
-  return {
-    key: 'text',
-    ext,
-    name: `Arquivo (${ext})`,
-    category: 'text',
-    parser: 'text'
-  };
-}
+console.log('--- Testando lógica de detecção e validações (v.1.7.4) ---');
 
 // 1. Testa formatos aceitos
 const testFiles = [
@@ -36,6 +19,10 @@ const testFiles = [
   { name: 'payload.json', expectedParser: 'text' },
   { name: 'pagina.html', expectedParser: 'text' },
   { name: 'readme.markdown', expectedParser: 'text' },
+  { name: 'config.yml', expectedParser: 'text' },
+  { name: 'docker-compose.yaml', expectedParser: 'text' },
+  { name: 'APPLICATION.YML', expectedParser: 'text' },
+  { name: 'ci.YAML', expectedParser: 'text' },
   { name: 'algoritmo.m', expectedParser: 'code' },
   { name: 'script.lua', expectedParser: 'code' },
   { name: 'app.js', expectedParser: 'code' },
@@ -73,6 +60,16 @@ archives.forEach(name => {
     process.exit(1);
   }
   console.log(`[PASSOU] Pacote compactado identificado corretamente: ${name} (${ext})`);
+});
+
+// 4. Testa suporte documental direto
+const extensionsToCheck = ['.yml', '.yaml', 'yml', 'yaml', '.docx', '.json', '.m', '.lua'];
+extensionsToCheck.forEach(ext => {
+  if (!isSupportedDocumentExtension(ext)) {
+    console.error(`[FALHA] isSupportedDocumentExtension falhou para ${ext}`);
+    process.exit(1);
+  }
+  console.log(`[PASSOU] isSupportedDocumentExtension: ${ext} -> suportado`);
 });
 
 console.log('--- Todos os testes de lógica de upload passaram com sucesso! ---');

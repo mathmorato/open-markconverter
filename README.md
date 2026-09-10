@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.0`
+# Universal MarkConverter (doc2md) `v.1.6.1`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.1-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,19 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.1
+
+- **Restrição das Barras de Progresso a 1/3 (~33.33%) da Largura do Card:**
+  - Limitação estrita do container central de progresso (`.queue-item-progress` / `.file-progress-group`) para no máximo **`33.33%`** da largura total do card com `min-width: 180px`, impedindo que as barras se estiquem desproporcionalmente pela interface.
+  - Centralização refinada (`margin: 0 auto`) do miolo de progresso na faixa mediana do card.
+- **Harmonização e Distribuição Proporcional dos 3 Blocos da Fila:**
+  - **Bloco 1 (Esquerda - Identificação):** ampliado para `max-width: 45%` (`flex: 1 1 auto`), permitindo que títulos longos de arquivos tenham ampla legibilidade antes do truncamento por reticências (`text-overflow: ellipsis`).
+  - **Bloco 3 (Direita - Status e Ações):** espaçamento calibrado (`gap: 0.75rem`) com alinhamento à direita (`margin-left: auto`), mantendo tempo, peso do Markdown e botões integrados e sem vazamentos.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.1`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

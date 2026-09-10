@@ -18,7 +18,7 @@ import {
 import JSZip from 'jszip';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & MESCLAGEM UNIFICADA (v.1.6.0)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & MESCLAGEM UNIFICADA (v.1.6.1)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -400,5 +400,5 @@ if (!unifiedMarkdown.includes('---')) {
 console.log('  -> Mesclagem unificada com demarcadores e metadados validada com perfeição!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.0)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.1)');
 console.log('===============================================================');

@@ -13,12 +13,13 @@ import {
   renderUploadStepIcon, 
   renderConvertStepIcon,
   mergeMarkdownOutputs,
-  extractArchiveFiles
+  extractArchiveFiles,
+  scrollToActiveItem
 } from '../js/app.js';
 import JSZip from 'jszip';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & MESCLAGEM UNIFICADA (v.1.6.1)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & AUTO-SCROLL (v.1.6.2)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -399,6 +400,23 @@ if (!unifiedMarkdown.includes('---')) {
 
 console.log('  -> Mesclagem unificada com demarcadores e metadados validada com perfeição!');
 
+// 12. Teste de auto-scroll inteligente e preservação de scroll manual do usuário
+console.log('[TESTE 12] Testando rotina de auto-scroll inteligente (scrollToActiveItem)...');
+let scrolledElement = null;
+const mockElement = {
+  id: 'test-scroll-item',
+  scrollIntoView: (options) => {
+    scrolledElement = options;
+  }
+};
+
+scrollToActiveItem(mockElement);
+if (!scrolledElement || scrolledElement.behavior !== 'smooth' || scrolledElement.block !== 'nearest') {
+  console.error('[FALHA] scrollToActiveItem não executou scrollIntoView com parâmetros esperados');
+  process.exit(1);
+}
+console.log('  -> scrollToActiveItem acionou scrollIntoView({ behavior: "smooth", block: "nearest" }) com perfeição!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.1)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.2)');
 console.log('===============================================================');

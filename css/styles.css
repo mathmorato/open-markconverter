@@ -804,9 +804,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  max-height: 380px;
+  max-height: 480px;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  scroll-behavior: smooth;
+  padding-right: 0.5rem;
 }
 
 /* ==========================================================================

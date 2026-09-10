@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.1`
+# Universal MarkConverter (doc2md) `v.1.6.2`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.2-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,19 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.2
+
+- **Auto-Scroll Inteligente em Filas de Grande Porte (.file-queue-list):**
+  - Acompanhamento automático e suave (`scrollIntoView({ behavior: 'smooth', block: 'nearest' })`) focalizando o item que entra em conversão ativa e o item recém-concluído.
+  - Altura máxima do container de scroll expandida para **`480px`** com rolagem macia (`scroll-behavior: smooth`) e respiro de scrollbar (`padding-right: 0.5rem`).
+- **Preservação do Controle e Navegação Manual do Usuário:**
+  - Sensores passivos de eventos (`wheel`, `touchstart`, `scroll`) identificam quando o usuário sobe a lista manualmente (> 120px do rodapé) e desativam temporariamente a rolagem automática para não interromper a inspeção de itens anteriores.
+  - Retomada automática e instantânea do auto-scroll assim que o usuário rolar de volta para a base da fila.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.2`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

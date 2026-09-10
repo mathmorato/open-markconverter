@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.6.1
+ * @version v.1.6.2
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -43,7 +43,8 @@ import { parseText } from './parsers/text-parser.js';
 const state = {
   theme: 'system',
   queue: [],
-  maxConcurrency: 2
+  maxConcurrency: 2,
+  userIsScrolling: false
 };
 
 // Elementos DOM
@@ -607,6 +608,7 @@ export async function addFilesToQueue(files) {
   });
 
   state.queue.push(...newItems);
+  state.userIsScrolling = false;
   renderQueue();
   processQueue();
 }
@@ -948,6 +950,33 @@ function removeQueueItem(itemId) {
   processQueue();
 }
 
+/**
+ * Auto-scroll suave para acompanhar o item ativo ou recém-concluído na fila
+ * @param {string|HTMLElement} itemIdOrElement ID do item ou elemento DOM
+ */
+export function scrollToActiveItem(itemIdOrElement) {
+  if (state.userIsScrolling || !itemIdOrElement) return;
+
+  let itemElement = null;
+  if (typeof itemIdOrElement === 'object' && typeof itemIdOrElement.scrollIntoView === 'function') {
+    itemElement = itemIdOrElement;
+  } else if (typeof itemIdOrElement === 'string') {
+    const queueContainer = elements.fileQueueList || (typeof document !== 'undefined' ? document.getElementById('file-queue-list') : null);
+    if (!queueContainer) return;
+    itemElement = queueContainer.querySelector(`.queue-item[data-id="${itemIdOrElement}"]`);
+  }
+
+  if (!itemElement) return;
+
+  if (typeof itemElement.scrollIntoView === 'function') {
+    itemElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest'
+    });
+  }
+}
+
 async function processQueue() {
   const processingCount = state.queue.filter(it => it.status === 'processing' && !it.cancelled).length;
   if (processingCount >= state.maxConcurrency) {
@@ -994,6 +1023,7 @@ async function processQueueItem(item) {
   item.convertText = 'Aguardando...';
   item.progress = 0;
   updateQueueItemDOM(item);
+  scrollToActiveItem(item.id);
 
   const startTime = performance.now();
   updateDebugStatus(`[Processando]: ${item.file.name} (${formatBytes(item.file.size)})`);
@@ -1023,6 +1053,7 @@ async function processQueueItem(item) {
     item.convertText = '20% (Iniciando parser...)';
     item.statusText = 'Iniciando conversão... (20%)';
     updateQueueItemDOM(item);
+    scrollToActiveItem(item.id);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
@@ -1108,6 +1139,7 @@ async function processQueueItem(item) {
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
+    scrollToActiveItem(item.id);
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
@@ -1249,6 +1281,7 @@ function initQueueEvents() {
       if (state.queue.length === 0) return;
       state.queue.forEach(it => { it.cancelled = true; });
       state.queue = [];
+      state.userIsScrolling = false;
       renderQueue();
     });
   }
@@ -1279,6 +1312,24 @@ function initQueueEvents() {
     elements.btnQueueDownloadMerged.addEventListener('click', () => {
       downloadUnifiedMarkdown();
     });
+  }
+
+  // Detecção inteligente de scroll manual para controle de auto-scroll
+  if (elements.fileQueueList) {
+    const handleScrollCheck = () => {
+      const el = elements.fileQueueList;
+      if (!el) return;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (distanceFromBottom > 120) {
+        state.userIsScrolling = true;
+      } else {
+        state.userIsScrolling = false;
+      }
+    };
+
+    elements.fileQueueList.addEventListener('scroll', handleScrollCheck, { passive: true });
+    elements.fileQueueList.addEventListener('wheel', handleScrollCheck, { passive: true });
+    elements.fileQueueList.addEventListener('touchstart', handleScrollCheck, { passive: true });
   }
 }
 

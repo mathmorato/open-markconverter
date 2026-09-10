@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.4.0
+ * @version v.1.4.1
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -248,6 +248,16 @@ function addFilesToQueue(files) {
       convertText = 'Erro: Arquivo vazio';
       progress = 100;
       errorMessage = 'Arquivo vazio (0 bytes)';
+    } else if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+      status = 'error';
+      statusText = 'Erro: Excede 1,5 GB';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Limite excedido';
+      progress = 100;
+      errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
+      showToast('Arquivo excede o limite máximo permitido de 1,5 GB.', 'error', 5000);
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
       statusText = 'Erro: Formato não suportado';
@@ -302,6 +312,7 @@ function renderQueue() {
   elements.fileQueueList.innerHTML = state.queue.map(item => {
     const formatIcon = getFormatIcon(item.formatInfo.parser);
     const statusClass = item.status;
+    const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
     const timeText = item.durationMs ? `${item.durationMs} ms` : '';
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
@@ -321,7 +332,7 @@ function renderQueue() {
             </div>
           </div>
           <div class="queue-item-right">
-            <span class="queue-item-status ${statusClass}" id="status-badge-${item.id}">${item.statusText}</span>
+            <span class="queue-item-status ${statusClass} ${badgeErrorClass}" id="status-badge-${item.id}">${item.statusText}</span>
             <div class="queue-item-actions">
               <button type="button" class="btn-queue-item-download" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -394,7 +405,8 @@ function updateQueueItemDOM(item) {
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
-    statusBadge.className = `queue-item-status ${item.status}`;
+    const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
+    statusBadge.className = `queue-item-status ${item.status} ${badgeErrorClass}`.trim();
     statusBadge.textContent = item.statusText;
   }
 
@@ -493,6 +505,20 @@ async function processQueue() {
 
 async function processQueueItem(item) {
   if (item.cancelled) return;
+
+  if (item.file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+    item.status = 'error';
+    item.statusText = 'Erro: Excede 1,5 GB';
+    item.uploadProgress = 0;
+    item.uploadText = '0%';
+    item.convertProgress = 100;
+    item.convertText = 'Erro: Limite excedido';
+    item.progress = 100;
+    item.errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
+    updateQueueItemDOM(item);
+    showToast('Arquivo excede o limite máximo permitido de 1,5 GB.', 'error', 5000);
+    return;
+  }
 
   item.status = 'processing';
   item.statusText = 'Lendo arquivo... (0%)';

@@ -1,14 +1,17 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.4.0
+ * @version v.1.4.1
  */
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.4.0',
+  VERSION: 'v.1.4.1',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',
+  
+  // Limite máximo rígido de tamanho por arquivo (1,5 GB = 1.610.612.736 bytes)
+  MAX_FILE_SIZE_BYTES: 1.5 * 1024 * 1024 * 1024, // 1.5 GB = 1.610.612.736 bytes
   
   // Chaves de persistência no LocalStorage
   STORAGE_KEYS: {

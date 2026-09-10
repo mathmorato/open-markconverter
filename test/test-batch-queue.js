@@ -1,12 +1,12 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * download individual por item, download em lote (.zip) e dupla barra de progresso (v.1.4.0).
+ * download individual por item, download em lote (.zip), dupla barra de progresso e limite de 1,5 GB (v.1.4.1).
  */
 
 import { APP_CONFIG } from '../js/config.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.0)');
+console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.1)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -57,6 +57,15 @@ function addFilesToQueue(files) {
       convertText = 'Erro: Vazio';
       progress = 100;
       errorMessage = 'Arquivo vazio (0 bytes)';
+    } else if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+      status = 'error';
+      statusText = 'Erro: Excede 1,5 GB';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Limite excedido';
+      progress = 100;
+      errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
       statusText = 'Erro: Formato não suportado';
@@ -99,20 +108,21 @@ function clearQueue() {
   state.queue = [];
 }
 
-// 1. Testa adição de múltiplos arquivos
+// 1. Testa adição de múltiplos arquivos incluindo arquivo acima do teto de 1,5 GB
 const mockFiles = [
   { name: 'documento1.docx', size: 15000 },
   { name: 'planilha.xlsx', size: 25000 },
   { name: 'apresentacao.pptx', size: 50000 },
   { name: 'vazio.txt', size: 0 },
-  { name: 'binario.exe', size: 10000 }
+  { name: 'binario.exe', size: 10000 },
+  { name: 'arquivo_gigante.pdf', size: 1.8 * 1024 * 1024 * 1024 } // 1.8 GB > 1.5 GB
 ];
 
 addFilesToQueue(mockFiles);
 
 console.log(`[TESTE 1] Total de itens na fila: ${state.queue.length}`);
-if (state.queue.length !== 5) {
-  console.error('[FALHA] Esperava 5 itens na fila');
+if (state.queue.length !== 6) {
+  console.error('[FALHA] Esperava 6 itens na fila');
   process.exit(1);
 }
 
@@ -130,6 +140,13 @@ if (exeItem.status !== 'error') {
   process.exit(1);
 }
 console.log('  -> Arquivo binário não suportado rejeitado');
+
+const giantItem = state.queue.find(it => it.file.name === 'arquivo_gigante.pdf');
+if (giantItem.status !== 'error' || !giantItem.errorMessage.includes('1,5 GB')) {
+  console.error('[FALHA] Arquivo > 1,5 GB não foi rejeitado com mensagem de limite');
+  process.exit(1);
+}
+console.log('  -> Arquivo > 1,5 GB (1.8 GB) rejeitado com status "error" e mensagem clara');
 
 // 2. Simula concorrência controlada e dupla barra de progresso (máximo 2 simultâneos)
 let activeCount = 0;
@@ -218,5 +235,5 @@ if (state.queue.length !== 0) {
 console.log('  -> Fila completamente limpa!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.0)');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.1)');
 console.log('===============================================================');

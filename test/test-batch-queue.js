@@ -1,12 +1,12 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * download individual por item, download em lote (.zip) e dupla barra de progresso (v.1.3.1).
+ * download individual por item, download em lote (.zip) e dupla barra de progresso (v.1.4.0).
  */
 
 import { APP_CONFIG } from '../js/config.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.3.1)');
+console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -218,5 +218,5 @@ if (state.queue.length !== 0) {
 console.log('  -> Fila completamente limpa!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.3.1)');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.0)');
 console.log('===============================================================');

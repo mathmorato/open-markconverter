@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.3.1
+ * @version v.1.4.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -56,7 +56,6 @@ const elements = {
   fileInput: document.getElementById('file-input'),
   btnBrowse: document.getElementById('btn-browse'),
   debugStatus: document.getElementById('debug-status'),
-  btnLoadSample: document.getElementById('btn-load-sample'),
 
   // Elementos da Fila de Arquivos em Lote
   fileQueueSection: document.getElementById('file-queue-section'),
@@ -762,72 +761,7 @@ function initDropzone() {
   });
 }
 
-/* ==========================================================================
-   Exemplos Rápidos da Interface (UI Quick-Test com pasta examples/)
-   ========================================================================== */
-function initQuickExamples() {
-  const exampleButtons = document.querySelectorAll('.btn-quick-example');
-  exampleButtons.forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const fileName = btn.dataset.file;
-      if (!fileName) return;
 
-      const infoMsg = `[Exemplo]: Carregando "${fileName}" da pasta local...`;
-      console.log(`[doc2md] ${infoMsg}`);
-      updateDebugStatus(infoMsg);
-      showToast(`Adicionando exemplo "${fileName}" à fila...`, 'info', 2000);
-
-      try {
-        const response = await fetch(`examples/${encodeURIComponent(fileName)}`);
-        if (!response.ok) {
-          throw new Error(`Falha HTTP ${response.status} ao obter arquivo`);
-        }
-        const arrayBuf = await response.arrayBuffer();
-        const file = new File([arrayBuf], fileName);
-        addFilesToQueue([file]);
-      } catch (err) {
-        const errMsg = `Erro ao carregar exemplo "${fileName}": ${err.message}`;
-        console.error(`[doc2md] ${errMsg}`, err);
-        updateDebugStatus(`[Falha]: ${errMsg}`, true);
-        showToast(errMsg, 'error', 4500);
-      }
-    });
-  });
-}
-
-/* ==========================================================================
-   Documento de Demonstração (Demo)
-   ========================================================================== */
-function initDemoAction() {
-  if (!elements.btnLoadSample) return;
-
-  elements.btnLoadSample.addEventListener('click', () => {
-    const sampleMarkdown = `# Relatório Executivo e Técnico • Universal MarkConverter
-
-## 1. Visão Geral
-O **Universal MarkConverter (doc2md)** é uma plataforma web para conversão 100% *client-side* de múltiplos formatos de documento em **Markdown semântico e estruturado**.
-
-> **Privacidade Absoluta:** O processamento ocorre integralmente no navegador do usuário, com zero envio de dados para servidores remotos.
-
----
-
-## 2. Formatos Suportados na Plataforma
-
-| Formato | Motor de Parsing | Extração Semântica | Status |
-| :--- | :--- | :--- | :--- |
-| **Word (.docx)** | Mammoth.js + Turndown | Títulos, listas, links e ênfases | Suportado |
-| **Planilhas (.xlsx, .csv)** | SheetJS (xlsx) | Tabelas matriciais Markdown nativas | Suportado |
-| **Apresentações (.pptx)** | JSZip + DOMParser | Estruturação por slides e tópicos | Suportado |
-| **Documentos (.pdf)** | PDF.js | Fluxo contínuo e quebra de páginas | Suportado |
-| **Textos / Código** | ES Modules | JSON, HTML, RTF, TXT, XML | Suportado |
-`;
-
-    const mockFile = new File([sampleMarkdown], 'demonstracao-markconverter.md', { type: 'text/markdown' });
-    addFilesToQueue([mockFile]);
-    showToast('Documento de demonstração adicionado à fila!', 'info');
-  });
-}
 
 /* ==========================================================================
    Sistema de Toasts
@@ -876,6 +810,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initDropzone();
   initQueueEvents();
-  initQuickExamples();
-  initDemoAction();
 });

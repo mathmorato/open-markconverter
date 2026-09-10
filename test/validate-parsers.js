@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.3') {
-  console.error('[ERRO] Versão diferente de v.1.4.3');
+if (APP_CONFIG.VERSION !== 'v.1.4.4') {
+  console.error('[ERRO] Versão diferente de v.1.4.4');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.3') {
+if (pkg.version !== '1.4.4') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central e ausência de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.3')) {
-  console.error('[ERRO] index.html não contém v.1.4.3');
+if (!indexHtml.includes('v.1.4.4')) {
+  console.error('[ERRO] index.html não contém v.1.4.4');
   process.exit(1);
 }
 if (!indexHtml.includes('limit-badge') || !indexHtml.includes('1,5 GB')) {
@@ -79,10 +79,10 @@ if (!indexHtml.includes('id="file-queue-section"') || !indexHtml.includes('id="b
   process.exit(1);
 }
 if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="preview-container"') || indexHtml.includes('id="metrics-bar"')) {
-  console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que宜veria ter sido removido');
+  console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.3, limit-badge 1,5 GB, app-main-container e fila em lote');
+console.log('[OK] index.html contém v.1.4.4, limit-badge 1,5 GB, app-main-container e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -106,6 +106,14 @@ if (!appJs.includes('item-block item-info') || !appJs.includes('item-block item-
   console.error('[ERRO] js/app.js não renderiza os 3 blocos horizontais (.item-info, .item-progress, .item-actions)');
   process.exit(1);
 }
+if (!appJs.includes('formatElapsedTime')) {
+  console.error('[ERRO] js/app.js não contém a função formatElapsedTime');
+  process.exit(1);
+}
+if (!appJs.includes('md-output-size') || !appJs.includes('formattedMdSize')) {
+  console.error('[ERRO] js/app.js não contém telemetria de peso do Markdown gerado (md-output-size / formattedMdSize)');
+  process.exit(1);
+}
 if (!appJs.includes('icon-hourglass') || !appJs.includes('icon-check') || !appJs.includes('spinning') || !appJs.includes('success')) {
   console.error('[ERRO] js/app.js não contém ícones de status dinâmicos (ampulheta spinning e check success)');
   process.exit(1);
@@ -122,7 +130,7 @@ if (!appJs.includes('file-progress-group') || !appJs.includes('bar-upload') || !
   console.error('[ERRO] js/app.js não contém estrutura de dupla barra de progresso (bar-upload e bar-convert)');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém layout em 3 blocos, transição ampulheta->check, ticker adaptativo e duplo progresso');
+console.log('[OK] js/app.js contém formatElapsedTime, md-output-size, layout em 3 blocos e transição ampulheta->check');
 
 // 5. Verifica estilos CSS para transição suave, barras compactas, badge-error e animações
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
@@ -132,6 +140,10 @@ if (!stylesCss.includes('.app-main-container') || !stylesCss.includes('.file-pro
 }
 if (!stylesCss.includes('.limit-badge')) {
   console.error('[ERRO] css/styles.css não contém estilos para .limit-badge');
+  process.exit(1);
+}
+if (!stylesCss.includes('.md-output-size')) {
+  console.error('[ERRO] css/styles.css não contém estilos para .md-output-size');
   process.exit(1);
 }
 if (!stylesCss.includes('spin-hourglass') || !stylesCss.includes('pop-check')) {
@@ -158,15 +170,15 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém limit-badge, animações spin/pop, 3 blocos em linha e media queries');
+console.log('[OK] css/styles.css contém md-output-size, limit-badge, animações spin/pop, 3 blocos em linha e media queries');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.3')) {
-  console.error('[ERRO] README.md não contém v.1.4.3');
+if (!readme.includes('v.1.4.4')) {
+  console.error('[ERRO] README.md não contém v.1.4.4');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.3');
+console.log('[OK] README.md contém cabeçalho v.1.4.4');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

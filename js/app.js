@@ -1,34 +1,36 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.4.2
+ * @version v.1.4.4
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
-window.onerror = function(message, source, lineno, colno, error) {
-  const debugEl = document.getElementById('debug-status');
-  const sourceFile = source ? source.split('/').pop() : 'script';
-  const errText = `[Erro Fatal/Script]: ${message} (${sourceFile}:${lineno})`;
-  if (debugEl) {
-    debugEl.style.display = 'block';
-    debugEl.textContent = errText;
-    debugEl.className = 'debug-status error';
-  }
-  console.error('[doc2md Runtime Error]', { message, source, lineno, colno, error });
-  return false;
-};
+if (typeof window !== 'undefined') {
+  window.onerror = function(message, source, lineno, colno, error) {
+    const debugEl = typeof document !== 'undefined' ? document.getElementById('debug-status') : null;
+    const sourceFile = source ? source.split('/').pop() : 'script';
+    const errText = `[Erro Fatal/Script]: ${message} (${sourceFile}:${lineno})`;
+    if (debugEl) {
+      debugEl.style.display = 'block';
+      debugEl.textContent = errText;
+      debugEl.className = 'debug-status error';
+    }
+    console.error('[doc2md Runtime Error]', { message, source, lineno, colno, error });
+    return false;
+  };
 
-window.onunhandledrejection = function(event) {
-  const debugEl = document.getElementById('debug-status');
-  const reason = event.reason ? (event.reason.message || String(event.reason)) : 'Falha assíncrona';
-  const errText = `[Erro Assíncrono/CDN]: ${reason}`;
-  if (debugEl) {
-    debugEl.style.display = 'block';
-    debugEl.textContent = errText;
-    debugEl.className = 'debug-status error';
-  }
-  console.error('[doc2md Unhandled Rejection]', event.reason);
-};
+  window.onunhandledrejection = function(event) {
+    const debugEl = typeof document !== 'undefined' ? document.getElementById('debug-status') : null;
+    const reason = event.reason ? (event.reason.message || String(event.reason)) : 'Falha assíncrona';
+    const errText = `[Erro Assíncrono/CDN]: ${reason}`;
+    if (debugEl) {
+      debugEl.style.display = 'block';
+      debugEl.textContent = errText;
+      debugEl.className = 'debug-status error';
+    }
+    console.error('[doc2md Unhandled Rejection]', event.reason);
+  };
+}
 
 import { APP_CONFIG, loadScript } from './config.js';
 import { parseDocx } from './parsers/docx-parser.js';
@@ -45,7 +47,7 @@ const state = {
 };
 
 // Elementos DOM
-const elements = {
+const elements = typeof document !== 'undefined' ? {
   themeToggle: document.getElementById('theme-toggle'),
   themeIconSun: document.getElementById('theme-icon-sun'),
   themeIconMoon: document.getElementById('theme-icon-moon'),
@@ -65,7 +67,7 @@ const elements = {
   btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
 
   toastContainer: document.getElementById('toast-container')
-};
+} : {};
 
 /* ==========================================================================
    SemVer & Inicialização de Metadados
@@ -119,12 +121,50 @@ function initTheme() {
 /* ==========================================================================
    Helpers de Formatação e Diagnóstico
    ========================================================================== */
-function formatBytes(bytes) {
+export function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+export const formatFileSize = formatBytes;
+
+/**
+ * Formatação inteligente e condicional de tempo de execução (Xh Ymin Zs)
+ * Regras:
+ * - ms >= 3600000: Xh Ymin Zs (ex: 1h 12min 4s)
+ * - 60000 <= ms < 3600000: Ymin Zs (ex: 2min 15s)
+ * - 1000 <= ms < 60000: Zs (ex: 7.3s ou 7s)
+ * - ms < 1000: ms (ex: 850ms)
+ * - Omitir unidades com zero à esquerda
+ */
+export function formatElapsedTime(ms) {
+  if (ms == null || isNaN(ms) || ms < 0) return '0ms';
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+  if (ms < 60000) {
+    const sec = (ms / 1000).toFixed(1);
+    return sec.endsWith('.0') ? `${Math.floor(ms / 1000)}s` : `${sec}s`;
+  }
+  const hours = Math.floor(ms / 3600000);
+  const remMinutes = ms % 3600000;
+  const minutes = Math.floor(remMinutes / 60000);
+  const seconds = Math.floor((remMinutes % 60000) / 1000);
+
+  if (hours > 0) {
+    const parts = [`${hours}h`];
+    if (minutes > 0) parts.push(`${minutes}min`);
+    if (seconds > 0) parts.push(`${seconds}s`);
+    return parts.join(' ');
+  }
+
+  // 60000 <= ms < 3600000
+  const parts = [`${minutes}min`];
+  if (seconds > 0) parts.push(`${seconds}s`);
+  return parts.join(' ');
 }
 
 function getFormatCategory(fileName) {
@@ -327,6 +367,8 @@ function addFilesToQueue(files) {
       progress,
       markdown: '',
       durationMs: 0,
+      mdSize: 0,
+      formattedMdSize: '',
       errorMessage,
       cancelled: false
     };
@@ -358,11 +400,12 @@ function renderQueue() {
     const formatIcon = getFormatIcon(item.formatInfo.parser);
     const statusClass = item.status;
     const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
-    const timeText = item.durationMs ? `${item.durationMs} ms` : '';
+    const timeText = item.durationMs ? formatElapsedTime(item.durationMs) : '';
     const isProcessing = item.status === 'processing';
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+    const mdSizeText = (isCompleted && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
 
     return `
       <div class="file-queue-item queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
@@ -389,7 +432,7 @@ function renderQueue() {
           </div>
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
-              <span>Conversão</span>
+              <span>Conversão Markdown <strong class="md-output-size">${mdSizeText}</strong></span>
               <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
@@ -559,6 +602,12 @@ function updateQueueItemDOM(item) {
     convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
   }
 
+  // Telemetria do tamanho do Markdown gerado
+  const mdSizeEl = itemEl.querySelector('.md-output-size');
+  if (mdSizeEl) {
+    mdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
+  }
+
   const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download`);
   if (downloadBtn) {
     if (item.status === 'completed') {
@@ -568,12 +617,17 @@ function updateQueueItemDOM(item) {
     }
   }
 
+  // Telemetria de tempo inteligente formatado (h min s)
   const metaEl = itemEl.querySelector('.file-meta, .queue-item-meta');
-  if (metaEl && item.durationMs && !metaEl.querySelector('.queue-item-time')) {
-    const timeSpan = document.createElement('span');
-    timeSpan.className = 'queue-item-time';
-    timeSpan.textContent = `• ${item.durationMs} ms`;
-    metaEl.appendChild(timeSpan);
+  if (metaEl && item.durationMs) {
+    const formattedTime = formatElapsedTime(item.durationMs);
+    let timeSpan = metaEl.querySelector('.queue-item-time');
+    if (!timeSpan) {
+      timeSpan = document.createElement('span');
+      timeSpan.className = 'queue-item-time';
+      metaEl.appendChild(timeSpan);
+    }
+    timeSpan.textContent = `• ${formattedTime}`;
   }
 }
 
@@ -740,6 +794,10 @@ async function processQueueItem(item) {
 
     if (item.cancelled) return;
 
+    // Calcula tamanho do Markdown gerado via Blob local UTF-8
+    const mdSizeInBytes = new Blob([markdown], { type: 'text/markdown;charset=utf-8' }).size;
+    const formattedMdSize = formatBytes(mdSizeInBytes);
+
     const duration = Math.round(performance.now() - startTime);
     item.status = 'completed';
     item.uploadProgress = 100;
@@ -750,10 +808,13 @@ async function processQueueItem(item) {
     item.statusText = 'Concluído';
     item.markdown = markdown;
     item.durationMs = duration;
+    item.mdSize = mdSizeInBytes;
+    item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
 
-    updateDebugStatus(`[Concluído]: ${item.file.name} em ${duration} ms`);
-    showToast(`Arquivo "${item.file.name}" convertido em ${duration} ms`, 'success');
+    const formattedDuration = formatElapsedTime(duration);
+    updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
+    showToast(`Arquivo "${item.file.name}" convertido em ${formattedDuration} (MD: ${formattedMdSize})`, 'success');
   } catch (error) {
     if (item.cancelled) return;
     const duration = Math.round(performance.now() - startTime);
@@ -766,7 +827,8 @@ async function processQueueItem(item) {
     item.durationMs = duration;
     updateQueueItemDOM(item);
 
-    updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage}`, true);
+    const formattedDuration = formatElapsedTime(duration);
+    updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage} (${formattedDuration})`, true);
     showToast(`Erro ao processar "${item.file.name}": ${item.errorMessage}`, 'error', 4500);
   } finally {
     processQueue();
@@ -988,9 +1050,11 @@ function showToast(message, type = 'info', duration = 3000) {
 /* ==========================================================================
    Inicialização Global do App
    ========================================================================== */
-document.addEventListener('DOMContentLoaded', () => {
-  initVersion();
-  initTheme();
-  initDropzone();
-  initQueueEvents();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initVersion();
+    initTheme();
+    initDropzone();
+    initQueueEvents();
+  });
+}

@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.3`
+# Universal MarkConverter (doc2md) `v.1.4.4`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.3-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.4-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -10,12 +10,16 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 
 ---
 
-## 🚀 Destaques da Versão v.1.4.3
+## 🚀 Destaques da Versão v.1.4.4
 
+- **Formatação Inteligente de Tempo de Execução (`h min s`):**
+  - Substituição da amostragem em milissegundos por representação humana condicional (`formatElapsedTime`): horas, minutos e segundos (`1h 12min 4s`, `2min 15s`, `7.3s` ou `850ms`), omitindo zeros redundantes à esquerda.
+- **Telemetria de Peso do Markdown Gerado (`(MD: X KB)`):**
+  - Cálculo instantâneo via Blob local do tamanho em bytes do Markdown convertido, exibindo a métrica `.md-output-size` ao lado do rótulo da barra de conversão para comparação direta do ganho de compressão em relação ao arquivo original.
 - **Card de Fila Contínuo em 3 Blocos (Single-Line 3-Column Item):**
-  - **Bloco 1 (Identificação):** Ícone linear do formato + Nome do arquivo com truncamento suave (`ellipsis`) + Badge de tamanho e tempo.
-  - **Bloco 2 (Progresso Unificado):** Dupla barra compacta (Leitura e Conversão) alinhada no miolo central sem quebra de linhas.
-  - **Bloco 3 (Status e Ações):** Microinteração animada com indicador de estado + Botão de download individual (.md) + Botão de remoção (lixeira).
+  - **Bloco 1 (Identificação):** Ícone linear do formato + Nome do arquivo com truncamento suave (`ellipsis`) + Badge com tamanho do arquivo original e tempo formatado.
+  - **Bloco 2 (Progresso Unificado):** Dupla barra compacta (Leitura e Conversão com badge de peso MD) alinhada no miolo central.
+  - **Bloco 3 (Status e Ações):** Microinteração animada com ampulheta giratória e transição para check verde + Botão de download individual (.md) + Botão de remoção (lixeira).
 - **Microinteração com Ampulheta Giratória e Transição para Check Verde:**
   - Durante o processamento/conversão de Markdown, uma ampulheta linear gira suavemente (`@keyframes spin-hourglass`).
   - Ao concluir (100%), a ampulheta dá lugar com animação elástica e suave (`pop-check`) a um certinho circular em Verde Esmeralda (`#10B981`).
@@ -149,9 +153,9 @@ O projeto está 100% preparado para publicação contínua direta pelo GitHub Pa
 
 ## 🏷️ Licença e Versionamento SemVer
 
-- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.2`**, sincronizada nos quatro pontos do projeto:
+- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.4`**, sincronizada nos quatro pontos do projeto:
   1. Cabeçalho e rodapé do `index.html`.
-  2. Arquivo `package.json` (`"version": "1.4.2"`).
+  2. Arquivo `package.json` (`"version": "1.4.4"`).
   3. Constante `APP_CONFIG.VERSION` em `js/config.js`.
   4. Badges e títulos deste `README.md`.
 - **Licença de Uso:** Distribuído sob os termos da licença **MIT**. Para maiores detalhes, consulte o arquivo [LICENSE](LICENSE).

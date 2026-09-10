@@ -941,6 +941,20 @@ body {
   color: #94A3B8;
 }
 
+/* Badge de telemetria de peso final do Markdown gerado */
+.md-output-size {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #10B981;
+  margin-left: 0.35rem;
+  display: inline-block;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .md-output-size {
+  color: #34D399;
+}
+
 .mini-progress-track,
 .progress-bar-container {
   width: 100%;

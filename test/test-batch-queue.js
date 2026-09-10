@@ -1,12 +1,14 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * download individual por item, download em lote (.zip), progressão linear contínua e limite de 1,5 GB (v.1.4.3).
+ * download individual por item, download em lote (.zip), progressão linear contínua,
+ * formatação inteligente de tempo (formatElapsedTime) e telemetria de peso do Markdown (v.1.4.4).
  */
 
 import { APP_CONFIG } from '../js/config.js';
+import { formatElapsedTime, formatBytes, formatFileSize } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.3)');
+console.log('  TESTANDO FILA, DOWNLOADS, TEMPO H/MIN/S & PESO MD (v.1.4.4)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -14,14 +16,6 @@ const state = {
   queue: [],
   maxConcurrency: 2
 };
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 function getFormatCategory(fileName) {
   const ext = '.' + fileName.split('.').pop().toLowerCase();
@@ -190,6 +184,9 @@ const processItem = async (item) => {
   item.progress = 100;
   item.status = 'completed';
   item.markdown = `# Convertido ${item.file.name}\n\nConteúdo Markdown extraído.`;
+  const mdBlob = new Blob([item.markdown], { type: 'text/markdown;charset=utf-8' });
+  item.mdSize = mdBlob.size;
+  item.formattedMdSize = formatBytes(mdBlob.size);
   activeCount--;
 };
 
@@ -238,6 +235,47 @@ if (state.queue.length !== 0) {
 }
 console.log('  -> Fila completamente limpa!');
 
+// 6. Teste unitário para a função de tempo formatElapsedTime(ms)
+console.log('[TESTE 6] Testando formatação inteligente de tempo formatElapsedTime(ms)...');
+const timeCases = [
+  { ms: 0, expected: '0ms' },
+  { ms: 850, expected: '850ms' },
+  { ms: 7296, expected: '7.3s' },
+  { ms: 7000, expected: '7s' },
+  { ms: 60000, expected: '1min' },
+  { ms: 135000, expected: '2min 15s' },
+  { ms: 3600000, expected: '1h' },
+  { ms: 4324000, expected: '1h 12min 4s' },
+];
+
+for (const tc of timeCases) {
+  const result = formatElapsedTime(tc.ms);
+  if (result !== tc.expected) {
+    console.error(`[FALHA] formatElapsedTime(${tc.ms}): esperado "${tc.expected}", obtido "${result}"`);
+    process.exit(1);
+  }
+  // Garante ausência de zeros à esquerda
+  if (result.includes('0h') || result.includes('0min') || (result.startsWith('0s') && result !== '0s')) {
+    console.error(`[FALHA] formatElapsedTime(${tc.ms}) gerou zeros redundantes à esquerda: "${result}"`);
+    process.exit(1);
+  }
+}
+console.log('  -> Todos os 8 casos de teste de formatElapsedTime passaram com perfeição (sem zeros à esquerda)!');
+
+// 7. Teste unitário para contagem de bytes e peso do Markdown gerado
+console.log('[TESTE 7] Testando contagem de bytes do Markdown gerado e telemetria de peso...');
+const sampleMd = '# Documento Convertido\n\nTexto demonstrativo para cálculo de peso UTF-8 em bytes e MB/KB.';
+const sampleBlob = new Blob([sampleMd], { type: 'text/markdown;charset=utf-8' });
+const sampleMdSize = sampleBlob.size;
+const sampleFormattedSize = formatFileSize(sampleMdSize);
+
+console.log(`  -> Tamanho calculado do Markdown: ${sampleMdSize} bytes (${sampleFormattedSize})`);
+if (sampleMdSize <= 0 || !sampleFormattedSize.includes('Bytes')) {
+  console.error('[FALHA] Cálculo ou formatação do tamanho do Markdown incorretos');
+  process.exit(1);
+}
+console.log('  -> Telemetria de peso do Markdown validada com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.3)');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA, TEMPO E PESO PASSARAM (v.1.4.4)');
 console.log('===============================================================');

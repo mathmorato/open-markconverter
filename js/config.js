@@ -1,11 +1,11 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.5.2
+ * @version v.1.6.0
  */
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.5.2',
+  VERSION: 'v.1.6.0',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',
@@ -19,6 +19,7 @@ export const APP_CONFIG = {
     VIEW_MODE: 'doc2md_view_mode', // 'split' | 'raw' | 'preview'
     LINE_WRAPPING: 'doc2md_line_wrapping', // true | false
     PRESERVE_HEADING_IDS: 'doc2md_preserve_headings',
+    MERGE_MARKDOWN: 'doc2md_merge_markdown'
   },
 
   // CDN URLs para carregamento assíncrono sob demanda (Zero overhead inicial)
@@ -34,10 +35,12 @@ export const APP_CONFIG = {
     DOMPURIFY: 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js'
   },
 
+  // Pacotes compactados suportados para extração automática client-side em memória
+  ARCHIVE_EXTENSIONS: ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'],
+
   // Formatos binários conhecidamente não suportados (rejeição rápida com orientação clara)
   UNSUPPORTED_BINARY_EXTENSIONS: [
-    '.exe', '.bin', '.dll', '.iso', '.dmg', '.apk', '.app',
-    '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+    '.exe', '.bin', '.dll', '.iso', '.dmg', '.apk', '.app', '.msi',
     '.mp3', '.wav', '.ogg', '.flac', '.mp4', '.avi', '.mov', '.mkv',
     '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.psd'
   ],

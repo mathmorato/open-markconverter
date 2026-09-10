@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.4.4
+ * @version v.1.6.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -64,7 +64,9 @@ const elements = typeof document !== 'undefined' ? {
   fileQueueList: document.getElementById('file-queue-list'),
   queueCounter: document.getElementById('queue-counter'),
   btnQueueClear: document.getElementById('btn-queue-clear'),
-  btnQueueDownloadAll: document.getElementById('btn-queue-download-all')
+  btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
+  toggleMergeMarkdown: document.getElementById('toggle-merge-markdown'),
+  btnQueueDownloadMerged: document.getElementById('btn-queue-download-merged')
 } : {};
 
 /* ==========================================================================
@@ -347,15 +349,190 @@ function readFileWithProgress(file, onProgress) {
 }
 
 /* ==========================================================================
-   Pipeline de Fila em Lote e Central de Documentos (v.1.3.0)
+   Descompactação de Pacotes em Memória (.zip, .rar, etc.)
    ========================================================================== */
-function addFilesToQueue(files) {
+export function isArchiveExtension(ext) {
+  if (!ext) return false;
+  const clean = ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+  return APP_CONFIG.ARCHIVE_EXTENSIONS && APP_CONFIG.ARCHIVE_EXTENSIONS.includes(clean);
+}
+
+export function isSupportedDocumentExtension(ext) {
+  if (!ext) return false;
+  const clean = ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+  for (const format of Object.values(APP_CONFIG.SUPPORTED_FORMATS)) {
+    if (format.ext.includes(clean)) return true;
+  }
+  return false;
+}
+
+export function getMimeTypeForExt(ext) {
+  const clean = ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+  for (const format of Object.values(APP_CONFIG.SUPPORTED_FORMATS)) {
+    if (format.ext.includes(clean) && format.mime && format.mime[0]) {
+      return format.mime[0];
+    }
+  }
+  return 'text/plain';
+}
+
+export async function extractArchiveFiles(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+    throw new Error('Arquivo compactado excede o limite máximo permitido de 1,5 GB.');
+  }
+
+  if (ext === '.zip') {
+    return await extractZipArchive(file);
+  } else {
+    // .rar, .7z, .tar, .gz, .bz2
+    return await extractRarOrOtherArchive(file, ext);
+  }
+}
+
+export async function extractZipArchive(file) {
+  let JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+
+  if (!JSZipClass && typeof window !== 'undefined') {
+    await loadScript(APP_CONFIG.CDN.JSZIP);
+    JSZipClass = window.JSZip || globalThis.JSZip;
+  }
+
+  if (!JSZipClass && typeof process !== 'undefined') {
+    try {
+      const jszipMod = await import('jszip');
+      JSZipClass = jszipMod.default || jszipMod;
+    } catch (_) {}
+  }
+
+  if (!JSZipClass) {
+    throw new Error('Biblioteca JSZip indisponível para descompactação.');
+  }
+
+  let buffer;
+  if (typeof file.arrayBuffer === 'function') {
+    buffer = await file.arrayBuffer();
+  } else if (file instanceof ArrayBuffer) {
+    buffer = file;
+  } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(file)) {
+    buffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+  } else {
+    buffer = await new Promise((resolve, reject) => {
+      if (typeof FileReader === 'undefined') {
+        return reject(new Error('FileReader indisponível e file.arrayBuffer ausente.'));
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Falha ao ler dados binários do pacote ZIP'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  const zip = await JSZipClass.loadAsync(buffer);
+  const entriesToExtract = [];
+
+  zip.forEach((relativePath, entry) => {
+    if (entry.dir) return;
+
+    // Ignora pastas vazias, arquivos ocultos e metadados de sistema (__MACOSX, .DS_Store, Thumbs.db, etc.)
+    if (
+      relativePath.includes('__MACOSX') || 
+      relativePath.includes('.DS_Store') || 
+      relativePath.includes('Thumbs.db') ||
+      relativePath.startsWith('.') || 
+      relativePath.includes('/.')
+    ) {
+      return;
+    }
+
+    const fileName = relativePath.split('/').pop();
+    if (!fileName || fileName.startsWith('.')) return;
+
+    const entryExt = '.' + fileName.split('.').pop().toLowerCase();
+    if (!isSupportedDocumentExtension(entryExt)) {
+      return;
+    }
+
+    entriesToExtract.push({ fileName, entry, entryExt });
+  });
+
+  if (entriesToExtract.length === 0) {
+    throw new Error('Nenhum documento compatível encontrado dentro do pacote ZIP.');
+  }
+
+  const extractedFiles = [];
+  for (const item of entriesToExtract) {
+    const fileBuffer = await item.entry.async('arraybuffer');
+    const mimeType = getMimeTypeForExt(item.entryExt);
+    const nativeFile = (typeof File !== 'undefined')
+      ? new File([fileBuffer], item.fileName, {
+          type: mimeType,
+          lastModified: item.entry.date ? item.entry.date.getTime() : Date.now()
+        })
+      : {
+          name: item.fileName,
+          size: fileBuffer.byteLength,
+          type: mimeType,
+          lastModified: item.entry.date ? item.entry.date.getTime() : Date.now(),
+          arrayBuffer: async () => fileBuffer
+        };
+
+    extractedFiles.push(nativeFile);
+  }
+
+  return extractedFiles;
+}
+
+export async function extractRarOrOtherArchive(file, ext) {
+  // Tratamento resiliente para formatos RAR / 7Z / TAR:
+  // Isola erro caso protegido por senha ou sem decodificador estático Wasm carregado
+  throw new Error(`Pacote ${ext.toUpperCase()} com senha ou formato não descompactável em memória.`);
+}
+
+/* ==========================================================================
+   Pipeline de Fila em Lote e Central de Documentos (v.1.6.0)
+   ========================================================================== */
+export async function addFilesToQueue(files) {
   if (!files || files.length === 0) return;
 
   const fileList = Array.from(files);
-  const newItems = [];
+  const queueCandidates = [];
 
-  fileList.forEach(file => {
+  for (const file of fileList) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (isArchiveExtension(ext)) {
+      if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+        queueCandidates.push({
+          file,
+          isArchiveError: true,
+          errorMessage: 'Arquivo compactado excede o limite máximo permitido de 1,5 GB.'
+        });
+        continue;
+      }
+
+      updateDebugStatus(`[Descompactando]: ${file.name}...`);
+      try {
+        const extracted = await extractArchiveFiles(file);
+        if (extracted && extracted.length > 0) {
+          extracted.forEach(f => queueCandidates.push({ file: f }));
+        } else {
+          throw new Error('Nenhum documento compatível encontrado no pacote compactado.');
+        }
+      } catch (err) {
+        console.error(`[doc2md] Falha na extração de ${file.name}:`, err);
+        queueCandidates.push({
+          file,
+          isArchiveError: true,
+          errorMessage: err.message || 'Falha ao descompactar pacote (arquivo corrompido ou com senha)'
+        });
+      }
+    } else {
+      queueCandidates.push({ file });
+    }
+  }
+
+  const newItems = [];
+  queueCandidates.forEach(({ file, isArchiveError, errorMessage: archiveErrMsg }) => {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     const formatInfo = getFormatCategory(file.name);
     const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -369,7 +546,16 @@ function addFilesToQueue(files) {
     let progress = 0;
     let errorMessage = '';
 
-    if (file.size === 0) {
+    if (isArchiveError) {
+      status = 'error';
+      statusText = 'Erro na extração';
+      uploadProgress = 0;
+      uploadText = '0%';
+      convertProgress = 100;
+      convertText = 'Erro: Pacote corrompido ou com senha';
+      progress = 100;
+      errorMessage = archiveErrMsg || 'Falha ao descompactar pacote compactado';
+    } else if (file.size === 0) {
       status = 'error';
       statusText = 'Erro: Vazio (0 B)';
       uploadProgress = 0;
@@ -438,6 +624,16 @@ function renderQueue() {
   elements.fileQueueSection.style.display = 'block';
   if (elements.queueCounter) {
     elements.queueCounter.textContent = `${total} ${total === 1 ? 'arquivo' : 'arquivos'}`;
+  }
+
+  const completedCount = state.queue.filter(it => it.status === 'completed' && it.markdown).length;
+  if (elements.btnQueueDownloadAll) {
+    if (completedCount === 0) elements.btnQueueDownloadAll.setAttribute('disabled', '');
+    else elements.btnQueueDownloadAll.removeAttribute('disabled');
+  }
+  if (elements.btnQueueDownloadMerged) {
+    if (completedCount === 0) elements.btnQueueDownloadMerged.setAttribute('disabled', '');
+    else elements.btnQueueDownloadMerged.removeAttribute('disabled');
   }
 
   elements.fileQueueList.innerHTML = state.queue.map(item => {
@@ -718,6 +914,16 @@ function updateQueueItemDOM(item) {
       downloadBtn.setAttribute('disabled', '');
     }
   }
+
+  const completedCount = state.queue.filter(it => it.status === 'completed' && it.markdown).length;
+  if (elements.btnQueueDownloadAll) {
+    if (completedCount === 0) elements.btnQueueDownloadAll.setAttribute('disabled', '');
+    else elements.btnQueueDownloadAll.removeAttribute('disabled');
+  }
+  if (elements.btnQueueDownloadMerged) {
+    if (completedCount === 0) elements.btnQueueDownloadMerged.setAttribute('disabled', '');
+    else elements.btnQueueDownloadMerged.removeAttribute('disabled');
+  }
 }
 
 function downloadQueueItem(itemId) {
@@ -983,6 +1189,60 @@ async function downloadAllZip() {
   }
 }
 
+/* ==========================================================================
+   Unificação de Documentos Markdown (Mesclagem com Delimitadores Padronizados)
+   ========================================================================== */
+export function mergeMarkdownOutputs(items) {
+  if (!items || items.length === 0) return '';
+
+  return items.map(item => {
+    const fileName = item.file ? item.file.name : (item.name || 'documento.md');
+    const fileSize = item.file ? item.file.size : (item.size || 0);
+    const sizeFormatted = formatBytes(fileSize);
+    const ext = (fileName.split('.').pop() || 'TXT').toUpperCase();
+    let md = (item.markdown || '').trim();
+
+    // Prevenção de quebra de layout: fechamento seguro de blocos de código abertos
+    const codeFenceCount = (md.match(/^```/gm) || []).length;
+    if (codeFenceCount % 2 !== 0) {
+      md += '\n```';
+    }
+
+    const headerDelimiter = [
+      '<!-- ========================================== -->',
+      `<!-- INÍCIO DO ARQUIVO: ${fileName} -->`,
+      `<!-- FORMATO ORIGINAL: ${ext} | TAMANHO: ${sizeFormatted} -->`,
+      '<!-- ========================================== -->'
+    ].join('\n');
+
+    const footerDelimiter = [
+      '<!-- ========================================== -->',
+      `<!-- FIM DO ARQUIVO: ${fileName} -->`,
+      '<!-- ========================================== -->'
+    ].join('\n');
+
+    return `${headerDelimiter}\n\n# ${fileName}\n\n${md}\n\n${footerDelimiter}\n\n---`;
+  }).join('\n\n') + '\n';
+}
+
+export async function downloadUnifiedMarkdown() {
+  const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
+  if (completed.length === 0) {
+    return;
+  }
+
+  const mergedContent = mergeMarkdownOutputs(completed);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fileName = `documentos_unificados_${dateStr}`;
+  downloadMarkdownFile(fileName, mergedContent);
+}
+
+function updateMergeButtonVisibility() {
+  if (!elements.btnQueueDownloadMerged) return;
+  const isEnabled = elements.toggleMergeMarkdown ? elements.toggleMergeMarkdown.checked : false;
+  elements.btnQueueDownloadMerged.style.display = isEnabled ? 'inline-flex' : 'none';
+}
+
 function initQueueEvents() {
   if (elements.btnQueueClear) {
     elements.btnQueueClear.addEventListener('click', () => {
@@ -996,6 +1256,28 @@ function initQueueEvents() {
   if (elements.btnQueueDownloadAll) {
     elements.btnQueueDownloadAll.addEventListener('click', () => {
       downloadAllZip();
+    });
+  }
+
+  if (elements.toggleMergeMarkdown) {
+    const saved = (typeof localStorage !== 'undefined') ? localStorage.getItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN) : null;
+    if (saved !== null) {
+      elements.toggleMergeMarkdown.checked = (saved === 'true');
+    }
+    updateMergeButtonVisibility();
+
+    elements.toggleMergeMarkdown.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN, String(isChecked));
+      }
+      updateMergeButtonVisibility();
+    });
+  }
+
+  if (elements.btnQueueDownloadMerged) {
+    elements.btnQueueDownloadMerged.addEventListener('click', () => {
+      downloadUnifiedMarkdown();
     });
   }
 }

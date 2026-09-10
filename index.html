@@ -29,7 +29,7 @@
         </div>
         <div class="brand-title">
           <span>Mark<span class="accent">Converter</span></span>
-          <span class="version-badge" id="header-version">v.1.5.2</span>
+          <span class="version-badge" id="header-version">v.1.6.0</span>
         </div>
       </a>
 
@@ -77,7 +77,7 @@
       <!-- Dropzone Drag & Drop -->
       <div class="dropzone-container">
         <div class="dropzone" id="dropzone" aria-label="Zona para arrastar e soltar arquivos">
-          <input type="file" id="file-input" multiple style="position: absolute; left: -9999px; opacity: 0;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log" aria-label="Selecionar arquivos">
+          <input type="file" id="file-input" multiple style="position: absolute; left: -9999px; opacity: 0;" accept=".docx,.xlsx,.xls,.csv,.tsv,.ods,.pptx,.pdf,.txt,.json,.html,.htm,.rtf,.md,.markdown,.xml,.yaml,.yml,.log,.zip,.rar,.7z,.tar,.gz,.bz2" aria-label="Selecionar arquivos">
           
           <div class="dropzone-inner">
             <div class="dropzone-icon-wrap" aria-hidden="true">
@@ -117,6 +117,8 @@
               <span class="format-tag">.json</span>
               <span class="format-tag">.html</span>
               <span class="format-tag">.rtf</span>
+              <span class="format-tag">.zip</span>
+              <span class="format-tag">.rar</span>
             </div>
 
             <!-- Limite de upload visível -->
@@ -155,7 +157,26 @@
               <span class="file-queue-counter" id="queue-counter">0 arquivos</span>
             </h2>
           </div>
+
+          <!-- Controle de Mesclagem Unificada em Arquivo Único -->
+          <div class="merge-toggle-container">
+            <label class="toggle-switch" title="Compilar todos os arquivos convertidos em um único documento Markdown consolidado">
+              <input type="checkbox" id="toggle-merge-markdown">
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Mesclar arquivos em um único .md</span>
+            </label>
+          </div>
+
           <div class="file-queue-actions">
+            <button type="button" id="btn-queue-download-merged" class="btn btn-primary btn-sm" style="display: none;" title="Baixar todos os documentos mesclados em um único arquivo .md">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 18 15 15"/>
+              </svg>
+              Baixar Markdown Unificado (.md)
+            </button>
             <button type="button" id="btn-queue-download-all" class="btn btn-secondary btn-sm" title="Baixar todos os documentos convertidos em arquivo .zip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -191,7 +212,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.5.2</span>
+        <span class="version-badge" id="footer-version">v.1.6.0</span>
         <a href="https://github.com/mathmorato/open-markconverter" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

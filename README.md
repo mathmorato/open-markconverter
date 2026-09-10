@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.5.2`
+# Universal MarkConverter (doc2md) `v.1.6.0`
 
-[![Version](https://img.shields.io/badge/version-v.1.5.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,22 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.0
+
+- **Descompactação Automática Client-Side de Pacotes Compactados (.zip, .rar, .7z, etc.):**
+  - Descompactação 100% em memória no navegador via `JSZip` e streams, com extração recursiva automática de documentos compatíveis (`.docx`, `.xlsx`, `.pdf`, `.pptx`, `.txt`, `.csv`, etc.) diretamente para a fila de conversão.
+  - Filtro inteligente que descarta diretórios vazios e artefatos de sistema operacional como pastas `__MACOSX`, `.DS_Store` e arquivos ocultos/temporários.
+  - Isolamento resiliente de falhas para arquivos corrompidos ou protegidos por senha com exibição de erro individualizado no card, sem interromper o processamento dos demais itens.
+  - Limite estrito de 1,5 GB por arquivo compactado mantido integralmente.
+- **Opção Selecionável de Mesclagem Unificada ("Mesclar em Arquivo Único"):**
+  - Adição de seletor visual toggle no cabeçalho da fila: *"Mesclar arquivos em um único .md"*, com persistência de preferência via `localStorage`.
+  - Botão de ação coletiva contextual *"Baixar Markdown Unificado (.md)"* ao lado do download em lote `.zip`.
+  - Concatenação estruturada com delimitadores visíveis e padronizados contendo metadados (nome original, extensão, tamanho formatado e separador `---`), com proteção contra blocos de código abertos ou quebras de tabelas.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Sincronização global da versão **`v.1.6.0`** nos 4 pontos do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

@@ -47,8 +47,8 @@ testFiles.forEach(({ name, expectedParser }) => {
   console.log(`[PASSOU] ${name} -> parser: ${res.parser} (${res.name})`);
 });
 
-// 2. Testa lista de binários não suportados
-const unsupported = ['malware.exe', 'lib.dll', 'image.png', 'track.mp3', 'video.mp4', 'archive.zip'];
+// 2. Testa lista de binários não suportados (excluindo arquivos compactados suportados)
+const unsupported = ['malware.exe', 'lib.dll', 'image.png', 'track.mp3', 'video.mp4', 'installer.msi', 'disk.iso'];
 unsupported.forEach(name => {
   const ext = '.' + name.split('.').pop().toLowerCase();
   if (!APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
@@ -56,6 +56,17 @@ unsupported.forEach(name => {
     process.exit(1);
   }
   console.log(`[PASSOU] Rejeição identificada corretamente para: ${name}`);
+});
+
+// 3. Testa lista de pacotes compactados suportados para auto-extração
+const archives = ['pacote.zip', 'documentos.rar', 'backup.7z', 'dados.tar', 'logs.gz'];
+archives.forEach(name => {
+  const ext = '.' + name.split('.').pop().toLowerCase();
+  if (!APP_CONFIG.ARCHIVE_EXTENSIONS.includes(ext)) {
+    console.error(`[FALHA] Extensão compactada ${ext} deveria estar em APP_CONFIG.ARCHIVE_EXTENSIONS`);
+    process.exit(1);
+  }
+  console.log(`[PASSOU] Pacote compactado identificado corretamente: ${name} (${ext})`);
 });
 
 console.log('--- Todos os testes de lógica de upload passaram com sucesso! ---');

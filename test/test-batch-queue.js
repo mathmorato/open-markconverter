@@ -5,10 +5,20 @@
  */
 
 import { APP_CONFIG } from '../js/config.js';
-import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon, renderUploadStepIcon, renderConvertStepIcon } from '../js/app.js';
+import { 
+  formatElapsedTime, 
+  formatBytes, 
+  formatFileSize, 
+  renderFileBadgeIcon, 
+  renderUploadStepIcon, 
+  renderConvertStepIcon,
+  mergeMarkdownOutputs,
+  extractArchiveFiles
+} from '../js/app.js';
+import JSZip from 'jszip';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.5.2)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO & MESCLAGEM UNIFICADA (v.1.6.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -311,6 +321,84 @@ if (!convertIconHtml.includes('step-icon-convert') || !convertIconHtml.includes(
 }
 console.log('  -> Ícones vetoriais animados de Upload e Conversão validados com sucesso!');
 
+// 10. Teste de auto-extração de arquivos de mock ZIP em memória
+console.log('[TESTE 10] Testando auto-extração client-side de pacote .ZIP em memória...');
+const zipMock = new JSZip();
+zipMock.file('documento1.txt', 'Conteúdo do primeiro documento');
+zipMock.file('planilha.csv', 'col1,col2\nval1,val2');
+// Adiciona artefatos de sistema que DEVEM ser filtrados
+zipMock.file('__MACOSX/._documento1.txt', 'lixo do macos');
+zipMock.file('.DS_Store', 'metadados');
+zipMock.file('pasta_vazia/', null, { dir: true });
+// Adiciona arquivo binário não suportado que deve ser filtrado
+zipMock.file('setup.exe', 'binario executavel');
+
+const zipBuffer = await zipMock.generateAsync({ type: 'arraybuffer' });
+const mockZipFile = {
+  name: 'pacote_teste.zip',
+  size: zipBuffer.byteLength,
+  arrayBuffer: async () => zipBuffer
+};
+
+const extractedFiles = await extractArchiveFiles(mockZipFile);
+console.log(`  -> Arquivos extraídos do ZIP: ${extractedFiles.length} item(ns)`);
+
+if (extractedFiles.length !== 2) {
+  console.error(`[FALHA] Esperava exatamente 2 arquivos extraídos, obteve ${extractedFiles.length}`);
+  process.exit(1);
+}
+
+const extractedNames = extractedFiles.map(f => f.name);
+if (!extractedNames.includes('documento1.txt') || !extractedNames.includes('planilha.csv')) {
+  console.error(`[FALHA] Nomes extraídos incompatíveis: ${extractedNames.join(', ')}`);
+  process.exit(1);
+}
+
+if (extractedNames.includes('.DS_Store') || extractedNames.some(n => n.includes('__MACOSX') || n.includes('setup.exe'))) {
+  console.error('[FALHA] Arquivos de sistema/não suportados não foram filtrados corretamente na extração');
+  process.exit(1);
+}
+console.log('  -> Extração em memória filtrou metadados e extraiu documentos com sucesso!');
+
+// 11. Teste de mesclagem unificada com demarcadores padronizados
+console.log('[TESTE 11] Testando mesclagem unificada de Markdown com delimitadores padronizados...');
+const itemsToMerge = [
+  {
+    file: { name: 'Relatorio.docx', size: 2500000 },
+    markdown: '# Introdução Executiva\n\nEste é o primeiro relatório convertendo perfeitamente.'
+  },
+  {
+    file: { name: 'Dados.csv', size: 1048576 },
+    markdown: '| Código | Descrição |\n|---|---|\n| 101 | Item A |'
+  }
+];
+
+const unifiedMarkdown = mergeMarkdownOutputs(itemsToMerge);
+
+// Validação dos demarcadores explícitos
+if (!unifiedMarkdown.includes('<!-- ========================================== -->')) {
+  console.error('[FALHA] Markdown unificado não contém separadores de comentário padronizados');
+  process.exit(1);
+}
+if (!unifiedMarkdown.includes('<!-- INÍCIO DO ARQUIVO: Relatorio.docx -->') || !unifiedMarkdown.includes('<!-- FIM DO ARQUIVO: Relatorio.docx -->')) {
+  console.error('[FALHA] Demarcadores de início ou fim ausentes para Relatorio.docx');
+  process.exit(1);
+}
+if (!unifiedMarkdown.includes('<!-- FORMATO ORIGINAL: DOCX | TAMANHO: 2.4 MB -->')) {
+  console.error('[FALHA] Metadados de formato ou tamanho ausentes no cabeçalho do documento');
+  process.exit(1);
+}
+if (!unifiedMarkdown.includes('# Relatorio.docx') || !unifiedMarkdown.includes('# Dados.csv')) {
+  console.error('[FALHA] Títulos principais de nível 1 (# NomeDoArquivo) ausentes na mesclagem');
+  process.exit(1);
+}
+if (!unifiedMarkdown.includes('---')) {
+  console.error('[FALHA] Separador horizontal "---" ausente entre documentos');
+  process.exit(1);
+}
+
+console.log('  -> Mesclagem unificada com demarcadores e metadados validada com perfeição!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.5.2)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.0)');
 console.log('===============================================================');

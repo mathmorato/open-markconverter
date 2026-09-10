@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.5)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.6)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -819,16 +819,16 @@ if (!htmlContent.includes('Suporta upload em lote, descompactação automática 
   console.error('[FALHA] Texto de suporte da área de transferência não atualizado no index.html');
   process.exit(1);
 }
-if (!htmlContent.includes('+todas linguagens de código')) {
-  console.error('[FALHA] Badge destacada +todas linguagens de código ausente no index.html');
+if (!htmlContent.includes('+algumas linguagens de código')) {
+  console.error('[FALHA] Badge destacada +algumas linguagens de código ausente no index.html');
   process.exit(1);
 }
 if (!htmlContent.includes('1,5 GB</strong> por arquivo ou pacote compactado')) {
   console.error('[FALHA] Badge informativa de limite expandido ausente no index.html');
   process.exit(1);
 }
-console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.5 validados com perfeição!');
+console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.6 validados com perfeição!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.5)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.6)');
 console.log('===============================================================');

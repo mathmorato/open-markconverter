@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.7.5') {
-  console.error('[ERRO] Versão diferente de v.1.7.5');
+if (APP_CONFIG.VERSION !== 'v.1.7.6') {
+  console.error('[ERRO] Versão diferente de v.1.7.6');
   process.exit(1);
 }
 if (APP_CONFIG.APP_NAME !== 'Open Mark') {
@@ -47,7 +47,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.7.5' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.7.6' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -55,8 +55,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.7.5')) {
-  console.error('[ERRO] index.html não contém v.1.7.5');
+if (!indexHtml.includes('v.1.7.6')) {
+  console.error('[ERRO] index.html não contém v.1.7.6');
   process.exit(1);
 }
 if (!indexHtml.includes('brand-logo-svg') || !indexHtml.includes('Open <span class="accent">Mark</span>')) {
@@ -136,11 +136,11 @@ if (!indexHtml.includes('hero-header') || !indexHtml.includes('format-badges-lis
   console.error('[ERRO] index.html não contém as novas classes hero-header, format-badges-list ou limit-indicator');
   process.exit(1);
 }
-if (!indexHtml.includes('+todas linguagens de código')) {
-  console.error('[ERRO] index.html não contém a badge destacada +todas linguagens de código');
+if (!indexHtml.includes('+algumas linguagens de código')) {
+  console.error('[ERRO] index.html não contém a badge destacada +algumas linguagens de código');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.7.5, novo cabeçalho Open Mark com logo SVG e dropzone semântica');
+console.log('[OK] index.html contém v.1.7.6, novo cabeçalho Open Mark com logo SVG e dropzone semântica');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -384,8 +384,8 @@ console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), e
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.7.5')) {
-  console.error('[ERRO] README.md não contém v.1.7.5');
+if (!readme.includes('v.1.7.6')) {
+  console.error('[ERRO] README.md não contém v.1.7.6');
   process.exit(1);
 }
 if (!readme.includes('# Open Mark')) {
@@ -396,7 +396,7 @@ if (!readme.includes('https://mathmorato.github.io/open-mark/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-mark/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.7.5, título # Open Mark e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.7.6, título # Open Mark e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

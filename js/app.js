@@ -889,8 +889,9 @@ function updateQueueItemDOM(item) {
   // Barra 2: Conversão para Markdown (atualização seletiva sem innerHTML)
   const convertBar = itemEl.querySelector(`.bar-convert`);
   const convertPercent = itemEl.querySelector(`.convert-status-text, .convert-percent`);
+  const integerConvertProgress = Math.round(Number(item.convertProgress) || 0);
   if (convertBar) {
-    convertBar.style.width = `${item.convertProgress}%`;
+    convertBar.style.width = `${integerConvertProgress}%`;
     if (item.status === 'completed') {
       convertBar.classList.add('completed');
       convertBar.classList.remove('error');
@@ -902,7 +903,12 @@ function updateQueueItemDOM(item) {
     }
   }
   if (convertPercent) {
-    convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
+    let formattedText = item.convertText || `${integerConvertProgress}%`;
+    formattedText = formattedText
+      .replace(/(\d+)\.\d+%/g, '$1%')
+      .replace(/Página\s+(\d+)\s*\/\s*(\d+)/gi, 'pg. $1/$2')
+      .replace(/Página\s+(\d+)\s+de\s+(\d+)/gi, 'pg. $1/$2');
+    convertPercent.textContent = formattedText;
   }
 
   // Obtenção segura do tamanho do Markdown convertido
@@ -1127,9 +1133,18 @@ async function processQueueItem(item) {
       targetConvert = Math.max(targetConvert, Math.min(95, mapped));
       if (subDetail) currentDetail = subDetail;
       currentConvert = Math.max(currentConvert, targetConvert);
-      item.convertProgress = currentConvert;
-      item.convertText = `${currentConvert}% (${currentDetail})`;
-      item.statusText = `Convertendo... (${currentConvert}%)`;
+      const integerPercent = Math.round(currentConvert);
+      item.convertProgress = integerPercent;
+
+      let detailClean = currentDetail || '';
+      detailClean = detailClean
+        .replace(/Página\s+(\d+)\s*\/\s*(\d+)/gi, 'pg. $1/$2')
+        .replace(/Página\s+(\d+)\s+de\s+(\d+)/gi, 'pg. $1/$2')
+        .replace(/pg\.\s*(\d+)\s*\/\s*(\d+)/gi, 'pg. $1/$2');
+
+      const pageCounterText = detailClean ? ` (${detailClean})` : '';
+      item.convertText = `${integerPercent}%${pageCounterText}`.trim();
+      item.statusText = `Convertendo... (${integerPercent}%)`;
       updateQueueItemDOM(item);
     };
 
@@ -1150,10 +1165,18 @@ async function processQueueItem(item) {
       if (currentConvert < targetConvert) {
         const step = (targetConvert - currentConvert) * 0.28;
         currentConvert = Math.min(targetConvert, currentConvert + Math.max(0.4, step));
-        const displayVal = Math.round(currentConvert);
-        item.convertProgress = displayVal;
-        item.convertText = `${displayVal}% (${currentDetail})`;
-        item.statusText = `Convertendo... (${displayVal}%)`;
+        const integerPercent = Math.round(currentConvert);
+        item.convertProgress = integerPercent;
+
+        let detailClean = currentDetail || '';
+        detailClean = detailClean
+          .replace(/Página\s+(\d+)\s*\/\s*(\d+)/gi, 'pg. $1/$2')
+          .replace(/Página\s+(\d+)\s+de\s+(\d+)/gi, 'pg. $1/$2')
+          .replace(/pg\.\s*(\d+)\s*\/\s*(\d+)/gi, 'pg. $1/$2');
+
+        const pageCounterText = detailClean ? ` (${detailClean})` : '';
+        item.convertText = `${integerPercent}%${pageCounterText}`.trim();
+        item.statusText = `Convertendo... (${integerPercent}%)`;
         updateQueueItemDOM(item);
       }
     }, 120);

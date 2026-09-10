@@ -28,7 +28,7 @@ export async function parsePdf(file, onProgress = null) {
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
     if (typeof onProgress === 'function') {
       const pct = Math.round((pageNum / pdfDoc.numPages) * 100);
-      onProgress(pct, `Página ${pageNum}/${pdfDoc.numPages}`);
+      onProgress(pct, `pg. ${pageNum}/${pdfDoc.numPages}`);
     }
     const page = await pdfDoc.getPage(pageNum);
     const textContent = await page.getTextContent();

@@ -1325,15 +1325,24 @@ body {
 
 .read-percent,
 .upload-percent,
-.convert-percent {
+.convert-percent,
+.convert-status-text {
   font-family: var(--font-mono);
   font-size: 0.82rem;
   color: #64748B;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums; /* Evita trepidação visual durante incrementos */
+}
+
+.convert-status-text {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums; /* Evita trepidação visual durante incrementos */
 }
 
 [data-theme="dark"] .read-percent,
 [data-theme="dark"] .upload-percent,
-[data-theme="dark"] .convert-percent {
+[data-theme="dark"] .convert-percent,
+[data-theme="dark"] .convert-status-text {
   color: #94A3B8;
 }
 

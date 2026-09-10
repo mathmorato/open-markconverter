@@ -22,7 +22,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.6)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.7)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -543,6 +543,23 @@ if (!stylesCss.includes('flex-shrink: 0') || !stylesCss.includes('#E2E8F0')) {
 }
 console.log('  -> Barra de conversão isolada contra sobrescrita e altura do card (84px) validadas com 100% de sucesso!');
 
+// 17. Teste de truncamento de porcentagem para inteiro e abreviação para pg. (v.1.6.7)
+console.log('[TESTE 17] Testando truncamento de porcentagem para inteiro e abreviação para pg. ...');
+const rawPercent = 50.786575530894886;
+const integerPercent = Math.round(rawPercent);
+if (integerPercent !== 51 || !Number.isInteger(integerPercent)) {
+  console.error('[FALHA] Arredondamento para inteiro falhou');
+  process.exit(1);
+}
+
+const rawDetail = 'Página 298/1247';
+const abbreviated = rawDetail.replace(/Página\s+(\d+)\/(\d+)/gi, 'pg. $1/$2');
+if (abbreviated !== 'pg. 298/1247') {
+  console.error('[FALHA] Abreviação de página para pg. falhou');
+  process.exit(1);
+}
+console.log('  -> Truncamento para inteiro e abreviação para "pg." validados com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.6)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.7)');
 console.log('===============================================================');

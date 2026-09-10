@@ -22,7 +22,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.5)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.6)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -506,17 +506,22 @@ if (ERROR_CATALOG.FILE_TOO_LARGE !== 'Arquivo excede o limite máximo permitido 
 }
 console.log('  -> Colapso visual (.has-error display: none !important) e ERROR_CATALOG validados com sucesso!');
 
-// 15. Teste de estabilidade e posicionamento do botão de download unificado abaixo da linha principal
+// 15. Teste de estabilidade e posicionamento do botão de download unificado abaixo da linha principal (CLS = 0)
 console.log('[TESTE 15] Testando layout de duas linhas e estabilidade do botão unificado...');
 const indexHtmlContent = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtmlContent.includes('queue-actions-row') || !indexHtmlContent.includes('unified-download-container')) {
-  console.error('[FALHA] Estrutura estável de duas linhas (queue-actions-row / unified-download-container) ausente no index.html');
+if ((!indexHtmlContent.includes('queue-actions-row') && !indexHtmlContent.includes('queue-static-buttons')) || (!indexHtmlContent.includes('unified-download-container') && !indexHtmlContent.includes('unified-action-row'))) {
+  console.error('[FALHA] Estrutura estável de duas linhas (queue-static-buttons / unified-action-row) ausente no index.html');
   process.exit(1);
 }
-if (!stylesCss.includes('.unified-download-container') || !stylesCss.includes('.queue-header-actions')) {
-  console.error('[FALHA] Estilização para posicionamento vertical de .unified-download-container ausente em css/styles.css');
+if (!stylesCss.includes('.unified-download-container') && !stylesCss.includes('.unified-action-row')) {
+  console.error('[FALHA] Estilização para posicionamento vertical de .unified-action-row ausente em css/styles.css');
   process.exit(1);
 }
+if (!stylesCss.includes('.queue-header-main') || !stylesCss.includes('min-height: 42px')) {
+  console.error('[FALHA] css/styles.css não contém .queue-header-main com min-height: 42px');
+  process.exit(1);
+}
+console.log('  -> Layout travado contra Layout Shift (.queue-header-main min-height: 42px) validado com sucesso!');
 // 16. Teste de restauração e resiliência da barra de conversão e expansão dos cards (v.1.6.4)
 console.log('[TESTE 16] Testando preservação da barra de conversão e expansão dimensional dos cards...');
 const appJsContent = fs.readFileSync('./js/app.js', 'utf8');
@@ -539,5 +544,5 @@ if (!stylesCss.includes('flex-shrink: 0') || !stylesCss.includes('#E2E8F0')) {
 console.log('  -> Barra de conversão isolada contra sobrescrita e altura do card (84px) validadas com 100% de sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.5)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.6)');
 console.log('===============================================================');

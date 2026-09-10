@@ -678,21 +678,30 @@ body {
   transition: all var(--transition-normal);
 }
 
-.file-queue-header {
+.file-queue-header,
+.queue-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  padding-bottom: 0.85rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 1rem;
 }
 
-.file-queue-title-wrap {
+.queue-header-main {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 42px; /* Trava a altura para impedir oscilações */
+}
+
+.file-queue-title-wrap,
+.queue-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 0 0 auto;
 }
 
 .file-queue-icon {
@@ -800,31 +809,38 @@ body {
   gap: 0.5rem;
 }
 
-.queue-header-actions {
+.queue-header-actions,
+.queue-header-controls {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1.25rem;
+  flex: 0 0 auto;
   margin-left: auto;
 }
 
 .queue-actions-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
-.queue-buttons-group {
+.queue-buttons-group,
+.queue-static-buttons {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex: 0 0 auto;
 }
 
+/* Área da Linha Inferior Dedicada */
+.unified-action-row,
 .unified-download-container {
   display: none;
-  justify-content: flex-end;
+  justify-content: flex-end; /* Alinha o botão azul exatamente abaixo dos botões superiores */
   width: 100%;
-  animation: slide-down-fade 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  padding-top: 0.25rem;
+  transition: opacity 0.25s ease-out;
+  animation: slide-down-fade 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes slide-down-fade {
@@ -838,11 +854,12 @@ body {
   }
 }
 
-.btn-unified {
+.btn-unified,
+.btn-unified-pulse {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 .file-queue-list {
@@ -1639,11 +1656,25 @@ body {
   }
 
   /* Cabeçalho da Fila de Documentos */
-  .file-queue-header {
+  .file-queue-header,
+  .queue-header {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
     gap: 0.75rem;
+  }
+
+  .queue-header-main {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .queue-header-controls,
+  .queue-header-actions {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .file-queue-actions {

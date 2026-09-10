@@ -44,7 +44,8 @@ const state = {
   theme: 'system',
   queue: [],
   maxConcurrency: 2,
-  userIsScrolling: false
+  userIsScrolling: false,
+  isMergeEnabled: false
 };
 
 // Elementos DOM
@@ -69,7 +70,8 @@ const elements = typeof document !== 'undefined' ? {
   toggleMergeMarkdown: document.getElementById('toggle-merge-markdown'),
   btnQueueDownloadMerged: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
   btnDownloadUnified: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
-  unifiedDownloadContainer: document.getElementById('unified-download-container')
+  unifiedActionRow: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
+  unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container')
 } : {};
 
 /* ==========================================================================
@@ -1346,8 +1348,10 @@ export async function downloadUnifiedMarkdown() {
 
 function updateMergeButtonVisibility() {
   const isEnabled = elements.toggleMergeMarkdown ? elements.toggleMergeMarkdown.checked : false;
-  if (elements.unifiedDownloadContainer) {
-    elements.unifiedDownloadContainer.style.display = isEnabled ? 'flex' : 'none';
+  state.isMergeEnabled = isEnabled;
+  const row = elements.unifiedActionRow || elements.unifiedDownloadContainer || (typeof document !== 'undefined' ? (document.getElementById('unified-action-row') || document.getElementById('unified-download-container')) : null);
+  if (row) {
+    row.style.display = isEnabled ? 'flex' : 'none';
   }
   if (elements.btnDownloadUnified) {
     elements.btnDownloadUnified.style.display = isEnabled ? 'inline-flex' : 'none';
@@ -1382,9 +1386,13 @@ function initQueueEvents() {
     updateMergeButtonVisibility();
 
     elements.toggleMergeMarkdown.addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
+      state.isMergeEnabled = e.target.checked;
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN, String(isChecked));
+        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.MERGE_MARKDOWN, String(state.isMergeEnabled));
+      }
+      const unifiedRow = elements.unifiedActionRow || elements.unifiedDownloadContainer || (typeof document !== 'undefined' ? document.getElementById('unified-action-row') : null);
+      if (unifiedRow) {
+        unifiedRow.style.display = state.isMergeEnabled ? 'flex' : 'none';
       }
       updateMergeButtonVisibility();
     });

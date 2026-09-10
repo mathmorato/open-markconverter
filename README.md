@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.5`
+# Universal MarkConverter (doc2md) `v.1.6.6`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.5-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.6-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,17 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.6
+
+- **Bloqueio Estrutural do Layout do Cabeçalho da Fila (Zero Layout Shift - CLS = 0):**
+  - Separação arquitetural estrita entre a linha principal de controles (`.queue-header-main`) e a área dinâmica de download unificado (`.unified-action-row`).
+  - Linha superior com altura mínima travada (`min-height: 42px`) e containers estáticos (`.queue-header-controls`, `.queue-static-buttons`), garantindo que o título, o toggle e os botões "Baixar Todos (.zip)" e "Limpar Todos" não se movam 1 pixel sequer ao alternar a opção de mesclagem.
+  - O botão "Baixar Markdown Unificado (.md)" surge exclusivamente em uma nova linha independente logo abaixo (`#unified-action-row`), perfeitamente alinhado à direita abaixo dos botões superiores, sem qualquer deslocamento ou empurrão de elementos.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.6`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

@@ -203,7 +203,7 @@ export function renderFileBadgeIcon(extension) {
   const cleanExt = (extension || '').replace(/^\./, '').toUpperCase() || 'DOC';
   return `
     <div class="file-badge-icon file-icon queue-item-icon" aria-hidden="true" title=".${cleanExt}">
-      <svg viewBox="0 0 40 48" class="file-sheet-svg" fill="none" stroke="currentColor">
+      <svg viewBox="-2 -2 44 52" class="file-sheet-svg" fill="none" stroke="currentColor">
         <!-- Contorno da folha com dobra superior -->
         <path d="M6 4a2 2 0 0 1 2-2h18l10 10v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4z" stroke-width="2.5" stroke-linejoin="round"/>
         <path d="M26 2v10h10" stroke-width="2.5" stroke-linejoin="round"/>
@@ -450,6 +450,15 @@ function renderQueue() {
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+    
+    // Obtenção segura do tamanho do Markdown convertido (defesa contra ReferenceError)
+    const mdSizeInBytes = item.mdSize 
+      || (item.markdownOutput ? new Blob([item.markdownOutput], { type: 'text/markdown;charset=utf-8' }).size : 0)
+      || (item.markdown ? new Blob([item.markdown], { type: 'text/markdown;charset=utf-8' }).size : 0);
+    const mdSizeText = (isCompleted && (item.formattedMdSize || mdSizeInBytes > 0))
+      ? `(MD: ${item.formattedMdSize || formatBytes(mdSizeInBytes)})`
+      : '';
+
     const isUploadDone = (item.uploadProgress >= 100) || isCompleted;
     const isConvertDone = (item.convertProgress >= 100) || isCompleted;
     const uploadDoneClass = isUploadDone ? 'upload-done' : '';
@@ -664,22 +673,25 @@ function updateQueueItemDOM(item) {
     convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
   }
 
+  // Obtenção segura do tamanho do Markdown convertido
+  const mdSizeInBytes = item.mdSize 
+    || (item.markdownOutput ? new Blob([item.markdownOutput], { type: 'text/markdown;charset=utf-8' }).size : 0)
+    || (item.markdown ? new Blob([item.markdown], { type: 'text/markdown;charset=utf-8' }).size : 0);
+  const mdSizeText = (item.status === 'completed' && (item.formattedMdSize || mdSizeInBytes > 0))
+    ? `(MD: ${item.formattedMdSize || formatBytes(mdSizeInBytes)})`
+    : '';
+
   // Telemetria do tamanho do Markdown gerado (no rótulo da barra se houver)
   const mdSizeEl = itemEl.querySelector('.mini-progress-label .md-output-size');
   if (mdSizeEl) {
-    mdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
+    mdSizeEl.textContent = mdSizeText;
   }
 
   // Telemetria de tamanho do Markdown posicionado à esquerda do certinho no Bloco 3
   const actionsMdSizeEl = itemEl.querySelector('.badge-md-size, .queue-item-md-size');
   if (actionsMdSizeEl) {
-    if (item.status === 'completed' && item.formattedMdSize) {
-      actionsMdSizeEl.textContent = `(MD: ${item.formattedMdSize})`;
-      actionsMdSizeEl.style.display = 'inline-flex';
-    } else {
-      actionsMdSizeEl.textContent = '';
-      actionsMdSizeEl.style.display = 'none';
-    }
+    actionsMdSizeEl.textContent = mdSizeText;
+    actionsMdSizeEl.style.display = mdSizeText ? 'inline-flex' : 'none';
   }
 
   // Telemetria de tempo inteligente formatado (h min s) no Bloco 3

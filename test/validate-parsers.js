@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.9') {
-  console.error('[ERRO] Versão diferente de v.1.4.9');
+if (APP_CONFIG.VERSION !== 'v.1.4.10') {
+  console.error('[ERRO] Versão diferente de v.1.4.10');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.9') {
+if (pkg.version !== '1.4.10') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.9')) {
-  console.error('[ERRO] index.html não contém v.1.4.9');
+if (!indexHtml.includes('v.1.4.10')) {
+  console.error('[ERRO] index.html não contém v.1.4.10');
   process.exit(1);
 }
 if (indexHtml.includes('toast-container') || indexHtml.includes('id="toast-container"')) {
@@ -86,7 +86,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.9, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.4.10, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -132,6 +132,10 @@ if (appJs.includes('<span>Leitura</span>') || appJs.includes('<span>Conversão M
 }
 if (!appJs.includes('renderFileBadgeIcon') || !appJs.includes('file-badge-icon') || !appJs.includes('file-extension-tag')) {
   console.error('[ERRO] js/app.js não contém renderFileBadgeIcon ou classes do novo ícone com badge');
+  process.exit(1);
+}
+if (!appJs.includes('viewBox="-2 -2 44 52"')) {
+  console.error('[ERRO] js/app.js não contém viewBox com respiro anti-corte (-2 -2 44 52)');
   process.exit(1);
 }
 if (!appJs.includes('is-completed')) {
@@ -202,6 +206,10 @@ if (!stylesCss.includes('.file-badge-icon') || !stylesCss.includes('.file-sheet-
   console.error('[ERRO] css/styles.css não contém estilos do ícone com badge (.file-badge-icon / .file-sheet-svg / .file-extension-tag)');
   process.exit(1);
 }
+if (!stylesCss.includes('transform: scale(0.9)') || !stylesCss.includes('padding: 2px')) {
+  console.error('[ERRO] css/styles.css não contém redução de 10% (scale(0.9)) ou respiro anti-corte no ícone com badge');
+  process.exit(1);
+}
 if (!stylesCss.includes('.is-completed')) {
   console.error('[ERRO] css/styles.css não contém regras de auto-collapse suave para barras concluídas (.is-completed)');
   process.exit(1);
@@ -238,19 +246,19 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém ícones animados, contenção de overflow, .badge-file-size, .badge-md-size e alinhamento linear');
+console.log('[OK] css/styles.css contém ícones animados, escala 10%, contenção de overflow e alinhamento linear');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.9')) {
-  console.error('[ERRO] README.md não contém v.1.4.9');
+if (!readme.includes('v.1.4.10')) {
+  console.error('[ERRO] README.md não contém v.1.4.10');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.9 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.4.10 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

@@ -8,7 +8,7 @@ import { APP_CONFIG } from '../js/config.js';
 import { formatElapsedTime, formatBytes, formatFileSize, renderFileBadgeIcon, renderUploadStepIcon, renderConvertStepIcon } from '../js/app.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.4.9)');
+console.log('  TESTANDO FILA, BADGE ICON, ZERO TOASTS & STEP ICONS (v.1.4.10)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -285,12 +285,16 @@ for (const ext of testExtensions) {
     console.error(`[FALHA] renderFileBadgeIcon("${ext}") não gerou estrutura vetorial completa`);
     process.exit(1);
   }
+  if (!iconHtml.includes('viewBox="-2 -2 44 52"')) {
+    console.error(`[FALHA] renderFileBadgeIcon("${ext}") não inclui viewBox com folga de respiro anti-corte`);
+    process.exit(1);
+  }
   if (!iconHtml.includes(ext.toUpperCase())) {
     console.error(`[FALHA] renderFileBadgeIcon("${ext}") não incluiu a extensão em caixa alta`);
     process.exit(1);
   }
 }
-console.log('  -> Ícones vetoriais com badge gerados com sucesso para PDF, DOCX, XLSX, PPTX, JSON e TXT!');
+console.log('  -> Ícones vetoriais com badge e viewBox anti-corte gerados com sucesso para PDF, DOCX, XLSX, PPTX, JSON e TXT!');
 
 // 9. Teste unitário para renderUploadStepIcon e renderConvertStepIcon
 console.log('[TESTE 9] Testando geração dos ícones vetoriais de etapas (renderUploadStepIcon e renderConvertStepIcon)...');
@@ -308,5 +312,5 @@ if (!convertIconHtml.includes('step-icon-convert') || !convertIconHtml.includes(
 console.log('  -> Ícones vetoriais animados de Upload e Conversão validados com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.9)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.4.10)');
 console.log('===============================================================');

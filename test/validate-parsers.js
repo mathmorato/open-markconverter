@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.5') {
-  console.error('[ERRO] Versão diferente de v.1.4.5');
+if (APP_CONFIG.VERSION !== 'v.1.4.6') {
+  console.error('[ERRO] Versão diferente de v.1.4.6');
   process.exit(1);
 }
 
@@ -25,16 +25,20 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.5') {
+if (pkg.version !== '1.4.6') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
 console.log(`[OK] package.json version: ${pkg.version}`);
 
-// 3. Verifica sincronização no index.html, fila de downloads, container central e ausência de exemplos
+// 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.5')) {
-  console.error('[ERRO] index.html não contém v.1.4.5');
+if (!indexHtml.includes('v.1.4.6')) {
+  console.error('[ERRO] index.html não contém v.1.4.6');
+  process.exit(1);
+}
+if (indexHtml.includes('toast-container') || indexHtml.includes('id="toast-container"')) {
+  console.error('[ERRO] index.html ainda contém container flutuante de toast (toast-container)');
   process.exit(1);
 }
 if (!indexHtml.includes('limit-badge') || !indexHtml.includes('1,5 GB')) {
@@ -82,9 +86,9 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.5, limit-badge 1,5 GB, app-main-container e fila em lote');
+console.log('[OK] index.html contém v.1.4.6, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
-// 4. Verifica listeners, download individual, telemetria, linearização e 3 blocos no js/app.js
+// 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
 if (!appJs.includes("window.addEventListener('paste'")) {
   console.error('[ERRO] js/app.js não contém listener de paste');
@@ -138,10 +142,18 @@ if (!appJs.includes('file-progress-group') || !appJs.includes('bar-upload') || !
   console.error('[ERRO] js/app.js não contém estrutura de dupla barra de progresso (bar-upload e bar-convert)');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém renderFileBadgeIcon, is-completed, formatElapsedTime, md-output-size e layout em 3 blocos');
+if (appJs.includes('elements.toastContainer') || appJs.includes('toast.style.opacity')) {
+  console.error('[ERRO] js/app.js ainda contém manipulação ativa de nós DOM de toast');
+  process.exit(1);
+}
+console.log('[OK] js/app.js contém renderFileBadgeIcon, is-completed, toasts neutralizados e layout em 3 blocos');
 
-// 5. Verifica estilos CSS para ícone badge, expansão de nome, auto-collapse, transição suave, barras compactas e badge-error
+// 5. Verifica estilos CSS para ausência de toasts, ícone badge, expansão de nome, auto-collapse, transição suave e 3 blocos
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
+if (stylesCss.includes('.toast-container') || stylesCss.includes('.toast-error') || stylesCss.includes('.toast-success')) {
+  console.error('[ERRO] css/styles.css ainda contém regras residuais de classes de toast flutuante');
+  process.exit(1);
+}
 if (!stylesCss.includes('.app-main-container') || !stylesCss.includes('.file-progress-group') || !stylesCss.includes('.bar-upload') || !stylesCss.includes('.bar-convert')) {
   console.error('[ERRO] css/styles.css não contém classes de container unificado ou dupla barra de progresso');
   process.exit(1);
@@ -186,19 +198,19 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém .file-badge-icon, auto-collapse (.is-completed), limit-badge, animações spin/pop e 3 blocos');
+console.log('[OK] css/styles.css contém .file-badge-icon, ausência de regras de toast, auto-collapse e 3 blocos');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.5')) {
-  console.error('[ERRO] README.md não contém v.1.4.5');
+if (!readme.includes('v.1.4.6')) {
+  console.error('[ERRO] README.md não contém v.1.4.6');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.5 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.4.6 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

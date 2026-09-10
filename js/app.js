@@ -64,9 +64,7 @@ const elements = typeof document !== 'undefined' ? {
   fileQueueList: document.getElementById('file-queue-list'),
   queueCounter: document.getElementById('queue-counter'),
   btnQueueClear: document.getElementById('btn-queue-clear'),
-  btnQueueDownloadAll: document.getElementById('btn-queue-download-all'),
-
-  toastContainer: document.getElementById('toast-container')
+  btnQueueDownloadAll: document.getElementById('btn-queue-download-all')
 } : {};
 
 /* ==========================================================================
@@ -114,7 +112,6 @@ function initTheme() {
     const currentEffective = document.documentElement.getAttribute('data-theme') || 'light';
     const nextTheme = currentEffective === 'dark' ? 'light' : 'dark';
     applyTheme(nextTheme);
-    showToast(`Tema alterado para ${nextTheme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}`);
   });
 }
 
@@ -350,7 +347,6 @@ function addFilesToQueue(files) {
       convertText = 'Erro: Limite excedido';
       progress = 100;
       errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
-      showToast('Arquivo excede o limite máximo permitido de 1,5 GB.', 'error', 5000);
     } else if (APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS && APP_CONFIG.UNSUPPORTED_BINARY_EXTENSIONS.includes(ext)) {
       status = 'error';
       statusText = 'Erro: Formato não suportado';
@@ -650,13 +646,11 @@ function updateQueueItemDOM(item) {
 function downloadQueueItem(itemId) {
   const item = state.queue.find(it => it.id === itemId);
   if (!item || item.status !== 'completed' || !item.markdown) {
-    showToast('O documento ainda não foi processado com sucesso.', 'warning');
     return;
   }
 
   const baseName = item.file.name.replace(/\.[^/.]+$/, '');
   downloadMarkdownFile(baseName, item.markdown);
-  showToast(`Download de "${baseName}.md" concluído!`, 'success');
 }
 
 function removeQueueItem(itemId) {
@@ -668,7 +662,6 @@ function removeQueueItem(itemId) {
   state.queue.splice(itemIndex, 1);
 
   renderQueue();
-  showToast(`Item "${item.file.name}" removido da fila.`);
   processQueue();
 }
 
@@ -706,7 +699,6 @@ async function processQueueItem(item) {
     item.progress = 100;
     item.errorMessage = 'Arquivo excede o limite máximo permitido de 1,5 GB.';
     updateQueueItemDOM(item);
-    showToast('Arquivo excede o limite máximo permitido de 1,5 GB.', 'error', 5000);
     return;
   }
 
@@ -830,7 +822,6 @@ async function processQueueItem(item) {
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
-    showToast(`Arquivo "${item.file.name}" convertido em ${formattedDuration} (MD: ${formattedMdSize})`, 'success');
   } catch (error) {
     if (item.cancelled) return;
     const duration = Math.round(performance.now() - startTime);
@@ -845,7 +836,6 @@ async function processQueueItem(item) {
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage} (${formattedDuration})`, true);
-    showToast(`Erro ao processar "${item.file.name}": ${item.errorMessage}`, 'error', 4500);
   } finally {
     processQueue();
   }
@@ -863,7 +853,6 @@ async function convertFile(file) {
 async function downloadAllZip() {
   const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
   if (completed.length === 0) {
-    showToast('Nenhum documento convertido disponível para download.', 'info');
     return;
   }
 
@@ -871,11 +860,9 @@ async function downloadAllZip() {
     const item = completed[0];
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
     downloadMarkdownFile(baseName, item.markdown);
-    showToast(`Arquivo ${baseName}.md baixado com sucesso.`, 'success');
     return;
   }
 
-  showToast('Gerando pacote ZIP com os documentos...', 'info', 2000);
   try {
     await loadScript(APP_CONFIG.CDN.JSZIP);
     const JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
@@ -907,10 +894,8 @@ async function downloadAllZip() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(`Pacote ZIP com ${completed.length} documentos baixado!`, 'success');
   } catch (err) {
     console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
-    showToast(`Falha ao gerar ZIP: ${err.message}`, 'error');
   }
 }
 
@@ -921,7 +906,6 @@ function initQueueEvents() {
       state.queue.forEach(it => { it.cancelled = true; });
       state.queue = [];
       renderQueue();
-      showToast('Fila de arquivos limpa.');
     });
   }
 
@@ -1025,42 +1009,11 @@ function initDropzone() {
 
 
 /* ==========================================================================
-   Sistema de Toasts
+   Desativação Global de Toasts (Zero Popups Flutuantes)
    ========================================================================== */
-function showToast(message, type = 'info', duration = 3000) {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type === 'error' ? 'toast-error' : type === 'success' ? 'toast-success' : ''}`.trim();
-
-  let iconSvg = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="16" x2="12" y2="12"/>
-      <line x1="12" y1="8" x2="12.01" y2="8"/>
-    </svg>`;
-
-  if (type === 'error') {
-    iconSvg = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="15" y1="9" x2="9" y2="15"/>
-        <line x1="9" y1="9" x2="15" y2="15"/>
-      </svg>`;
-  } else if (type === 'success') {
-    iconSvg = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-        <polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>`;
-  }
-
-  toast.innerHTML = `${iconSvg}<span>${message}</span>`;
-  elements.toastContainer.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 300ms ease';
-    setTimeout(() => toast.remove(), 300);
-  }, duration);
+export function showToast() {
+  // Desativado intencionalmente para erradicar popups e toasts flutuantes da interface.
+  // Todo feedback de status permanece estritamente integrado aos cards da fila e à dropzone.
 }
 
 /* ==========================================================================

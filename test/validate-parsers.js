@@ -140,8 +140,8 @@ if (!appJs.includes('mergeMarkdownOutputs') || !appJs.includes('downloadUnifiedM
   console.error('[ERRO] js/app.js não contém rotinas de mesclagem unificada de Markdown');
   process.exit(1);
 }
-if (!appJs.includes('scrollQueueToItem') || !appJs.includes('scrollToActiveItem') || !appJs.includes('userIsScrolling')) {
-  console.error('[ERRO] js/app.js não contém auto-scroll inteligente confinado (scrollQueueToItem / scrollToActiveItem / userIsScrolling)');
+if (!appJs.includes('scrollQueueToActiveItem') || !appJs.includes('scrollQueueToItem') || !appJs.includes('scrollToActiveItem') || !appJs.includes('userIsScrolling')) {
+  console.error('[ERRO] js/app.js não contém auto-scroll inteligente confinado (scrollQueueToActiveItem / scrollQueueToItem / scrollToActiveItem / userIsScrolling)');
   process.exit(1);
 }
 if (appJs.includes('.scrollIntoView(')) {

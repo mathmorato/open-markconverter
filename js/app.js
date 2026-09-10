@@ -987,57 +987,111 @@ function removeQueueItem(itemId) {
 }
 
 /**
- * Rolagem automática estritamente confinada ao container interno da fila de documentos.
- * Elimina qualquer rolagem na janela/página principal (window, body, html).
+ * Rolagem automática inteligente confinada exclusivamente ao container interno da fila de documentos.
+ * Utiliza getBoundingClientRect() para cálculo relativo e scrollBy suave,
+ * garantindo total imobilidade da janela principal (window, body, dropzone).
  * @param {string|HTMLElement} itemOrId Elemento DOM ou ID do item da fila
  */
-export function scrollQueueToItem(itemOrId) {
-  if (!itemOrId || state.userIsScrolling) return;
+export function scrollQueueToActiveItem(itemOrId) {
+  if (!itemOrId) return;
 
-  // Seleciona exclusivamente o container interno com overflow da fila
-  const queueList = elements.fileQueueList || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
-  if (!queueList) return;
+  // Obtém o elemento exato que possui a barra de rolagem ativa
+  const queueScrollContainer = (elements && elements.fileQueueList) ||
+    (typeof document !== 'undefined' ? (
+      document.querySelector('.file-queue-list') || 
+      document.getElementById('file-queue-list') || 
+      document.querySelector('.queue-items-container')
+    ) : null);
+
+  if (!queueScrollContainer) return;
+
+  // Se o usuário interagiu manualmente e não está no final, respeite
+  if (state && state.userIsScrolling) return;
 
   let itemElement = null;
-  if (typeof itemOrId === 'object' && itemOrId) {
-    itemElement = itemOrId;
-  } else if (typeof itemOrId === 'string') {
-    itemElement = queueList.querySelector ? (queueList.querySelector(`.queue-item[data-id="${itemOrId}"]`) || queueList.querySelector(`[data-id="${itemOrId}"]`)) : null;
+  if (typeof itemOrId === 'object' && itemOrId !== null) {
+    if (itemOrId.nodeType || typeof itemOrId.getBoundingClientRect === 'function') {
+      itemElement = itemOrId;
+    } else if (itemOrId.id) {
+      itemOrId = itemOrId.id;
+    }
+  }
+
+  if (!itemElement && typeof itemOrId === 'string') {
+    if (queueScrollContainer.querySelector) {
+      itemElement = queueScrollContainer.querySelector(`.queue-item[data-id="${itemOrId}"]`) ||
+                    queueScrollContainer.querySelector(`[data-id="${itemOrId}"]`);
+    } else if (typeof document !== 'undefined' && document.querySelector) {
+      itemElement = document.querySelector(`.queue-item[data-id="${itemOrId}"]`) ||
+                    document.querySelector(`[data-id="${itemOrId}"]`);
+    }
   }
 
   if (!itemElement) return;
 
-  // Calcula a posição do item em relação ao topo do container da lista
-  const itemOffsetTop = typeof itemElement.offsetTop === 'number' && typeof queueList.offsetTop === 'number'
-    ? (itemElement.offsetTop - queueList.offsetTop)
-    : (typeof itemElement.offsetTop === 'number' ? itemElement.offsetTop : 0);
-  const itemHeight = typeof itemElement.offsetHeight === 'number' ? itemElement.offsetHeight : 0;
-  const currentScrollTop = typeof queueList.scrollTop === 'number' ? queueList.scrollTop : 0;
-  const containerHeight = typeof queueList.clientHeight === 'number' ? queueList.clientHeight : 480;
+  // Calcula a posição relativa do item dentro do container
+  if (typeof queueScrollContainer.getBoundingClientRect === 'function' && typeof itemElement.getBoundingClientRect === 'function') {
+    const containerTop = queueScrollContainer.getBoundingClientRect().top;
+    const itemTop = itemElement.getBoundingClientRect().top;
+    const relativeOffset = itemTop - containerTop;
+    const containerHeight = queueScrollContainer.clientHeight || 480;
+    const itemHeight = itemElement.offsetHeight || 84;
+    const targetDelta = relativeOffset - (containerHeight / 2) + (itemHeight / 2);
 
-  // Verifica se o item está fora da área visível interna do container
-  const isAbove = itemOffsetTop < currentScrollTop;
-  const isBelow = (itemOffsetTop + itemHeight) > (currentScrollTop + containerHeight);
+    // Executa a rolagem interna de forma direta e segura
+    if (typeof queueScrollContainer.scrollBy === 'function') {
+      queueScrollContainer.scrollBy({
+        top: targetDelta,
+        behavior: 'smooth'
+      });
+    } else if (typeof queueScrollContainer.scrollTo === 'function') {
+      queueScrollContainer.scrollTo({
+        top: (queueScrollContainer.scrollTop || 0) + targetDelta,
+        behavior: 'smooth'
+      });
+    } else {
+      queueScrollContainer.scrollTop = (queueScrollContainer.scrollTop || 0) + targetDelta;
+    }
+  } else {
+    // Fallback para ambientes de teste sem suporte a getBoundingClientRect
+    const containerTop = queueScrollContainer.offsetTop || 0;
+    const itemTop = typeof itemElement.offsetTop === 'number' ? itemElement.offsetTop : 0;
+    const relativeOffset = itemTop - containerTop;
+    const containerHeight = queueScrollContainer.clientHeight || 480;
+    const itemHeight = itemElement.offsetHeight || 84;
+    const targetDelta = relativeOffset - (containerHeight / 2) + (itemHeight / 2);
+    const targetTop = Math.max(0, (queueScrollContainer.scrollTop || 0) + targetDelta);
 
-  if (isAbove || isBelow) {
-    const targetTop = Math.max(0, itemOffsetTop - (containerHeight / 2) + (itemHeight / 2));
-    if (typeof queueList.scrollTo === 'function') {
-      queueList.scrollTo({
+    if (typeof queueScrollContainer.scrollBy === 'function') {
+      queueScrollContainer.scrollBy({
+        top: targetDelta,
+        behavior: 'smooth'
+      });
+    } else if (typeof queueScrollContainer.scrollTo === 'function') {
+      queueScrollContainer.scrollTo({
         top: targetTop,
         behavior: 'smooth'
       });
     } else {
-      queueList.scrollTop = targetTop;
+      queueScrollContainer.scrollTop = targetTop;
     }
   }
 }
 
 /**
- * Alias de retrocompatibilidade para scrollQueueToItem
+ * Alias de retrocompatibilidade para scrollQueueToActiveItem
+ * @param {string|HTMLElement} itemOrId
+ */
+export function scrollQueueToItem(itemOrId) {
+  return scrollQueueToActiveItem(itemOrId);
+}
+
+/**
+ * Alias adicional para scrollQueueToActiveItem
  * @param {string|HTMLElement} itemIdOrElement
  */
 export function scrollToActiveItem(itemIdOrElement) {
-  return scrollQueueToItem(itemIdOrElement);
+  return scrollQueueToActiveItem(itemIdOrElement);
 }
 
 async function processQueue() {
@@ -1086,7 +1140,7 @@ async function processQueueItem(item) {
   item.convertText = 'Aguardando...';
   item.progress = 0;
   updateQueueItemDOM(item);
-  scrollQueueToItem(item.id);
+  scrollQueueToActiveItem(item.id);
 
   const startTime = performance.now();
   updateDebugStatus(`[Processando]: ${item.file.name} (${formatBytes(item.file.size)})`);
@@ -1116,7 +1170,7 @@ async function processQueueItem(item) {
     item.convertText = '20% (Iniciando parser...)';
     item.statusText = 'Iniciando conversão... (20%)';
     updateQueueItemDOM(item);
-    scrollQueueToItem(item.id);
+    scrollQueueToActiveItem(item.id);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
@@ -1224,7 +1278,7 @@ async function processQueueItem(item) {
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
-    scrollQueueToItem(item.id);
+    scrollQueueToActiveItem(item.id);
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
@@ -1255,6 +1309,7 @@ async function processQueueItem(item) {
 
     item.durationMs = duration;
     updateQueueItemDOM(item);
+    scrollQueueToActiveItem(item.id);
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage} (${formattedDuration})`, true);
@@ -1431,22 +1486,22 @@ function initQueueEvents() {
     });
   }
 
-  // Detecção inteligente de scroll manual para controle de auto-scroll
+  // Detecção inteligente de scroll manual para controle de auto-scroll temporizado
   if (elements.fileQueueList) {
-    const handleScrollCheck = () => {
-      const el = elements.fileQueueList;
-      if (!el) return;
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      if (distanceFromBottom > 120) {
-        state.userIsScrolling = true;
-      } else {
+    let scrollUserTimer = null;
+    const handleUserManualScroll = () => {
+      state.userIsScrolling = true;
+      if (scrollUserTimer) clearTimeout(scrollUserTimer);
+      // Retoma auto-scroll após 2 segundos sem interação manual do usuário
+      scrollUserTimer = setTimeout(() => {
         state.userIsScrolling = false;
-      }
+      }, 2000);
     };
 
-    elements.fileQueueList.addEventListener('scroll', handleScrollCheck, { passive: true });
-    elements.fileQueueList.addEventListener('wheel', handleScrollCheck, { passive: true });
-    elements.fileQueueList.addEventListener('touchstart', handleScrollCheck, { passive: true });
+    // Apenas eventos manuais do usuário (wheel e touchmove) ativam a pausa temporária
+    // Evita escutar o evento 'scroll' genérico para não bloquear rolagens programáticas
+    elements.fileQueueList.addEventListener('wheel', handleUserManualScroll, { passive: true });
+    elements.fileQueueList.addEventListener('touchmove', handleUserManualScroll, { passive: true });
   }
 }
 

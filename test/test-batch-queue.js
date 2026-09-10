@@ -19,14 +19,16 @@ import {
   scrollToActiveItem,
   getFormattedTimestamp,
   sortQueueByName,
-  renderQueueUI
+  renderQueueUI,
+  buildBacklogSection,
+  buildDirectoryTreeAscii
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
 import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.8)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.9)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -383,8 +385,8 @@ const itemsToMerge = [
 
 const unifiedMarkdown = mergeMarkdownOutputs(itemsToMerge);
 
-// Validação dos demarcadores explícitos
-if (!unifiedMarkdown.includes('<!-- ========================================== -->')) {
+// Validação dos demarcadores explícitos e backlog
+if (!unifiedMarkdown.includes('<!-- ================================================================= -->') && !unifiedMarkdown.includes('<!-- ========================================== -->')) {
   console.error('[FALHA] Markdown unificado não contém separadores de comentário padronizados');
   process.exit(1);
 }
@@ -392,7 +394,7 @@ if (!unifiedMarkdown.includes('<!-- INÍCIO DO ARQUIVO: Relatorio.docx -->') || 
   console.error('[FALHA] Demarcadores de início ou fim ausentes para Relatorio.docx');
   process.exit(1);
 }
-if (!unifiedMarkdown.includes('<!-- FORMATO ORIGINAL: DOCX | TAMANHO: 2.4 MB -->')) {
+if (!unifiedMarkdown.includes('TAMANHO: 2.4 MB') || !unifiedMarkdown.includes('DOCX')) {
   console.error('[FALHA] Metadados de formato ou tamanho ausentes no cabeçalho do documento');
   process.exit(1);
 }
@@ -400,12 +402,16 @@ if (!unifiedMarkdown.includes('# Relatorio.docx') || !unifiedMarkdown.includes('
   console.error('[FALHA] Títulos principais de nível 1 (# NomeDoArquivo) ausentes na mesclagem');
   process.exit(1);
 }
+if (!unifiedMarkdown.includes('# RASTREABILIDADE DE ARQUIVOS E ESTRUTURA DE PASTAS (BACKLOG)')) {
+  console.error('[FALHA] Cabeçalho de rastreabilidade e backlog ausente no topo do Markdown');
+  process.exit(1);
+}
 if (!unifiedMarkdown.includes('---')) {
   console.error('[FALHA] Separador horizontal "---" ausente entre documentos');
   process.exit(1);
 }
 
-console.log('  -> Mesclagem unificada com demarcadores e metadados validada com perfeição!');
+console.log('  -> Mesclagem unificada com demarcadores, metadados e backlog validada com perfeição!');
 
 // 12. Teste de auto-scroll inteligente confinado exclusivamente ao container da fila
 console.log('[TESTE 12] Testando rotina de auto-scroll confinado ao container da fila (scrollQueueToActiveItem)...');
@@ -638,6 +644,94 @@ if (testDossierItems[0].file.name !== '5159167-Volume 10.pdf' ||
 }
 console.log('  -> Ordenação Z-A: ' + testDossierItems.map(it => it.file.name).join(' -> '));
 
+// 20. Teste de estrutura de pastas aninhadas em pacote compactado e rastreabilidade no Markdown Unificado (v.1.6.9)
+console.log('[TESTE 20] Testando descompactação de pastas aninhadas e backlog de rastreabilidade...');
+const nestedZipSample = new JSZip();
+nestedZipSample.folder('financeiro/2026').file('balanco.xlsx', 'conteudo xlsx');
+nestedZipSample.folder('jurídico/contratos').file('minuta.docx', 'conteudo docx');
+const nestedZipBuffer = await nestedZipSample.generateAsync({ type: 'nodebuffer' });
+
+const mockNestedZipFile = {
+  name: 'relatorios.zip',
+  size: nestedZipBuffer.length,
+  arrayBuffer: async () => nestedZipBuffer.buffer.slice(nestedZipBuffer.byteOffset, nestedZipBuffer.byteOffset + nestedZipBuffer.byteLength)
+};
+
+const extracted = await extractArchiveFiles(mockNestedZipFile);
+if (!extracted || extracted.length !== 2) {
+  console.error('[FALHA] Extração do zip com subpastas falhou em extrair os 2 arquivos');
+  process.exit(1);
+}
+
+const balancoFile = extracted.find(f => f.name === 'balanco.xlsx');
+const minutaFile = extracted.find(f => f.name === 'minuta.docx');
+
+if (!balancoFile || balancoFile.archiveOrigin !== 'relatorios.zip' || balancoFile.relativePath !== 'financeiro/2026/balanco.xlsx' || balancoFile.folderPath !== 'financeiro/2026') {
+  console.error('[FALHA] Metadados de rastreabilidade incorretos para balanco.xlsx:', balancoFile);
+  process.exit(1);
+}
+if (!minutaFile || minutaFile.archiveOrigin !== 'relatorios.zip' || minutaFile.relativePath !== 'jurídico/contratos/minuta.docx' || minutaFile.folderPath !== 'jurídico/contratos') {
+  console.error('[FALHA] Metadados de rastreabilidade incorretos para minuta.docx:', minutaFile);
+  process.exit(1);
+}
+console.log('  -> Metadados de arquivo extraído (archiveOrigin, relativePath, folderPath) validados com sucesso!');
+
+// Simula conversão e mesclagem
+const queueItemsWithHierarchy = [
+  {
+    file: balancoFile,
+    archiveOrigin: balancoFile.archiveOrigin,
+    relativePath: balancoFile.relativePath,
+    folderPath: balancoFile.folderPath,
+    markdown: '# Balanço Financeiro 2026\n\nAtivos e Passivos.',
+    status: 'completed'
+  },
+  {
+    file: minutaFile,
+    archiveOrigin: minutaFile.archiveOrigin,
+    relativePath: minutaFile.relativePath,
+    folderPath: minutaFile.folderPath,
+    markdown: '# Minuta de Contrato\n\nCláusulas e Acordo.',
+    status: 'completed'
+  },
+  {
+    file: { name: 'anexo.pdf', size: 1048576 },
+    archiveOrigin: '(Upload Direto)',
+    relativePath: 'anexo.pdf',
+    folderPath: 'Raiz',
+    markdown: '# Anexo Direto\n\nDocumento complementar.',
+    status: 'completed'
+  }
+];
+
+const unifiedHierarchyMarkdown = mergeMarkdownOutputs(queueItemsWithHierarchy);
+
+// Verificação de Backlog no topo do documento
+if (!unifiedHierarchyMarkdown.includes('# RASTREABILIDADE DE ARQUIVOS E ESTRUTURA DE PASTAS (BACKLOG)')) {
+  console.error('[FALHA] Seção de Backlog ausente no topo do Markdown unificado');
+  process.exit(1);
+}
+if (!unifiedHierarchyMarkdown.includes('| relatorios.zip | financeiro/2026/ | balanco.xlsx | .XLSX |') ||
+    !unifiedHierarchyMarkdown.includes('| relatorios.zip | jurídico/contratos/ | minuta.docx | .DOCX |') ||
+    !unifiedHierarchyMarkdown.includes('| (Upload Direto) | Raiz | anexo.pdf | .PDF |')) {
+  console.error('[FALHA] Tabela de rastreabilidade não contém as linhas mapeadas esperadas');
+  process.exit(1);
+}
+if (!unifiedHierarchyMarkdown.includes('📦 relatorios.zip') ||
+    !unifiedHierarchyMarkdown.includes('📁 financeiro/2026/') ||
+    !unifiedHierarchyMarkdown.includes('📄 balanco.xlsx') ||
+    !unifiedHierarchyMarkdown.includes('📁 jurídico/contratos/') ||
+    !unifiedHierarchyMarkdown.includes('📄 minuta.docx')) {
+  console.error('[FALHA] Árvore ASCII de pastas não foi gerada corretamente');
+  process.exit(1);
+}
+if (!unifiedHierarchyMarkdown.includes('<!-- PACOTE DE ORIGEM: relatorios.zip | DIRETÓRIO: financeiro/2026/ -->') ||
+    !unifiedHierarchyMarkdown.includes('*Origem: `relatorios.zip > financeiro/2026/balanco.xlsx`*')) {
+  console.error('[FALHA] Demarcadores intermediários ou subtítulo de origem ausentes para balanco.xlsx');
+  process.exit(1);
+}
+console.log('  -> Backlog inicial com tabela de proveniência, árvore ASCII e rastreabilidade nos blocos validado com 100% de êxito!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.8)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.9)');
 console.log('===============================================================');

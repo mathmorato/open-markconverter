@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.8`
+# Universal MarkConverter (doc2md) `v.1.6.9`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.8-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.9-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,18 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.9
+
+- **Backlog Inicial de Estrutura de Pastas e Rastreabilidade no Markdown Unificado:**
+  - Preservação do caminho relativo (`relativePath`) e diretório de origem (`folderPath`) de arquivos descompactados de pacotes (`.zip`, `.rar`, etc.).
+  - Injeção de uma seção de backlog inicial no topo do documento consolidado com tabela completa de proveniência (Pacote de Origem, Diretório/Pasta, Nome do Arquivo, Extensão, Tamanho Original) e diagrama hierárquico em árvore ASCII (`plaintext`).
+- **Demarcadores Enriquecidos com Metadados de Origem:**
+  - Identificação de proveniência detalhada nos cabeçalhos de cada arquivo concatenado (`<!-- PACOTE DE ORIGEM: ... | DIRETÓRIO: ... -->` e `*Origem: pacote > caminho/relativo*`).
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.9`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

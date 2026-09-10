@@ -479,7 +479,7 @@ export async function extractZipArchive(file) {
       return;
     }
 
-    entriesToExtract.push({ fileName, entry, entryExt });
+    entriesToExtract.push({ fileName, relativePath, entry, entryExt });
   });
 
   if (entriesToExtract.length === 0) {
@@ -490,6 +490,10 @@ export async function extractZipArchive(file) {
   for (const item of entriesToExtract) {
     const fileBuffer = await item.entry.async('arraybuffer');
     const mimeType = getMimeTypeForExt(item.entryExt);
+    const folderPath = item.relativePath.includes('/')
+      ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/'))
+      : 'Raiz do Pacote';
+
     const nativeFile = (typeof File !== 'undefined')
       ? new File([fileBuffer], item.fileName, {
           type: mimeType,
@@ -502,6 +506,10 @@ export async function extractZipArchive(file) {
           lastModified: item.entry.date ? item.entry.date.getTime() : Date.now(),
           arrayBuffer: async () => fileBuffer
         };
+
+    nativeFile.archiveOrigin = file.name;
+    nativeFile.relativePath = item.relativePath;
+    nativeFile.folderPath = folderPath;
 
     extractedFiles.push(nativeFile);
   }
@@ -540,7 +548,12 @@ export async function addFilesToQueue(files) {
       try {
         const extracted = await extractArchiveFiles(file);
         if (extracted && extracted.length > 0) {
-          extracted.forEach(f => queueCandidates.push({ file: f }));
+          extracted.forEach(f => queueCandidates.push({
+            file: f,
+            archiveOrigin: f.archiveOrigin || file.name,
+            relativePath: f.relativePath || f.name,
+            folderPath: f.folderPath || (f.relativePath && f.relativePath.includes('/') ? f.relativePath.substring(0, f.relativePath.lastIndexOf('/')) : 'Raiz do Pacote')
+          }));
         } else {
           throw new Error('Nenhum documento compatível encontrado no pacote compactado.');
         }
@@ -549,16 +562,24 @@ export async function addFilesToQueue(files) {
         queueCandidates.push({
           file,
           isArchiveError: true,
-          errorMessage: err.message || 'Falha ao descompactar pacote (arquivo corrompido ou com senha)'
+          errorMessage: err.message || 'Falha ao descompactar pacote (arquivo corrompido ou com senha)',
+          archiveOrigin: file.name,
+          relativePath: file.name,
+          folderPath: 'Raiz do Pacote'
         });
       }
     } else {
-      queueCandidates.push({ file });
+      queueCandidates.push({
+        file,
+        archiveOrigin: '(Upload Direto)',
+        relativePath: file.name,
+        folderPath: 'Raiz'
+      });
     }
   }
 
   const newItems = [];
-  queueCandidates.forEach(({ file, isArchiveError, errorMessage: archiveErrMsg }) => {
+  queueCandidates.forEach(({ file, isArchiveError, errorMessage: archiveErrMsg, archiveOrigin, relativePath, folderPath }) => {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     const formatInfo = getFormatCategory(file.name);
     const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -626,7 +647,10 @@ export async function addFilesToQueue(files) {
       mdSize: 0,
       formattedMdSize: '',
       errorMessage,
-      cancelled: false
+      cancelled: false,
+      archiveOrigin: archiveOrigin || file.archiveOrigin || '(Upload Direto)',
+      relativePath: relativePath || file.relativePath || file.name,
+      folderPath: folderPath || file.folderPath || (file.relativePath && file.relativePath.includes('/') ? file.relativePath.substring(0, file.relativePath.lastIndexOf('/')) : 'Raiz')
     };
 
     newItems.push(queueItem);
@@ -1398,17 +1422,162 @@ async function downloadAllZip() {
 }
 
 /* ==========================================================================
-   Unificação de Documentos Markdown (Mesclagem com Delimitadores Padronizados)
+   Unificação de Documentos Markdown (Mesclagem, Backlog e Rastreabilidade)
    ========================================================================== */
+
+/**
+ * Constrói a representação visual da hierarquia de pastas e arquivos em ASCII limpo
+ * @param {Array<Object>} items Lista de itens da fila
+ * @returns {string} Diagrama em árvore
+ */
+export function buildDirectoryTreeAscii(items) {
+  if (!items || items.length === 0) return '';
+
+  const archives = new Map();
+  for (const item of items) {
+    const fileName = item.file ? item.file.name : (item.name || 'documento.md');
+    const archive = item.archiveOrigin || (item.file && item.file.archiveOrigin) || '(Upload Direto)';
+    let folder = item.folderPath || (item.file && item.file.folderPath);
+    if (!folder) {
+      if (item.relativePath && item.relativePath.includes('/')) {
+        folder = item.relativePath.substring(0, item.relativePath.lastIndexOf('/'));
+      } else {
+        folder = archive === '(Upload Direto)' ? 'Raiz' : 'Raiz do Pacote';
+      }
+    }
+
+    if (!archives.has(archive)) {
+      archives.set(archive, new Map());
+    }
+    const folderMap = archives.get(archive);
+    if (!folderMap.has(folder)) {
+      folderMap.set(folder, []);
+    }
+    folderMap.get(folder).push(fileName);
+  }
+
+  const lines = [];
+  const archiveKeys = Array.from(archives.keys());
+
+  archiveKeys.forEach((archiveName, aIdx) => {
+    lines.push(`📦 ${archiveName}`);
+    const folderMap = archives.get(archiveName);
+    const folderKeys = Array.from(folderMap.keys());
+
+    folderKeys.forEach((folderName, fIdx) => {
+      const isLastFolder = fIdx === folderKeys.length - 1;
+      const folderBranch = isLastFolder ? '└──' : '├──';
+      const fileIndent = isLastFolder ? '    ' : '│   ';
+      const files = folderMap.get(folderName);
+
+      if (folderName === 'Raiz' || folderName === 'Raiz do Pacote') {
+        files.forEach((fName, fileIdx) => {
+          const isLastFile = fileIdx === files.length - 1 && isLastFolder;
+          const fileBranch = isLastFile ? '└──' : '├──';
+          lines.push(` ${fileBranch} 📄 ${fName}`);
+        });
+      } else {
+        const displayFolder = folderName.endsWith('/') ? folderName : folderName + '/';
+        lines.push(` ${folderBranch} 📁 ${displayFolder}`);
+        files.forEach((fName, fileIdx) => {
+          const isLastFile = fileIdx === files.length - 1;
+          const fileBranch = isLastFile ? '└──' : '├──';
+          lines.push(` ${fileIndent} ${fileBranch} 📄 ${fName}`);
+        });
+      }
+    });
+
+    if (aIdx < archiveKeys.length - 1) {
+      lines.push('');
+    }
+  });
+
+  return lines.join('\n');
+}
+
+/**
+ * Gera a seção inicial de Backlog com tabela de rastreabilidade e diagrama hierárquico
+ * @param {Array<Object>} items Lista de itens da fila
+ * @returns {string} Seção formatada em Markdown
+ */
+export function buildBacklogSection(items) {
+  if (!items || items.length === 0) return '';
+
+  const tableHeader = [
+    '# RASTREABILIDADE DE ARQUIVOS E ESTRUTURA DE PASTAS (BACKLOG)',
+    '',
+    '> Este documento consolidado foi gerado a partir da extração e mesclagem de arquivos.',
+    '> A tabela abaixo apresenta o mapeamento de origem das pastas e arquivos processados:',
+    '',
+    '| Pacote de Origem | Diretório / Pasta | Nome do Arquivo | Extensão | Tamanho Original |',
+    '| :--- | :--- | :--- | :--- | :--- |'
+  ];
+
+  const tableRows = items.map(item => {
+    const fileName = item.file ? item.file.name : (item.name || 'documento.md');
+    const fileSize = item.file ? item.file.size : (item.size || 0);
+    const sizeFormatted = formatBytes(fileSize);
+    const ext = '.' + (fileName.split('.').pop() || 'TXT').toUpperCase();
+    const archiveOrigin = item.archiveOrigin || (item.file && item.file.archiveOrigin) || '(Upload Direto)';
+    let folderPath = item.folderPath || (item.file && item.file.folderPath);
+    if (!folderPath) {
+      if (item.relativePath && item.relativePath.includes('/')) {
+        folderPath = item.relativePath.substring(0, item.relativePath.lastIndexOf('/'));
+      } else {
+        folderPath = archiveOrigin === '(Upload Direto)' ? 'Raiz' : 'Raiz do Pacote';
+      }
+    }
+    const cleanFolder = (folderPath === 'Raiz' || folderPath === 'Raiz do Pacote')
+      ? folderPath
+      : (folderPath.endsWith('/') ? folderPath : folderPath + '/');
+    return `| ${archiveOrigin} | ${cleanFolder} | ${fileName} | ${ext} | ${sizeFormatted} |`;
+  });
+
+  const treeAscii = buildDirectoryTreeAscii(items);
+
+  const treeBlock = treeAscii ? [
+    '',
+    '```plaintext',
+    treeAscii,
+    '```'
+  ] : [];
+
+  return [
+    ...tableHeader,
+    ...tableRows,
+    ...treeBlock,
+    '',
+    '---',
+    '',
+    ''
+  ].join('\n');
+}
+
 export function mergeMarkdownOutputs(items) {
   if (!items || items.length === 0) return '';
 
-  return items.map(item => {
+  const backlog = buildBacklogSection(items);
+
+  const mergedBody = items.map(item => {
     const fileName = item.file ? item.file.name : (item.name || 'documento.md');
     const fileSize = item.file ? item.file.size : (item.size || 0);
     const sizeFormatted = formatBytes(fileSize);
     const ext = (fileName.split('.').pop() || 'TXT').toUpperCase();
-    let md = (item.markdown || '').trim();
+    const archiveOrigin = item.archiveOrigin || (item.file && item.file.archiveOrigin) || '(Upload Direto)';
+    const relativePath = item.relativePath || (item.file && item.file.relativePath) || fileName;
+    let folderPath = item.folderPath || (item.file && item.file.folderPath);
+    if (!folderPath) {
+      if (relativePath.includes('/')) {
+        folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
+      } else {
+        folderPath = archiveOrigin === '(Upload Direto)' ? 'Raiz' : 'Raiz do Pacote';
+      }
+    }
+    const cleanFolder = (folderPath === 'Raiz' || folderPath === 'Raiz do Pacote')
+      ? folderPath
+      : (folderPath.endsWith('/') ? folderPath : folderPath + '/');
+
+    let md = (item.markdown || item.markdownOutput || '').trim();
 
     // Prevenção de quebra de layout: fechamento seguro de blocos de código abertos
     const codeFenceCount = (md.match(/^```/gm) || []).length;
@@ -1417,20 +1586,23 @@ export function mergeMarkdownOutputs(items) {
     }
 
     const headerDelimiter = [
-      '<!-- ========================================== -->',
-      `<!-- INÍCIO DO ARQUIVO: ${fileName} -->`,
-      `<!-- FORMATO ORIGINAL: ${ext} | TAMANHO: ${sizeFormatted} -->`,
-      '<!-- ========================================== -->'
+      '<!-- ================================================================= -->',
+      `<!-- INÍCIO DO ARQUIVO: ${relativePath} -->`,
+      `<!-- PACOTE DE ORIGEM: ${archiveOrigin} | DIRETÓRIO: ${cleanFolder} -->`,
+      `<!-- FORMATO: .${ext} | FORMATO ORIGINAL: ${ext} | TAMANHO: ${sizeFormatted} -->`,
+      '<!-- ================================================================= -->'
     ].join('\n');
 
     const footerDelimiter = [
-      '<!-- ========================================== -->',
-      `<!-- FIM DO ARQUIVO: ${fileName} -->`,
-      '<!-- ========================================== -->'
+      '<!-- ================================================================= -->',
+      `<!-- FIM DO ARQUIVO: ${relativePath} -->`,
+      '<!-- ================================================================= -->'
     ].join('\n');
 
-    return `${headerDelimiter}\n\n# ${fileName}\n\n${md}\n\n${footerDelimiter}\n\n---`;
+    return `${headerDelimiter}\n\n# ${fileName}\n*Origem: \`${archiveOrigin} > ${relativePath}\`*\n\n${md}\n\n${footerDelimiter}\n\n---`;
   }).join('\n\n') + '\n';
+
+  return backlog + mergedBody;
 }
 
 export async function downloadUnifiedMarkdown() {

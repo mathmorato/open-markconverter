@@ -415,19 +415,15 @@ function renderQueue() {
 
     return `
       <div class="file-queue-item queue-item ${statusClass} ${completedClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
-        <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO -->
+        <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO (Ícone + Nome + Peso Original) -->
         <div class="item-block item-info queue-item-info">
           ${formatIcon}
           <span class="file-name queue-item-name" title="${item.file.name}">${item.file.name}</span>
-          <span class="file-meta queue-item-meta">
-            <span class="queue-item-size">${formatBytes(item.file.size)}</span>
-            ${timeText ? `<span class="queue-item-time">• ${timeText}</span>` : ''}
-            <span class="queue-item-md-size md-output-size">${(isCompleted && item.formattedMdSize) ? `• (MD: ${item.formattedMdSize})` : ''}</span>
-          </span>
+          <span class="badge-file-size queue-item-size file-meta queue-item-meta">${formatBytes(item.file.size)}</span>
         </div>
 
-        <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO -->
-        <div class="item-block item-progress file-progress-group">
+        <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO (Visíveis apenas durante processamento) -->
+        <div class="item-block item-progress queue-item-progress file-progress-group">
           <div class="mini-progress-wrapper progress-sub-step">
             <div class="mini-progress-label progress-label">
               <span>Leitura</span>
@@ -448,8 +444,13 @@ function renderQueue() {
           </div>
         </div>
 
-        <!-- BLOCO 3: STATUS ANIMADO & BOTÕES -->
-        <div class="item-block item-actions queue-item-right">
+        <!-- BLOCO 3: STATUS ANIMADO & BOTÕES (Tempo + Peso MD + Check + Ações) -->
+        <div class="item-block item-actions queue-item-actions queue-item-right">
+          <!-- Tempo de conversão formatado (h min s) -->
+          <span class="badge-elapsed-time queue-item-time" style="${(isCompleted && timeText) ? 'display: inline-flex;' : 'display: none;'}">${timeText}</span>
+          <!-- Tamanho do Markdown à esquerda do certinho -->
+          <span class="badge-md-size queue-item-md-size md-output-size" style="${(isCompleted && item.formattedMdSize) ? 'display: inline-flex;' : 'display: none;'}">${mdSizeText}</span>
+
           <div class="status-indicator">
             <!-- Estado Convertendo: Ampulheta girando -->
             <span class="status-icon icon-hourglass ${isProcessing ? 'spinning' : ''}" title="Convertendo Markdown..." style="${isProcessing ? 'display: inline-flex;' : 'display: none;'}">
@@ -609,15 +610,34 @@ function updateQueueItemDOM(item) {
     convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
   }
 
-  // Telemetria do tamanho do Markdown gerado
+  // Telemetria do tamanho do Markdown gerado (no rótulo da barra se houver)
   const mdSizeEl = itemEl.querySelector('.mini-progress-label .md-output-size');
   if (mdSizeEl) {
     mdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `(MD: ${item.formattedMdSize})` : '';
   }
 
-  const cardMdSizeEl = itemEl.querySelector('.queue-item-md-size');
-  if (cardMdSizeEl) {
-    cardMdSizeEl.textContent = (item.status === 'completed' && item.formattedMdSize) ? `• (MD: ${item.formattedMdSize})` : '';
+  // Telemetria de tamanho do Markdown posicionado à esquerda do certinho no Bloco 3
+  const actionsMdSizeEl = itemEl.querySelector('.badge-md-size, .queue-item-md-size');
+  if (actionsMdSizeEl) {
+    if (item.status === 'completed' && item.formattedMdSize) {
+      actionsMdSizeEl.textContent = `(MD: ${item.formattedMdSize})`;
+      actionsMdSizeEl.style.display = 'inline-flex';
+    } else {
+      actionsMdSizeEl.textContent = '';
+      actionsMdSizeEl.style.display = 'none';
+    }
+  }
+
+  // Telemetria de tempo inteligente formatado (h min s) no Bloco 3
+  const elapsedTimeEl = itemEl.querySelector('.badge-elapsed-time, .queue-item-time');
+  if (elapsedTimeEl) {
+    if (item.status === 'completed' && item.durationMs) {
+      elapsedTimeEl.textContent = formatElapsedTime(item.durationMs);
+      elapsedTimeEl.style.display = 'inline-flex';
+    } else {
+      elapsedTimeEl.textContent = '';
+      elapsedTimeEl.style.display = 'none';
+    }
   }
 
   const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download`);
@@ -627,19 +647,6 @@ function updateQueueItemDOM(item) {
     } else {
       downloadBtn.setAttribute('disabled', '');
     }
-  }
-
-  // Telemetria de tempo inteligente formatado (h min s)
-  const metaEl = itemEl.querySelector('.file-meta, .queue-item-meta');
-  if (metaEl && item.durationMs) {
-    const formattedTime = formatElapsedTime(item.durationMs);
-    let timeSpan = metaEl.querySelector('.queue-item-time');
-    if (!timeSpan) {
-      timeSpan = document.createElement('span');
-      timeSpan.className = 'queue-item-time';
-      metaEl.appendChild(timeSpan);
-    }
-    timeSpan.textContent = `• ${formattedTime}`;
   }
 }
 

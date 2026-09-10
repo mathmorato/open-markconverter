@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.6`
+# Universal MarkConverter (doc2md) `v.1.4.7`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.6-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.7-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -14,8 +14,12 @@ Além da instalação e execução local, você pode utilizar a versão em produ
 
 ---
 
-## 🚀 Destaques da Versão v.1.4.6
+## 🚀 Destaques da Versão v.1.4.7
 
+- **Alinhamento Linear Contínuo & Posicionamento Preciso de Métricas:**
+  - O peso original do documento (ex.: `80.5 MB`, `19.5 MB`) é posicionado imediatamente ao lado do nome do arquivo, logo após a extensão, em uma linha contínua e sem quebras secas indesejadas.
+  - O tamanho do Markdown convertido (`(MD: 2.2 MB)`, `(MD: 616.9 KB)`) em verde esmeralda é posicionado estritamente à esquerda do certinho verde de conclusão no Bloco 3.
+  - Cards da fila padronizados com altura estável (`min-height: 52px; align-items: center`), colapso completo das barras de progresso após a conclusão e transição fluida sem saltos de layout.
 - **Eliminação Total de Toasts e Popups Flutuantes:**
   - Erradicação definitiva de balões de notificação e toasts temporários nos cantos da interface. Todo o ciclo de feedback de status (sucesso, leitura, limites excedentes ou eventuais erros de parsing) é mantido estritamente contextualizado nos próprios cards de documento da fila e na dropzone, eliminando poluição visual e riscos de bloqueio de cliques.
 - **Ícone Vetorial de Arquivo com Badge Dinâmico da Extensão (`.XXX`):**
@@ -165,9 +169,9 @@ O projeto está 100% preparado para publicação contínua direta pelo GitHub Pa
 
 ## 🏷️ Licença e Versionamento SemVer
 
-- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.6`**, sincronizada nos quatro pontos do projeto:
+- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.7`**, sincronizada nos quatro pontos do projeto:
   1. Cabeçalho e rodapé do `index.html`.
-  2. Arquivo `package.json` (`"version": "1.4.6"`).
+  2. Arquivo `package.json` (`"version": "1.4.7"`).
   3. Constante `APP_CONFIG.VERSION` em `js/config.js`.
   4. Badges e títulos deste `README.md`.
 - **Licença de Uso:** Distribuído sob os termos da licença **MIT**. Para maiores detalhes, consulte o arquivo [LICENSE](LICENSE).

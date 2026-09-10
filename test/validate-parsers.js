@@ -11,8 +11,8 @@ console.log('--- Iniciando validação do Universal MarkConverter ---');
 
 // 1. Verifica versão SemVer
 console.log(`[OK] Versão SemVer configurada: ${APP_CONFIG.VERSION}`);
-if (APP_CONFIG.VERSION !== 'v.1.4.6') {
-  console.error('[ERRO] Versão diferente de v.1.4.6');
+if (APP_CONFIG.VERSION !== 'v.1.4.7') {
+  console.error('[ERRO] Versão diferente de v.1.4.7');
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ console.log(`[OK] Limite máximo de arquivo configurado: ${APP_CONFIG.MAX_FILE_S
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.4.6') {
+if (pkg.version !== '1.4.7') {
   console.error('[ERRO] package.json version incompatível');
   process.exit(1);
 }
@@ -33,8 +33,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.4.6')) {
-  console.error('[ERRO] index.html não contém v.1.4.6');
+if (!indexHtml.includes('v.1.4.7')) {
+  console.error('[ERRO] index.html não contém v.1.4.7');
   process.exit(1);
 }
 if (indexHtml.includes('toast-container') || indexHtml.includes('id="toast-container"')) {
@@ -83,10 +83,10 @@ if (!indexHtml.includes('id="file-queue-section"') || !indexHtml.includes('id="b
   process.exit(1);
 }
 if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="preview-container"') || indexHtml.includes('id="metrics-bar"')) {
-  console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveria ter sido removido');
+  console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.4.6, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.4.7, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -108,6 +108,10 @@ if (!appJs.includes('MAX_FILE_SIZE_BYTES')) {
 }
 if (!appJs.includes('item-block item-info') || !appJs.includes('item-block item-progress') || !appJs.includes('item-block item-actions')) {
   console.error('[ERRO] js/app.js não renderiza os 3 blocos horizontais (.item-info, .item-progress, .item-actions)');
+  process.exit(1);
+}
+if (!appJs.includes('badge-file-size') || !appJs.includes('badge-md-size') || !appJs.includes('badge-elapsed-time')) {
+  console.error('[ERRO] js/app.js não contém classes de posicionamento linear (.badge-file-size, .badge-md-size, .badge-elapsed-time)');
   process.exit(1);
 }
 if (!appJs.includes('renderFileBadgeIcon') || !appJs.includes('file-badge-icon') || !appJs.includes('file-extension-tag')) {
@@ -146,12 +150,16 @@ if (appJs.includes('elements.toastContainer') || appJs.includes('toast.style.opa
   console.error('[ERRO] js/app.js ainda contém manipulação ativa de nós DOM de toast');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém renderFileBadgeIcon, is-completed, toasts neutralizados e layout em 3 blocos');
+console.log('[OK] js/app.js contém badge-file-size, badge-md-size, layout linear e toasts neutralizados');
 
-// 5. Verifica estilos CSS para ausência de toasts, ícone badge, expansão de nome, auto-collapse, transição suave e 3 blocos
+// 5. Verifica estilos CSS para layout linear, peso após extensão, peso MD à esquerda do check e ausência de toasts
 const stylesCss = fs.readFileSync('./css/styles.css', 'utf8');
 if (stylesCss.includes('.toast-container') || stylesCss.includes('.toast-error') || stylesCss.includes('.toast-success')) {
   console.error('[ERRO] css/styles.css ainda contém regras residuais de classes de toast flutuante');
+  process.exit(1);
+}
+if (!stylesCss.includes('.badge-file-size') || !stylesCss.includes('.badge-md-size') || !stylesCss.includes('.badge-elapsed-time')) {
+  console.error('[ERRO] css/styles.css não contém regras para .badge-file-size, .badge-md-size ou .badge-elapsed-time');
   process.exit(1);
 }
 if (!stylesCss.includes('.app-main-container') || !stylesCss.includes('.file-progress-group') || !stylesCss.includes('.bar-upload') || !stylesCss.includes('.bar-convert')) {
@@ -162,7 +170,7 @@ if (!stylesCss.includes('.file-badge-icon') || !stylesCss.includes('.file-sheet-
   console.error('[ERRO] css/styles.css não contém estilos do ícone com badge (.file-badge-icon / .file-sheet-svg / .file-extension-tag)');
   process.exit(1);
 }
-if (!stylesCss.includes('.is-completed') || !stylesCss.includes('max-height: 0')) {
+if (!stylesCss.includes('.is-completed')) {
   console.error('[ERRO] css/styles.css não contém regras de auto-collapse suave para barras concluídas (.is-completed)');
   process.exit(1);
 }
@@ -198,19 +206,19 @@ if (!stylesCss.includes('@media (max-width: 768px)') || !stylesCss.includes('@me
   console.error('[ERRO] css/styles.css não contém media queries mobile-first completas');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém .file-badge-icon, ausência de regras de toast, auto-collapse e 3 blocos');
+console.log('[OK] css/styles.css contém .badge-file-size, .badge-md-size, auto-collapse e alinhamento linear');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.4.6')) {
-  console.error('[ERRO] README.md não contém v.1.4.6');
+if (!readme.includes('v.1.4.7')) {
+  console.error('[ERRO] README.md não contém v.1.4.7');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.4.6 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.4.7 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

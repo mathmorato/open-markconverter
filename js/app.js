@@ -679,25 +679,25 @@ function renderQueue() {
 
         <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO (Ocultas se .has-error ou concluído) -->
         <div class="item-block item-progress queue-item-progress file-progress-group">
-          <div class="mini-progress-wrapper progress-sub-step">
+          <div class="mini-progress-wrapper progress-sub-step step-upload">
             <div class="mini-progress-label progress-label">
               <span class="label-with-icon">
                 ${renderUploadStepIcon()}
                 Upload
               </span>
-              <span class="read-percent upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
+              <span class="read-percent upload-percent upload-status-text">${item.uploadText || `${item.uploadProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
               <div class="mini-progress-fill progress-bar-fill bar-read bar-upload" style="width: ${item.uploadProgress}%;"></div>
             </div>
           </div>
-          <div class="mini-progress-wrapper progress-sub-step">
+          <div class="mini-progress-wrapper progress-sub-step step-conversion">
             <div class="mini-progress-label progress-label">
               <span class="label-with-icon">
                 ${renderConvertStepIcon()}
                 Conversão <strong class="md-output-size">${mdSizeText}</strong>
               </span>
-              <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
+              <span class="convert-percent convert-status-text">${item.convertText || `${item.convertProgress}%`}</span>
             </div>
             <div class="mini-progress-track progress-bar-container">
               <div class="mini-progress-fill progress-bar-fill bar-convert ${isCompleted ? 'completed' : (isError ? 'error' : '')}" style="width: ${item.convertProgress}%;"></div>
@@ -876,7 +876,7 @@ function updateQueueItemDOM(item) {
 
   // Barra 1: Leitura do Arquivo
   const uploadBar = itemEl.querySelector(`.bar-read, .bar-upload`);
-  const uploadPercent = itemEl.querySelector(`.read-percent, .upload-percent`);
+  const uploadPercent = itemEl.querySelector(`.upload-status-text, .read-percent, .upload-percent`);
   if (uploadBar) {
     uploadBar.style.width = `${item.uploadProgress}%`;
   }
@@ -884,9 +884,9 @@ function updateQueueItemDOM(item) {
     uploadPercent.textContent = item.uploadText || `${item.uploadProgress}%`;
   }
 
-  // Barra 2: Conversão para Markdown
+  // Barra 2: Conversão para Markdown (atualização seletiva sem innerHTML)
   const convertBar = itemEl.querySelector(`.bar-convert`);
-  const convertPercent = itemEl.querySelector(`.convert-percent`);
+  const convertPercent = itemEl.querySelector(`.convert-status-text, .convert-percent`);
   if (convertBar) {
     convertBar.style.width = `${item.convertProgress}%`;
     if (item.status === 'completed') {
@@ -1093,10 +1093,15 @@ async function processQueueItem(item) {
     // Sub-progresso real propagado pelos parsers estruturados
     const onParserSubProgress = (subPercent, subDetail) => {
       if (item.cancelled || item.status === 'completed' || item.status === 'error') return;
-      // Mapeia 0-100% do parser para o intervalo visual de 25% a 92%
-      const mapped = Math.round(25 + (subPercent * 0.67));
-      targetConvert = Math.max(targetConvert, Math.min(92, mapped));
+      // Mapeia 0-100% do parser para o intervalo visual de 25% a 95%
+      const mapped = Math.round(25 + (subPercent * 0.70));
+      targetConvert = Math.max(targetConvert, Math.min(95, mapped));
       if (subDetail) currentDetail = subDetail;
+      currentConvert = Math.max(currentConvert, targetConvert);
+      item.convertProgress = currentConvert;
+      item.convertText = `${currentConvert}% (${currentDetail})`;
+      item.statusText = `Convertendo... (${currentConvert}%)`;
+      updateQueueItemDOM(item);
     };
 
     // Ticker / Emulação linear adaptativa com desaceleração logarítmica (easing out)

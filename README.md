@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.6.3`
+# Universal MarkConverter (doc2md) `v.1.6.4`
 
-[![Version](https://img.shields.io/badge/version-v.1.6.3-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.6.4-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -11,6 +11,20 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 ### 🌐 Acesso Online Imediato
 Além da instalação e execução local, você pode utilizar a versão em produção diretamente pelo navegador (100% client-side, sem necessidade de instalar nada):
 👉 **[Acessar Universal MarkConverter](https://mathmorato.github.io/open-markconverter/#)**
+
+---
+
+## 🚀 Destaques da Versão v.1.6.4
+
+- **Restauração e Visibilidade Contínua da Barra de Conversão:**
+  - Isolamento de nós DOM (`.step-conversion`, `.convert-status-text`, `.mini-progress-fill.bar-convert`) com atualização granular de `textContent` e `style.width`, eliminando qualquer risco de destruição indevida do elemento por `innerHTML`.
+  - Atualização síncrona imediata da largura da barra de conversão ao receber sub-progresso de parsers (ex.: PDFs volumosos com contadores de página como `79% (Página 1122/1247)`).
+- **Expansão Dimensional e Respiro dos Cards de Documento:**
+  - Altura mínima de cada card (`.file-queue-item`) expandida para **`84px`** com padding vertical de **`1rem 1.25rem`** e espaçamento de `1.25rem`.
+  - Bloco central de progresso recalibrado para `flex: 0 1 38%` com `min-width: 220px` e espaçamento vertical de `0.5rem` entre Upload e Conversão.
+  - Trilha das barras (`.mini-progress-track`) protegida com `flex-shrink: 0`, altura definida de `5px` e fundo suave (`#E2E8F0`), impedindo esmagamento ou colapso visual.
+- **Governança SemVer em Base Decimal Estrita:**
+  - Versão **`v.1.6.4`** rigorosamente sincronizada nos 4 pontos obrigatórios do sistema (`index.html`, `package.json`, `js/config.js` e `README.md`).
 
 ---
 

@@ -864,10 +864,10 @@ body {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   width: 100%;
-  min-height: 68px; /* Altura equilibrada com respiro harmonioso */
-  padding: 0.85rem 1.25rem;
+  min-height: 84px; /* Aumenta a altura mínima do card para acomodar o conteúdo com folga */
+  padding: 1rem 1.25rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -1027,17 +1027,17 @@ body {
 .item-block.item-progress,
 .queue-item-progress,
 .file-progress-group {
-  flex: 0 1 33.33%;       /* Ocupa no máximo 1/3 da largura do card */
-  max-width: 33.33%;      /* Trava rígida em um terço da largura total */
-  width: 33.33%;
-  min-width: 180px;       /* Garante legibilidade mínima dos percentuais */
+  flex: 0 1 38%;           /* Largura equilibrada (~1/3 da caixa) */
+  max-width: 40%;
+  width: 38%;
+  min-width: 220px;       /* Garante legibilidade e espaço para contadores longos */
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;             /* Espaçamento vertical confortável entre Upload e Conversão */
   margin: 0 auto;         /* Centraliza o bloco no terço mediano do card */
   box-sizing: border-box;
   transition: opacity 0.35s ease-out, max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.35s ease-out;
-  max-height: 90px;
+  max-height: 120px;
   opacity: 1;
 }
 
@@ -1138,7 +1138,7 @@ body {
 .progress-sub-step {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   width: 100%;
 }
 
@@ -1338,11 +1338,18 @@ body {
   width: 100%;
   max-width: 100%;
   height: 5px;
-  max-height: 5px;
-  background: var(--border-color);
-  border-radius: var(--radius-full);
+  min-height: 5px;
+  flex-shrink: 0;
+  background: #E2E8F0;    /* Trilha de fundo visível no light mode */
+  border-radius: 9999px;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+[data-theme="dark"] .mini-progress-track,
+[data-theme="dark"] .progress-bar-container,
+[data-theme="dark"] .progress-track {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .mini-progress-fill,
@@ -1363,8 +1370,12 @@ body {
 
 /* Barra 2: Conversão para Markdown (#2563EB processando, #10B981 sucesso, #EF4444 erro) */
 .bar-convert,
-.progress-bar-fill.bar-convert {
+.progress-bar-fill.bar-convert,
+.mini-progress-fill.bar-convert {
+  height: 100%;
   background-color: #2563EB;
+  border-radius: 9999px;
+  transition: width 0.2s ease-out;
 }
 
 .bar-convert.completed,

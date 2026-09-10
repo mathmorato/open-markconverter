@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.6.3') {
-  console.error('[ERRO] Versão diferente de v.1.6.3');
+if (APP_CONFIG.VERSION !== 'v.1.6.4') {
+  console.error('[ERRO] Versão diferente de v.1.6.4');
   process.exit(1);
 }
 // Garante que versões inválidas como v.1.4.11 sejam expressamente rejeitadas
@@ -43,7 +43,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.6.3' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.6.4' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -51,8 +51,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.6.3')) {
-  console.error('[ERRO] index.html não contém v.1.6.3');
+if (!indexHtml.includes('v.1.6.4')) {
+  console.error('[ERRO] index.html não contém v.1.6.4');
   process.exit(1);
 }
 if (!indexHtml.includes('id="toggle-merge-markdown"') || (!indexHtml.includes('btn-queue-download-merged') && !indexHtml.includes('btn-download-unified'))) {
@@ -112,7 +112,7 @@ if (indexHtml.includes('id="raw-markdown-editor"') || indexHtml.includes('id="pr
   console.error('[ERRO] index.html ainda contém painel de edição/preview obsoleto que deveriam ter sido removidos');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.6.3, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
+console.log('[OK] index.html contém v.1.6.4, ausência de toast-container, limit-badge 1,5 GB e fila em lote');
 
 // 4. Verifica listeners, download individual, telemetria, linearização, desativação de toasts e 3 blocos no js/app.js
 const appJs = fs.readFileSync('./js/app.js', 'utf8');
@@ -260,8 +260,8 @@ if (!stylesCss.includes('transform: scale(0.9)') || (!stylesCss.includes('height
   console.error('[ERRO] css/styles.css não contém dimensões ampliadas no ícone com badge');
   process.exit(1);
 }
-if (!stylesCss.includes('min-height: 68px') && !stylesCss.includes('min-height: 78px')) {
-  console.error('[ERRO] css/styles.css não contém altura equilibrada (.file-queue-item min-height: 68px)');
+if (!stylesCss.includes('min-height: 84px') && !stylesCss.includes('min-height: 68px')) {
+  console.error('[ERRO] css/styles.css não contém altura expandida (.file-queue-item min-height: 84px)');
   process.exit(1);
 }
 if (!stylesCss.includes('font-size: 0.95rem') && !stylesCss.includes('font-size: 1rem')) {
@@ -316,15 +316,15 @@ console.log('[OK] css/styles.css contém ícones ampliados preservados, colapso 
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.6.3')) {
-  console.error('[ERRO] README.md não contém v.1.6.3');
+if (!readme.includes('v.1.6.4')) {
+  console.error('[ERRO] README.md não contém v.1.6.4');
   process.exit(1);
 }
 if (!readme.includes('https://mathmorato.github.io/open-markconverter/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-markconverter/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.6.3 e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.6.4 e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

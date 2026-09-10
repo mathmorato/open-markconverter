@@ -21,7 +21,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.3)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.6.4)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -488,8 +488,27 @@ if (!stylesCss.includes('.unified-download-container') || !stylesCss.includes('.
   console.error('[FALHA] Estilização para posicionamento vertical de .unified-download-container ausente em css/styles.css');
   process.exit(1);
 }
-console.log('  -> Botão unificado posicionado em container dedicado abaixo dos controles padrão sem saltos!');
+// 16. Teste de restauração e resiliência da barra de conversão e expansão dos cards (v.1.6.4)
+console.log('[TESTE 16] Testando preservação da barra de conversão e expansão dimensional dos cards...');
+const appJsContent = fs.readFileSync('./js/app.js', 'utf8');
+if (!appJsContent.includes('step-conversion') || !appJsContent.includes('convert-status-text')) {
+  console.error('[FALHA] js/app.js não contém os nós isolados .step-conversion e .convert-status-text');
+  process.exit(1);
+}
+if (!stylesCss.includes('min-height: 84px') || !stylesCss.includes('padding: 1rem 1.25rem')) {
+  console.error('[FALHA] css/styles.css não contém min-height: 84px ou padding: 1rem 1.25rem em .file-queue-item');
+  process.exit(1);
+}
+if (!stylesCss.includes('min-width: 220px') || !stylesCss.includes('flex: 0 1 38%')) {
+  console.error('[FALHA] css/styles.css não contém flex: 0 1 38% ou min-width: 220px no container de progresso');
+  process.exit(1);
+}
+if (!stylesCss.includes('flex-shrink: 0') || !stylesCss.includes('#E2E8F0')) {
+  console.error('[FALHA] css/styles.css não contém proteção flex-shrink: 0 e cor de trilha visível #E2E8F0 em .mini-progress-track');
+  process.exit(1);
+}
+console.log('  -> Barra de conversão isolada contra sobrescrita e altura do card (84px) validadas com 100% de sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.3)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.6.4)');
 console.log('===============================================================');

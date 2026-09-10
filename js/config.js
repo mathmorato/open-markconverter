@@ -1,11 +1,11 @@
 /**
  * Universal MarkConverter (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.4.2
+ * @version v.1.4.3
  */
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.4.2',
+  VERSION: 'v.1.4.3',
   APP_NAME: 'Universal MarkConverter',
   TAGLINE: 'doc2md • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-markconverter',

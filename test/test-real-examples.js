@@ -1,6 +1,6 @@
 /**
  * Suíte de Testes com Exemplos Reais e Validação de Suavização & Progressão Linear
- * Universal MarkConverter (doc2md) - v.1.4.2
+ * Universal MarkConverter (doc2md) - v.1.4.3
  */
 
 import JSZip from 'jszip';
@@ -23,7 +23,7 @@ import { parseDocx } from '../js/parsers/docx-parser.js';
 import { parseText } from '../js/parsers/text-parser.js';
 
 console.log('===============================================================');
-console.log('  SUÍTE DE PARSERS REAIS, SUAVIZAÇÃO & PROGRESSO LINEAR (v.1.4.2)');
+console.log('  SUÍTE DE PARSERS REAIS, SUAVIZAÇÃO & PROGRESSO LINEAR (v.1.4.3)');
 console.log('===============================================================\n');
 
 let passed = 0;

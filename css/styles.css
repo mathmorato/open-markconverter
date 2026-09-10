@@ -369,6 +369,42 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* Limite de Upload Visível (Dropzone) */
+.limit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748B;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.limit-badge svg {
+  color: var(--blue-primary);
+  flex-shrink: 0;
+}
+
+.limit-badge strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .limit-badge {
+  color: #94A3B8;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .limit-badge strong {
+  color: #F1F5F9;
+}
+
 /* Botão Explícito de Seleção de Arquivo */
 .btn-browse {
   margin: 0.5rem 0;
@@ -750,49 +786,54 @@ body {
   padding-right: 0.25rem;
 }
 
-/* Item individual da fila */
+/* ==========================================================================
+   Fila de Documentos - Layout Contínuo em 3 Blocos em Linha Única
+   ========================================================================== */
+.file-queue-item,
 .queue-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: all var(--transition-normal);
-  cursor: pointer;
+  cursor: default;
   user-select: none;
   position: relative;
 }
 
+.file-queue-item:hover,
 .queue-item:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-hover);
 }
 
+.file-queue-item.active,
 .queue-item.active {
   border-color: var(--blue-primary);
   background: var(--bg-subtle);
   box-shadow: 0 0 0 1px var(--blue-primary);
 }
 
-.queue-item-main {
+/* --------------------------------------------------------------------------
+   BLOCO 1 (Esquerda - Identificação): Ícone + Nome com ellipsis + Badge tamanho
+   -------------------------------------------------------------------------- */
+.item-block.item-info,
+.queue-item-info {
+  flex: 0 0 28%;
+  min-width: 200px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  min-width: 0;
+  gap: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-.queue-item-left {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-  flex: 1;
-}
-
+.item-block.item-info .file-icon,
 .queue-item-icon {
   display: flex;
   align-items: center;
@@ -801,14 +842,7 @@ body {
   flex-shrink: 0;
 }
 
-.queue-item-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  flex: 1;
-}
-
+.item-block.item-info .file-name,
 .queue-item-name {
   font-size: 0.875rem;
   font-weight: 500;
@@ -816,14 +850,16 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 340px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
+.item-block.item-info .file-meta,
 .queue-item-meta {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-secondary);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -833,6 +869,7 @@ body {
   flex-shrink: 0;
 }
 
+[data-theme="dark"] .item-block.item-info .file-meta,
 [data-theme="dark"] .queue-item-meta {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--border-color);
@@ -849,13 +886,220 @@ body {
   font-size: 0.7rem;
 }
 
-.queue-item-right {
+/* --------------------------------------------------------------------------
+   BLOCO 2 (Centro - Progresso Unificado): Barras compactas finas (3-4px)
+   -------------------------------------------------------------------------- */
+.item-block.item-progress,
+.file-progress-group {
+  flex: 1 1 auto;
+  margin: 0 0.75rem;
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
+.mini-progress-wrapper,
+.progress-sub-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.mini-progress-label,
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: #64748B;
+}
+
+[data-theme="dark"] .mini-progress-label,
+[data-theme="dark"] .progress-label {
+  color: #94A3B8;
+}
+
+.mini-progress-label span:first-child,
+.progress-label span:first-child {
+  font-weight: 500;
+}
+
+.read-percent,
+.upload-percent,
+.convert-percent {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #64748B;
+}
+
+[data-theme="dark"] .read-percent,
+[data-theme="dark"] .upload-percent,
+[data-theme="dark"] .convert-percent {
+  color: #94A3B8;
+}
+
+.mini-progress-track,
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  max-height: 5px;
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.mini-progress-fill,
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-full);
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+/* Barra 1: Leitura do Arquivo (Azul Tech suave #3B82F6) */
+.bar-read,
+.bar-upload,
+.progress-bar-fill.bar-upload {
+  background-color: #3B82F6;
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Barra 2: Conversão para Markdown (#2563EB processando, #10B981 sucesso, #EF4444 erro) */
+.bar-convert,
+.progress-bar-fill.bar-convert {
+  background-color: #2563EB;
+}
+
+.bar-convert.completed,
+.file-queue-item.completed .bar-convert,
+.queue-item.completed .bar-convert,
+.queue-item.completed .progress-bar-fill.bar-convert {
+  background-color: #10B981;
+}
+
+.bar-convert.error,
+.file-queue-item.error .bar-convert,
+.queue-item.error .bar-convert,
+.queue-item.error .progress-bar-fill.bar-convert {
+  background-color: #EF4444;
+}
+
+.file-queue-item.completed .bar-read,
+.file-queue-item.completed .bar-upload,
+.queue-item.completed .bar-read,
+.queue-item.completed .bar-upload,
+.queue-item.completed .progress-bar-fill.bar-upload {
+  background-color: #10B981;
+}
+
+/* --------------------------------------------------------------------------
+   BLOCO 3 (Direita - Status e Ações): Ampulheta girando -> Check verde + Botões
+   -------------------------------------------------------------------------- */
+.item-block.item-actions,
+.queue-item-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+@keyframes spin-hourglass {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.status-icon.spinning {
+  display: inline-flex;
+  color: #2563EB; /* Azul Tech */
+  animation: spin-hourglass 1.4s linear infinite;
+}
+
+@keyframes pop-check {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.status-icon.success {
+  display: inline-flex;
+  color: #10B981; /* Verde esmeralda */
+  animation: pop-check 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.status-icon.icon-error {
+  display: inline-flex;
+  color: #EF4444;
+}
+
+.status-icon.icon-queued {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.btn-item-action,
+.btn-queue-item-download,
+.btn-queue-item-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.btn-item-action.btn-download,
+.btn-queue-item-download {
+  color: var(--blue-primary);
+}
+
+.btn-item-action.btn-download:hover:not(:disabled),
+.btn-queue-item-download:hover:not(:disabled) {
+  color: var(--blue-hover);
+  background: var(--blue-subtle);
+}
+
+.btn-item-action.btn-download:disabled,
+.btn-queue-item-download:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.btn-item-action.btn-remove,
+.btn-queue-item-remove {
+  color: var(--text-muted);
+}
+
+.btn-item-action.btn-remove:hover,
+.btn-queue-item-remove:hover {
+  color: var(--error-color);
+  background: var(--error-bg);
+}
+
+/* Badge de status textual legada / acessibilidade */
 .queue-item-status {
   font-size: 0.75rem;
   font-weight: 500;
@@ -887,146 +1131,11 @@ body {
 }
 
 .queue-item-status.error,
-.queue-item-status.badge-error {
+.queue-item-status.badge-error,
+.badge-error {
   background: var(--error-bg);
   color: var(--error-color);
   border: 1px solid var(--error-border);
-}
-
-.queue-item-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.btn-queue-item-download {
-  background: transparent;
-  border: none;
-  color: var(--blue-primary);
-  cursor: pointer;
-  padding: 0.35rem;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.btn-queue-item-download:hover:not(:disabled) {
-  color: var(--blue-hover);
-  background: var(--blue-subtle);
-}
-
-.btn-queue-item-download:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  color: var(--text-muted);
-}
-
-.btn-queue-item-remove {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.35rem;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.btn-queue-item-remove:hover {
-  color: var(--error-color);
-  background: var(--error-bg);
-}
-
-/* ==========================================================================
-   Dupla Barra de Progresso por Arquivo (Leitura vs. Conversão - Slim 5px)
-   ========================================================================== */
-.file-progress-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
-  width: 100%;
-}
-
-.progress-sub-step {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  width: 100%;
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: #64748B;
-}
-
-[data-theme="dark"] .progress-label {
-  color: #94A3B8;
-}
-
-.progress-label span:first-child {
-  font-weight: 500;
-}
-
-.upload-percent,
-.convert-percent {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: #64748B;
-}
-
-[data-theme="dark"] .upload-percent,
-[data-theme="dark"] .convert-percent {
-  color: #94A3B8;
-}
-
-.progress-bar-container {
-  width: 100%;
-  height: 5px;
-  max-height: 5px;
-  background: var(--border-color);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: var(--radius-full);
-  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
-}
-
-/* Barra 1: Leitura do Arquivo (Azul Tech suave #3B82F6) */
-.progress-bar-fill.bar-upload {
-  background-color: #3B82F6;
-  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Barra 2: Conversão para Markdown (Azul Royal #2563EB em processamento, Esmeralda #10B981 no sucesso, Coral #EF4444 no erro) */
-.progress-bar-fill.bar-convert {
-  background-color: #2563EB;
-}
-
-.progress-bar-fill.bar-convert.completed,
-.queue-item.completed .progress-bar-fill.bar-convert {
-  background-color: #10B981;
-}
-
-.progress-bar-fill.bar-convert.error,
-.queue-item.error .progress-bar-fill.bar-convert {
-  background-color: #EF4444;
-}
-
-.queue-item.completed .progress-bar-fill.bar-upload {
-  background-color: #10B981;
 }
 
 /* ==========================================================================
@@ -1098,46 +1207,61 @@ body {
   }
 
   /* Cards de Arquivo na Fila (.file-queue-item / .queue-item) */
-  .queue-item-main {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.6rem;
+  .file-queue-item,
+  .queue-item {
+    padding: 0.65rem 0.85rem;
+    gap: 0.75rem;
   }
 
-  .queue-item-left {
-    width: 100%;
-  }
-
+  .item-block.item-info,
   .queue-item-info {
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    min-width: 170px;
   }
 
-  .queue-item-name {
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .queue-item-right {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.35rem;
-    border-top: 1px dashed var(--border-color);
-  }
-
-  .queue-item-actions {
-    gap: 0.65rem;
-  }
-
+  .btn-item-action,
   .btn-queue-item-download,
   .btn-queue-item-remove {
-    padding: 0.5rem;
-    min-width: 40px;
-    min-height: 40px;
+    padding: 0.4rem;
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* Telas Pequenas e Smartphones (< 640px): Bloco 1 e 3 no topo, Bloco 2 na linha de baixo 100% */
+@media (max-width: 640px) {
+  .file-queue-item,
+  .queue-item {
+    flex-wrap: wrap;
+    gap: 0.65rem 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .item-block.item-info,
+  .queue-item-info {
+    flex: 1 1 auto;
+    max-width: calc(100% - 110px);
+    min-width: 0;
+    order: 1;
+  }
+
+  .item-block.item-info .file-name,
+  .queue-item-name {
+    max-width: 100%;
+  }
+
+  .item-block.item-actions,
+  .queue-item-right {
+    flex: 0 0 auto;
+    margin-left: auto;
+    order: 2;
+  }
+
+  .item-block.item-progress,
+  .file-progress-group {
+    flex: 0 0 100%;
+    width: 100%;
+    margin: 0.35rem 0 0 0;
+    order: 3;
   }
 
   .footer-container {

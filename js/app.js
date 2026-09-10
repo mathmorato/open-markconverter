@@ -359,66 +359,99 @@ function renderQueue() {
     const statusClass = item.status;
     const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
     const timeText = item.durationMs ? `${item.durationMs} ms` : '';
+    const isProcessing = item.status === 'processing';
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
     const baseName = item.file.name.replace(/\.[^/.]+$/, '');
 
     return `
-      <div class="queue-item file-queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
-        <div class="queue-item-main">
-          <div class="queue-item-left">
-            <div class="queue-item-icon" aria-hidden="true">${formatIcon}</div>
-            <div class="queue-item-info">
-              <span class="queue-item-name" title="${item.file.name}">${item.file.name}</span>
-              <div class="queue-item-meta">
-                <span class="queue-item-size">${formatBytes(item.file.size)}</span>
-                ${timeText ? `<span class="queue-item-time">• ${timeText}</span>` : ''}
-              </div>
+      <div class="file-queue-item queue-item ${statusClass}" data-id="${item.id}" role="listitem" aria-label="${item.file.name}">
+        <!-- BLOCO 1: IDENTIFICAÇÃO DO ARQUIVO -->
+        <div class="item-block item-info queue-item-info">
+          <span class="file-icon queue-item-icon" aria-hidden="true">${formatIcon}</span>
+          <span class="file-name queue-item-name" title="${item.file.name}">${item.file.name}</span>
+          <span class="file-meta queue-item-meta">
+            <span class="queue-item-size">${formatBytes(item.file.size)}</span>
+            ${timeText ? `<span class="queue-item-time">• ${timeText}</span>` : ''}
+          </span>
+        </div>
+
+        <!-- BLOCO 2: BARRAS DE CARREGAMENTO / PROGRESSO -->
+        <div class="item-block item-progress file-progress-group">
+          <div class="mini-progress-wrapper progress-sub-step">
+            <div class="mini-progress-label progress-label">
+              <span>Leitura</span>
+              <span class="read-percent upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
+            </div>
+            <div class="mini-progress-track progress-bar-container">
+              <div class="mini-progress-fill progress-bar-fill bar-read bar-upload" style="width: ${item.uploadProgress}%;"></div>
             </div>
           </div>
-          <div class="queue-item-right">
-            <span class="queue-item-status ${statusClass} ${badgeErrorClass}" id="status-badge-${item.id}">${item.statusText}</span>
-            <div class="queue-item-actions">
-              <button type="button" class="btn-queue-item-download" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-              </button>
-              <button type="button" class="btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h18"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                  <line x1="10" y1="11" x2="10" y2="17"/>
-                  <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
-              </button>
+          <div class="mini-progress-wrapper progress-sub-step">
+            <div class="mini-progress-label progress-label">
+              <span>Conversão</span>
+              <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
+            </div>
+            <div class="mini-progress-track progress-bar-container">
+              <div class="mini-progress-fill progress-bar-fill bar-convert ${isCompleted ? 'completed' : (isError ? 'error' : '')}" style="width: ${item.convertProgress}%;"></div>
             </div>
           </div>
         </div>
-        <div class="file-progress-group">
-          <!-- Barra 1: Leitura do Arquivo -->
-          <div class="progress-sub-step">
-            <div class="progress-label">
-              <span>Leitura do arquivo</span>
-              <span class="upload-percent">${item.uploadText || `${item.uploadProgress}%`}</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill bar-upload" style="width: ${item.uploadProgress}%;"></div>
-            </div>
+
+        <!-- BLOCO 3: STATUS ANIMADO & BOTÕES -->
+        <div class="item-block item-actions queue-item-right">
+          <div class="status-indicator">
+            <!-- Estado Convertendo: Ampulheta girando -->
+            <span class="status-icon icon-hourglass ${isProcessing ? 'spinning' : ''}" title="Convertendo Markdown..." style="${isProcessing ? 'display: inline-flex;' : 'display: none;'}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 22h14"/>
+                <path d="M5 2h14"/>
+                <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/>
+                <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>
+              </svg>
+            </span>
+            <!-- Estado Concluído: Certinho verde -->
+            <span class="status-icon icon-check ${isCompleted ? 'success' : ''}" title="Concluído" style="${isCompleted ? 'display: inline-flex;' : 'display: none;'}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </span>
+            <!-- Estado Erro -->
+            <span class="status-icon icon-error" title="${item.errorMessage || item.statusText || 'Erro'}" style="${isError ? 'display: inline-flex;' : 'display: none;'}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            </span>
+            <!-- Estado Na Fila -->
+            <span class="status-icon icon-queued" title="Na fila" style="${(!isProcessing && !isCompleted && !isError) ? 'display: inline-flex;' : 'display: none;'}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </span>
           </div>
-          <!-- Barra 2: Conversão para Markdown -->
-          <div class="progress-sub-step">
-            <div class="progress-label">
-              <span>Conversão Markdown</span>
-              <span class="convert-percent">${item.convertText || `${item.convertProgress}%`}</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill bar-convert ${isCompleted ? 'completed' : (isError ? 'error' : '')}" style="width: ${item.convertProgress}%;"></div>
-            </div>
-          </div>
+
+          <span class="queue-item-status ${statusClass} ${badgeErrorClass}" id="status-badge-${item.id}" style="display: none;">${item.statusText}</span>
+
+          <button type="button" class="btn-item-action btn-download btn-queue-item-download" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+          <button type="button" class="btn-item-action btn-remove btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
         </div>
       </div>
     `;
@@ -446,7 +479,7 @@ function updateQueueItemDOM(item) {
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
-  itemEl.className = `queue-item file-queue-item ${item.status}`;
+  itemEl.className = `file-queue-item queue-item ${item.status}`;
   
   const statusBadge = itemEl.querySelector(`#status-badge-${item.id}`);
   if (statusBadge) {
@@ -455,9 +488,51 @@ function updateQueueItemDOM(item) {
     statusBadge.textContent = item.statusText;
   }
 
+  // Atualiza os ícones do Bloco 3
+  const isProcessing = item.status === 'processing';
+  const isCompleted = item.status === 'completed';
+  const isError = item.status === 'error';
+  const isQueued = !isProcessing && !isCompleted && !isError;
+
+  const hourglassIcon = itemEl.querySelector('.icon-hourglass');
+  const checkIcon = itemEl.querySelector('.icon-check');
+  const errorIcon = itemEl.querySelector('.icon-error');
+  const queuedIcon = itemEl.querySelector('.icon-queued');
+
+  if (hourglassIcon) {
+    if (isProcessing) {
+      hourglassIcon.style.display = 'inline-flex';
+      hourglassIcon.classList.add('spinning');
+    } else {
+      hourglassIcon.style.display = 'none';
+      hourglassIcon.classList.remove('spinning');
+    }
+  }
+
+  if (checkIcon) {
+    if (isCompleted) {
+      checkIcon.style.display = 'inline-flex';
+      checkIcon.classList.add('success');
+    } else {
+      checkIcon.style.display = 'none';
+      checkIcon.classList.remove('success');
+    }
+  }
+
+  if (errorIcon) {
+    errorIcon.style.display = isError ? 'inline-flex' : 'none';
+    if (item.errorMessage || item.statusText) {
+      errorIcon.setAttribute('title', item.errorMessage || item.statusText);
+    }
+  }
+
+  if (queuedIcon) {
+    queuedIcon.style.display = isQueued ? 'inline-flex' : 'none';
+  }
+
   // Barra 1: Leitura do Arquivo
-  const uploadBar = itemEl.querySelector(`.bar-upload`);
-  const uploadPercent = itemEl.querySelector(`.upload-percent`);
+  const uploadBar = itemEl.querySelector(`.bar-read, .bar-upload`);
+  const uploadPercent = itemEl.querySelector(`.read-percent, .upload-percent`);
   if (uploadBar) {
     uploadBar.style.width = `${item.uploadProgress}%`;
   }
@@ -484,7 +559,7 @@ function updateQueueItemDOM(item) {
     convertPercent.textContent = item.convertText || `${item.convertProgress}%`;
   }
 
-  const downloadBtn = itemEl.querySelector(`.btn-queue-item-download[data-id="${item.id}"]`);
+  const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download`);
   if (downloadBtn) {
     if (item.status === 'completed') {
       downloadBtn.removeAttribute('disabled');
@@ -493,7 +568,7 @@ function updateQueueItemDOM(item) {
     }
   }
 
-  const metaEl = itemEl.querySelector('.queue-item-meta');
+  const metaEl = itemEl.querySelector('.file-meta, .queue-item-meta');
   if (metaEl && item.durationMs && !metaEl.querySelector('.queue-item-time')) {
     const timeSpan = document.createElement('span');
     timeSpan.className = 'queue-item-time';

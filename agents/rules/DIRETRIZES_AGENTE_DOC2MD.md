@@ -101,6 +101,7 @@ A interface deve transmitir clareza técnica, precisão, agilidade e confiabilid
   1. Rodapé visível da interface principal (`index.html`).
   2. Arquivo `package.json` (caso utilize ecossistema Node/Vite) ou constante central de versão (`js/config.js` / `js/app.js`).
   3. Cabeçalho de metadados do `README.md`.
+- **Proibição expressa de destaques de versões no README:** É terminantemente proibido adicionar ou manter seções de "Destaques da Versão", changelogs ou listas de novidades por versão no `README.md`. O README deve permanecer limpo, atemporal e focado exclusivamente na documentação técnica, matriz de formatos, manifesto de privacidade e guia de uso. No `README.md`, apenas o badge e o cabeçalho de versão são atualizados.
 
 ---
 

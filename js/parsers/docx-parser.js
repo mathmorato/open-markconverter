@@ -33,13 +33,21 @@ function getTurndownService() {
   return service;
 }
 
-export async function parseDocx(file) {
+export async function parseDocx(file, onProgress = null) {
+  if (typeof onProgress === 'function') {
+    onProgress(20, 'Carregando Mammoth.js & Turndown...');
+  }
+
   // Carrega bibliotecas sob demanda
   await Promise.all([
     loadScript(APP_CONFIG.CDN.MAMMOTH),
     loadScript(APP_CONFIG.CDN.TURNDOWN),
     loadScript(APP_CONFIG.CDN.TURNDOWN_GFM).catch(() => console.warn('GFM plugin fallback'))
   ]);
+
+  if (typeof onProgress === 'function') {
+    onProgress(50, 'Extraindo XML estruturado...');
+  }
 
   const Mammoth = (typeof window !== 'undefined' && window.mammoth) || globalThis.mammoth;
   if (!Mammoth) {
@@ -66,6 +74,10 @@ export async function parseDocx(file) {
 
   const result = await Mammoth.convertToHtml(input, options);
   const rawHtml = result.value;
+
+  if (typeof onProgress === 'function') {
+    onProgress(85, 'Compilando Markdown semântico...');
+  }
 
   if (!rawHtml || !rawHtml.trim()) {
     return `# ${file.name.replace(/\.docx$/i, '')}\n\n*(Documento vazio ou sem conteúdo textual detectável)*\n`;

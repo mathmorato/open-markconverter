@@ -1,6 +1,6 @@
-# Universal MarkConverter (doc2md) `v.1.4.1`
+# Universal MarkConverter (doc2md) `v.1.4.2`
 
-[![Version](https://img.shields.io/badge/version-v.1.4.1-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v.1.4.2-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Architecture: 100% Client--Side](https://img.shields.io/badge/Architecture-100%25%20Client--Side-informational.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
 [![Privacy: Zero Server Upload](https://img.shields.io/badge/Privacy-Zero%20Server%20Upload-green.svg)](#-manifesto-de-segurança-e-privacidade-data-privacy-by-design)
@@ -10,17 +10,19 @@ Uma plataforma web estática moderna, ultrarrápida e universal para processamen
 
 ---
 
-## 🚀 Destaques da Versão v.1.4.1
+## 🚀 Destaques da Versão v.1.4.2
 
+- **Suavização e Throttling na Leitura (Upload Smoothing):**
+  - Transição fluida via CSS (`transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1)`).
+  - Interpolação gradual via `requestAnimationFrame` na leitura local (`FileReader.onprogress`), eliminando saltos abruptos de 0% para 100% em arquivos pequenos e médios.
+- **Linearização Adaptativa do Pipeline de Conversão:**
+  - Eliminação definitiva da estagnação no valor arbitrário de 60%.
+  - Ticker linear adaptativo com desaceleração logarítmica (*easing out*) que progride organicamente de 20% a 90% durante o processamento.
+  - Propagação de sub-progresso granular nos motores estruturados (slides em `.pptx`, abas em `.xlsx` e páginas em `.pdf`), garantindo feedback dinâmico contínuo.
 - **Governança de Upload com Limite de 1,5 GB:**
-  - Teto máximo rígido de **1,5 GB (1.610.612.736 bytes)** por arquivo com bloqueio preventivo antes da alocação de buffers.
-  - Feedback visual imediato com marcação de erro (`badge-error`) e toast informativo de aviso.
-- **Barras de Progresso Compactas e Slim (5px):**
-  - Redução drástica da altura e espaçamento entre rótulos e barras para visualização limpa e integrada.
-  - Rótulos discretos e tipografia mono compacta em conformidade com o tema claro e escuro.
-- **Harmonização e Alinhamento do Card de Fila:**
-  - Topo unificado em linha: Ícone, Nome do Arquivo e Badge de Tamanho/Tempo alinhados no mesmo eixo que os botões de ação e status.
-  - Espaçamentos e paddings compactados para maior densidade de informação sem poluição visual.
+  - Teto máximo de **1,5 GB (1.610.612.736 bytes)** por arquivo com bloqueio preventivo antes da alocação de buffers e badge de erro (`.badge-error`).
+- **Cards de Fila Compactados e Slim Progress Bars:**
+  - Alinhamento em linha única do cabeçalho com flexbox e barras finas (5px) com espaçamento reduzido.
 - **Fila de Processamento em Lote (Batch Queue Pipeline):**
   - Adição de múltiplos documentos simultâneos via botão nativo de seleção, arrastar e soltar (*Drag & Drop*) ou colagem direta via atalho de teclado (`Ctrl+V`).
   - Concorrência assíncrona controlada (processamento de 2 itens em paralelo) para garantir fluidez da interface e gerenciamento estável da memória RAM do navegador.
@@ -72,7 +74,7 @@ O **Universal MarkConverter** foi arquitetado sob a premissa fundamental de sobe
 ```
 open-markconverter/
 ├── index.html                   # Interface SPA semântica, Dropzone e Fila de Lote
-├── package.json                 # Metadados do projeto e versão SemVer v.1.4.1
+├── package.json                 # Metadados do projeto e versão SemVer v.1.4.2
 ├── package-lock.json            # Travamento determinístico de dependências locais
 ├── LICENSE                      # Termos de licença open-source MIT
 ├── README.md                    # Documentação técnica integral da plataforma
@@ -145,9 +147,9 @@ O projeto está 100% preparado para publicação contínua direta pelo GitHub Pa
 
 ## 🏷️ Licença e Versionamento SemVer
 
-- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.1`**, sincronizada nos quatro pontos do projeto:
+- **Controle SemVer:** O projeto segue com rigor o padrão [Semantic Versioning 2.0.0](https://semver.org/). A versão atual é **`v.1.4.2`**, sincronizada nos quatro pontos do projeto:
   1. Cabeçalho e rodapé do `index.html`.
-  2. Arquivo `package.json` (`"version": "1.4.1"`).
+  2. Arquivo `package.json` (`"version": "1.4.2"`).
   3. Constante `APP_CONFIG.VERSION` em `js/config.js`.
   4. Badges e títulos deste `README.md`.
 - **Licença de Uso:** Distribuído sob os termos da licença **MIT**. Para maiores detalhes, consulte o arquivo [LICENSE](LICENSE).

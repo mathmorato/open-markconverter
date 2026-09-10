@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.4.1
+ * @version v.1.4.2
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -188,7 +188,8 @@ function downloadMarkdownFile(baseName, content) {
 
 function readFileWithProgress(file, onProgress) {
   return new Promise((resolve, reject) => {
-    if (typeof FileReader === 'undefined') {
+    // Ambiente sem DOM completo ou ambiente de testes Node.js
+    if (typeof window === 'undefined' || (typeof FileReader === 'undefined' && typeof file.arrayBuffer === 'function')) {
       if (typeof file.arrayBuffer === 'function') {
         file.arrayBuffer().then(buf => {
           onProgress(100);
@@ -199,19 +200,63 @@ function readFileWithProgress(file, onProgress) {
     }
 
     const reader = new FileReader();
-    reader.onprogress = (event) => {
-      if (event.lengthComputable && event.total > 0) {
-        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
-        onProgress(percent);
+    let currentPercent = 0;
+    let targetPercent = 0;
+    let isComplete = false;
+    let bufferResult = null;
+    let animId = null;
+
+    const tickUI = () => {
+      if (currentPercent < targetPercent) {
+        const delta = targetPercent - currentPercent;
+        // Interpolação macia com interpolação gradual (throttling): avança progressivamente a cada frame
+        const inc = Math.max(1, Math.ceil(delta * 0.22));
+        currentPercent = Math.min(targetPercent, currentPercent + inc);
+        onProgress(currentPercent);
+      }
+
+      if (isComplete && currentPercent >= 100) {
+        onProgress(100);
+        resolve(bufferResult);
+        return;
+      }
+
+      if (typeof requestAnimationFrame !== 'undefined') {
+        animId = requestAnimationFrame(tickUI);
+      } else {
+        animId = setTimeout(tickUI, 16);
       }
     };
-    reader.onload = () => {
-      onProgress(100);
-      resolve(reader.result);
+
+    if (typeof requestAnimationFrame !== 'undefined') {
+      animId = requestAnimationFrame(tickUI);
+    } else {
+      animId = setTimeout(tickUI, 16);
+    }
+
+    reader.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        const raw = Math.min(99, Math.round((event.loaded / event.total) * 100));
+        targetPercent = Math.max(targetPercent, raw);
+      } else {
+        targetPercent = Math.min(90, targetPercent + 10);
+      }
     };
+
+    reader.onload = () => {
+      bufferResult = reader.result;
+      targetPercent = 100;
+      isComplete = true;
+    };
+
     reader.onerror = () => {
+      if (animId) {
+        if (typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(animId);
+        else clearTimeout(animId);
+      }
       reject(new Error(`Falha ao ler o arquivo "${file.name}"`));
     };
+
     reader.readAsArrayBuffer(file);
   });
 }
@@ -549,36 +594,73 @@ async function processQueueItem(item) {
     item.uploadProgress = 100;
     item.uploadText = '100%';
     item.convertProgress = 20;
-    item.convertText = '20% (Carregando parser)';
-    item.statusText = 'Carregando parser... (20%)';
+    item.convertText = '20% (Iniciando parser...)';
+    item.statusText = 'Iniciando conversão... (20%)';
     updateQueueItemDOM(item);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
-    // Etapa 2: Extração / conversão em andamento
-    item.convertProgress = 60;
-    item.convertText = '60% (Extraindo dados)';
-    item.statusText = 'Convertendo Markdown... (60%)';
-    updateQueueItemDOM(item);
+    // Etapa 2: Progressão Linear Adaptativa (eliminação do travamento em 60%)
+    let currentConvert = 20;
+    let targetConvert = 20;
+    let currentDetail = 'Carregando parser...';
+
+    // Sub-progresso real propagado pelos parsers estruturados
+    const onParserSubProgress = (subPercent, subDetail) => {
+      if (item.cancelled || item.status === 'completed' || item.status === 'error') return;
+      // Mapeia 0-100% do parser para o intervalo visual de 25% a 92%
+      const mapped = Math.round(25 + (subPercent * 0.67));
+      targetConvert = Math.max(targetConvert, Math.min(92, mapped));
+      if (subDetail) currentDetail = subDetail;
+    };
+
+    // Ticker / Emulação linear adaptativa com desaceleração logarítmica (easing out)
+    const tickerInterval = setInterval(() => {
+      if (item.cancelled || item.status === 'completed' || item.status === 'error') {
+        clearInterval(tickerInterval);
+        return;
+      }
+
+      // Se não houver sub-progresso explícito, avança gradualmente com desaceleração suave até 90%
+      if (targetConvert <= currentConvert && currentConvert < 90) {
+        const remaining = 90 - currentConvert;
+        const inc = Math.max(0.25, remaining * 0.04);
+        targetConvert = Math.min(90, currentConvert + inc);
+      }
+
+      if (currentConvert < targetConvert) {
+        const step = (targetConvert - currentConvert) * 0.28;
+        currentConvert = Math.min(targetConvert, currentConvert + Math.max(0.4, step));
+        const displayVal = Math.round(currentConvert);
+        item.convertProgress = displayVal;
+        item.convertText = `${displayVal}% (${currentDetail})`;
+        item.statusText = `Convertendo... (${displayVal}%)`;
+        updateQueueItemDOM(item);
+      }
+    }, 120);
 
     let markdown = '';
-    switch (item.formatInfo.parser) {
-      case 'docx':
-        markdown = await parseDocx(item.file);
-        break;
-      case 'xlsx':
-        markdown = await parseSpreadsheet(item.file);
-        break;
-      case 'pptx':
-        markdown = await parsePptx(item.file);
-        break;
-      case 'pdf':
-        markdown = await parsePdf(item.file);
-        break;
-      case 'text':
-      default:
-        markdown = await parseText(item.file);
-        break;
+    try {
+      switch (item.formatInfo.parser) {
+        case 'docx':
+          markdown = await parseDocx(item.file, onParserSubProgress);
+          break;
+        case 'xlsx':
+          markdown = await parseSpreadsheet(item.file, onParserSubProgress);
+          break;
+        case 'pptx':
+          markdown = await parsePptx(item.file, onParserSubProgress);
+          break;
+        case 'pdf':
+          markdown = await parsePdf(item.file, onParserSubProgress);
+          break;
+        case 'text':
+        default:
+          markdown = await parseText(item.file, onParserSubProgress);
+          break;
+      }
+    } finally {
+      clearInterval(tickerInterval);
     }
 
     if (item.cancelled) return;

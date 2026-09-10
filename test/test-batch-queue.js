@@ -1,12 +1,12 @@
 /**
  * Teste de integração para a lógica da Fila de Lote (Batch Queue),
- * download individual por item, download em lote (.zip), dupla barra de progresso e limite de 1,5 GB (v.1.4.1).
+ * download individual por item, download em lote (.zip), progressão linear contínua e limite de 1,5 GB (v.1.4.2).
  */
 
 import { APP_CONFIG } from '../js/config.js';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.1)');
+console.log('  TESTANDO FILA, DOWNLOADS E DUPLO PROGRESSO (v.1.4.2)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -172,13 +172,17 @@ const processItem = async (item) => {
   item.uploadProgress = 100;
   item.uploadText = '100%';
 
-  // Etapa 2: Conversão Markdown (Parsing)
+  // Etapa 2: Conversão Markdown (Parsing) - Progressão linear adaptativa sem travamento em 60%
   item.convertProgress = 20;
-  item.convertText = '20% (Carregando parser)';
+  item.convertText = '20% (Iniciando parser...)';
   await new Promise(r => setTimeout(r, 10));
 
-  item.convertProgress = 60;
-  item.convertText = '60% (Extraindo dados)';
+  item.convertProgress = 55;
+  item.convertText = '55% (Processando estrutura...)';
+  await new Promise(r => setTimeout(r, 10));
+
+  item.convertProgress = 85;
+  item.convertText = '85% (Compilando Markdown...)';
   await new Promise(r => setTimeout(r, 10));
 
   item.convertProgress = 100;
@@ -190,7 +194,7 @@ const processItem = async (item) => {
 };
 
 const validItems = state.queue.filter(it => it.status === 'queued');
-console.log(`[TESTE 2] Processando ${validItems.length} itens válidos com concorrência máxima de 2 e progresso duplo...`);
+console.log(`[TESTE 2] Processando ${validItems.length} itens válidos com concorrência máxima de 2 e progresso linear adaptativo...`);
 
 await Promise.all([
   processItem(validItems[0]),
@@ -235,5 +239,5 @@ if (state.queue.length !== 0) {
 console.log('  -> Fila completamente limpa!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.1)');
+console.log('  SUCESSO: TODOS OS TESTES DE FILA E DOWNLOAD PASSARAM (v.1.4.2)');
 console.log('===============================================================');

@@ -5,7 +5,7 @@
 
 import { APP_CONFIG, loadScript } from '../config.js';
 
-export async function parsePptx(file) {
+export async function parsePptx(file, onProgress = null) {
   await loadScript(APP_CONFIG.CDN.JSZIP);
 
   const JSZip = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
@@ -55,6 +55,10 @@ export async function parsePptx(file) {
   };
 
   for (let i = 0; i < slideEntries.length; i++) {
+    if (typeof onProgress === 'function') {
+      const pct = Math.round(((i + 1) / slideEntries.length) * 100);
+      onProgress(pct, `Processando slide ${i + 1}/${slideEntries.length}`);
+    }
     const slideInfo = slideEntries[i];
     const slideXmlText = await slideInfo.entry.async('text');
     const xmlDoc = domParser.parseFromString(slideXmlText, 'application/xml');

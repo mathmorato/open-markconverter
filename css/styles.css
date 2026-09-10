@@ -1,7 +1,7 @@
 /**
  * Universal MarkConverter (doc2md)
  * Design System & Estilos Globais
- * @version v.1.4.1
+ * @version v.1.4.2
  */
 
 /* ==========================================================================
@@ -1001,12 +1001,13 @@ body {
   height: 100%;
   width: 0%;
   border-radius: var(--radius-full);
-  transition: width 0.25s ease, background-color 0.3s ease;
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
 }
 
 /* Barra 1: Leitura do Arquivo (Azul Tech suave #3B82F6) */
 .progress-bar-fill.bar-upload {
   background-color: #3B82F6;
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Barra 2: Conversão para Markdown (Azul Royal #2563EB em processamento, Esmeralda #10B981 no sucesso, Coral #EF4444 no erro) */

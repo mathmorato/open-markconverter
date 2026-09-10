@@ -5,7 +5,10 @@
 
 import { APP_CONFIG, loadScript } from '../config.js';
 
-export async function parseText(file) {
+export async function parseText(file, onProgress = null) {
+  if (typeof onProgress === 'function') {
+    onProgress(50, 'Lendo conteúdo textual...');
+  }
   const ext = file.name.split('.').pop().toLowerCase();
   const textContent = await file.text();
   const docTitle = file.name.replace(/\.[^/.]+$/, '');

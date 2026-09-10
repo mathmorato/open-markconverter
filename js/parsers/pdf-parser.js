@@ -5,7 +5,7 @@
 
 import { APP_CONFIG, loadScript } from '../config.js';
 
-export async function parsePdf(file) {
+export async function parsePdf(file, onProgress = null) {
   await loadScript(APP_CONFIG.CDN.PDFJS);
 
   const pdfjsLib = (typeof window !== 'undefined' && window.pdfjsLib) || globalThis.pdfjsLib;
@@ -26,6 +26,10 @@ export async function parsePdf(file) {
   const pagesMarkdown = [`# ${docTitle}\n`];
 
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    if (typeof onProgress === 'function') {
+      const pct = Math.round((pageNum / pdfDoc.numPages) * 100);
+      onProgress(pct, `Página ${pageNum}/${pdfDoc.numPages}`);
+    }
     const page = await pdfDoc.getPage(pageNum);
     const textContent = await page.getTextContent();
 

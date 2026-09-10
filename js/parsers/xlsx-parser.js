@@ -47,7 +47,7 @@ function matrixToMarkdownTable(matrix) {
   return [headerMd, separatorMd, ...bodyRows].join('\n') + '\n';
 }
 
-export async function parseSpreadsheet(file) {
+export async function parseSpreadsheet(file, onProgress = null) {
   await loadScript(APP_CONFIG.CDN.SHEETJS);
 
   const XLSX = (typeof window !== 'undefined' && window.XLSX) || globalThis.XLSX;
@@ -64,6 +64,10 @@ export async function parseSpreadsheet(file) {
   const sheetCount = workbook.SheetNames.length;
 
   for (let i = 0; i < sheetCount; i++) {
+    if (typeof onProgress === 'function') {
+      const pct = Math.round(((i + 1) / sheetCount) * 100);
+      onProgress(pct, `Aba ${i + 1}/${sheetCount}`);
+    }
     const sheetName = workbook.SheetNames[i];
     const sheet = workbook.Sheets[sheetName];
 

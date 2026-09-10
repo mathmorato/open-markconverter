@@ -20,6 +20,7 @@ import {
   getFormattedTimestamp,
   sortQueueByName,
   sortQueueBySize,
+  updateGlobalBatchProgress,
   renderQueueUI,
   buildBacklogSection,
   buildDirectoryTreeAscii,
@@ -34,7 +35,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.9)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -419,26 +420,49 @@ if (!unifiedMarkdown.includes('---')) {
 
 console.log('  -> Mesclagem unificada com demarcadores, metadados e backlog validada com perfeição!');
 
-// 12. Teste de auto-scroll inteligente confinado exclusivamente ao container da fila
-console.log('[TESTE 12] Testando rotina de auto-scroll confinado ao container da fila (scrollQueueToActiveItem)...');
-let scrollByParams = null;
-let scrollToParams = null;
+// 12. Teste de desativação total de auto-scroll e barra de progresso global de lote (> 10 arquivos)
+console.log('[TESTE 12] Testando desativação definitiva de auto-scroll e exibição condicional de barra global...');
+let scrollByCalled = false;
+let scrollToCalled = false;
 let scrollIntoViewCalled = false;
 const mockQueueList = {
   offsetTop: 0,
   scrollTop: 0,
   clientHeight: 480,
   getBoundingClientRect: () => ({ top: 100, bottom: 580, height: 480 }),
-  scrollBy: (params) => {
-    scrollByParams = params;
+  scrollBy: () => {
+    scrollByCalled = true;
   },
-  scrollTo: (params) => {
-    scrollToParams = params;
+  scrollTo: () => {
+    scrollToCalled = true;
   }
 };
+
+const mockBatchProgress = {
+  style: { display: 'none' }
+};
+const mockProgressCounter = {
+  textContent: ''
+};
+const mockProgressFill = {
+  style: { width: '0%' },
+  classList: {
+    classes: new Set(),
+    add(cls) { this.classes.add(cls); },
+    remove(cls) { this.classes.delete(cls); },
+    contains(cls) { return this.classes.has(cls); }
+  }
+};
+
 global.document = {
   querySelector: (sel) => (sel === '.file-queue-list' ? mockQueueList : null),
-  getElementById: (id) => (id === 'file-queue-list' ? mockQueueList : null)
+  getElementById: (id) => {
+    if (id === 'file-queue-list') return mockQueueList;
+    if (id === 'batch-global-progress') return mockBatchProgress;
+    if (id === 'global-progress-counter') return mockProgressCounter;
+    if (id === 'global-progress-fill') return mockProgressFill;
+    return null;
+  }
 };
 
 const mockElement = {
@@ -451,32 +475,59 @@ const mockElement = {
   }
 };
 
+// 12.1. Verifica que as rotinas de scroll NÃO realizam qualquer rolagem (100% no-op)
 scrollQueueToActiveItem(mockElement);
-if (scrollIntoViewCalled) {
-  console.error('[FALHA] scrollQueueToActiveItem chamou scrollIntoView (deve confinar o scroll ao container sem rolar a janela)');
-  process.exit(1);
-}
-if (!scrollByParams || scrollByParams.behavior !== 'smooth' || typeof scrollByParams.top !== 'number') {
-  console.error('[FALHA] scrollQueueToActiveItem não executou queueList.scrollBy com parâmetros esperados');
-  process.exit(1);
-}
-
-// Testa alias scrollQueueToItem
-scrollByParams = null;
 scrollQueueToItem(mockElement);
-if (!scrollByParams || scrollByParams.behavior !== 'smooth' || typeof scrollByParams.top !== 'number') {
-  console.error('[FALHA] scrollQueueToItem (alias) não delegou para scrollQueueToActiveItem corretamente');
-  process.exit(1);
-}
-
-// Testa alias scrollToActiveItem
-scrollByParams = null;
 scrollToActiveItem(mockElement);
-if (!scrollByParams || scrollByParams.behavior !== 'smooth' || typeof scrollByParams.top !== 'number') {
-  console.error('[FALHA] scrollToActiveItem (alias) não delegou para scrollQueueToActiveItem corretamente');
+
+if (scrollIntoViewCalled || scrollByCalled || scrollToCalled || mockQueueList.scrollTop !== 0) {
+  console.error('[FALHA] As rotinas de scroll não foram neutralizadas; dispararam rolagem automática');
   process.exit(1);
 }
-console.log('  -> scrollQueueToActiveItem, scrollQueueToItem e scrollToActiveItem acionaram queueList.scrollBy({ top, behavior: "smooth" }) sem rolar a janela principal!');
+console.log('  -> [OK] Auto-scroll 100% desativado (zero chamadas de scrollBy, scrollTo ou scrollIntoView)!');
+
+// 12.2. Verifica exibição condicional do container #batch-global-progress
+// Com lote <= 10 arquivos: deve permanecer estritamente oculto (display = 'none')
+appState.queue = Array.from({ length: 10 }, (_, i) => ({
+  id: `item_${i}`,
+  status: i < 5 ? 'completed' : 'queued'
+}));
+updateGlobalBatchProgress();
+if (mockBatchProgress.style.display !== 'none') {
+  console.error(`[FALHA] Barra global exibida indevidamente para 10 arquivos: ${mockBatchProgress.style.display}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Barra global oculta para lotes <= 10 arquivos!');
+
+// Com lote >= 11 arquivos: deve ser exibida (display = 'block')
+appState.queue = Array.from({ length: 11 }, (_, i) => ({
+  id: `item_${i}`,
+  status: i < 5 ? 'completed' : (i === 5 ? 'error' : 'queued')
+}));
+updateGlobalBatchProgress();
+if (mockBatchProgress.style.display !== 'block') {
+  console.error(`[FALHA] Barra global não foi exibida para 11 arquivos: ${mockBatchProgress.style.display}`);
+  process.exit(1);
+}
+// 6 processados (5 completed + 1 error) de 11 = 55%
+if (!mockProgressCounter.textContent.includes('6 / 11') || !mockProgressCounter.textContent.includes('55%')) {
+  console.error(`[FALHA] Contador de progresso global incorreto: "${mockProgressCounter.textContent}"`);
+  process.exit(1);
+}
+if (mockProgressFill.style.width !== '55%') {
+  console.error(`[FALHA] Largura da barra de progresso incorreta: "${mockProgressFill.style.width}"`);
+  process.exit(1);
+}
+console.log(`  -> [OK] Barra global exibida para lote de 11 arquivos: "${mockProgressCounter.textContent}" (largura ${mockProgressFill.style.width})`);
+
+// Quando 100% concluído
+appState.queue.forEach(it => { it.status = 'completed'; });
+updateGlobalBatchProgress();
+if (mockProgressFill.style.width !== '100%' || !mockProgressFill.classList.contains('finished')) {
+  console.error(`[FALHA] Classe .finished ou largura 100% ausente ao concluir lote`);
+  process.exit(1);
+}
+console.log('  -> [OK] Barra global atinge 100% e recebe classe .finished ao concluir todos os arquivos!');
 
 // 13. Teste de conversão resiliente de arquivo .html
 console.log('[TESTE 13] Testando conversão resiliente de arquivo HTML com fallback nativo...');
@@ -832,7 +883,7 @@ if (!htmlContent.includes('1,5 GB</strong> por arquivo ou pacote compactado')) {
   console.error('[FALHA] Badge informativa de limite expandido ausente no index.html');
   process.exit(1);
 }
-console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.9 validados com perfeição!');
+console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.8.0 validados com perfeição!');
 
 // 23. Teste de Escalonamento Dinâmico de Concorrência (1000 Workers para Lotes Grandes e Descompactação)
 console.log('[TESTE 23] Testando escalonamento dinâmico de concorrência com lote de 60 arquivos (até 1000 workers paralelos)...');
@@ -933,5 +984,5 @@ if (appState.maxConcurrency !== 1000) {
 console.log('  -> [OK] Extração de pacote compactado ativou alta concorrência (1000 workers) com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.9)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.0)');
 console.log('===============================================================');

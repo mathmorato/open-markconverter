@@ -33,7 +33,7 @@
         </div>
         <div class="brand-title">
           <span>Open <span class="accent">Mark</span></span>
-          <span class="version-badge" id="header-version">v.1.7.9</span>
+          <span class="version-badge" id="header-version">v.1.8.0</span>
         </div>
       </a>
 
@@ -236,6 +236,33 @@
             </button>
           </div>
         </div>
+
+        <!-- BARRA DE CARREGAMENTO / PROGRESSO GLOBAL PARA LOTES (> 10 ARQUIVOS) -->
+        <div id="batch-global-progress" class="batch-global-progress" style="display: none;">
+          <div class="global-progress-header">
+            <span class="global-progress-label">
+              <span class="global-progress-icon">
+                <!-- SVG linear discreto de engrenagem / processamento -->
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+              </span>
+              Progresso do Lote
+            </span>
+            <span id="global-progress-counter" class="global-progress-counter">0 / 0 concluídos (0%)</span>
+          </div>
+          <div class="global-progress-track">
+            <div id="global-progress-fill" class="global-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
         <div id="file-queue-list" class="file-queue-list" role="list">
           <!-- Itens da fila renderizados dinamicamente -->
         </div>
@@ -253,7 +280,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.7.9</span>
+        <span class="version-badge" id="footer-version">v.1.8.0</span>
         <a href="https://github.com/mathmorato/open-mark" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

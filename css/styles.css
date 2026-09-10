@@ -1921,3 +1921,79 @@ body {
     padding: 0 0.5rem;
   }
 }
+
+/* ==========================================================================
+   Barra de Progresso Global do Lote (> 10 Arquivos)
+   ========================================================================== */
+.batch-global-progress {
+  width: 100%;
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+body.dark-mode .batch-global-progress,
+[data-theme="dark"] .batch-global-progress {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.global-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 0.4rem;
+}
+
+body.dark-mode .global-progress-header,
+[data-theme="dark"] .global-progress-header {
+  color: #94A3B8;
+}
+
+.global-progress-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.global-progress-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.global-progress-counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.global-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+body.dark-mode .global-progress-track,
+[data-theme="dark"] .global-progress-track {
+  background: #334155;
+}
+
+.global-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #2563EB; /* Azul Tech */
+  border-radius: 9999px;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.global-progress-fill.finished {
+  background: #10B981; /* Verde esmeralda */
+}

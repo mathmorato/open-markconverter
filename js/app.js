@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.7.9
+ * @version v.1.8.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -98,7 +98,10 @@ const elements = typeof document !== 'undefined' ? {
   btnQueueDownloadMerged: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
   btnDownloadUnified: document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged'),
   unifiedActionRow: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
-  unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container')
+  unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
+  batchGlobalProgress: document.getElementById('batch-global-progress'),
+  globalProgressCounter: document.getElementById('global-progress-counter'),
+  globalProgressFill: document.getElementById('global-progress-fill')
 } : {};
 
 /* ==========================================================================
@@ -780,6 +783,7 @@ export async function addFilesToQueue(files) {
   }
 
   renderQueue();
+  updateGlobalBatchProgress();
   dispatchNext();
 }
 
@@ -790,6 +794,7 @@ function renderQueue() {
   if (total === 0) {
     elements.fileQueueSection.style.display = 'none';
     if (elements.queueCounter) elements.queueCounter.textContent = '0 arquivos';
+    updateGlobalBatchProgress();
     return;
   }
 
@@ -967,6 +972,8 @@ function renderQueue() {
       removeQueueItem(id);
     });
   });
+
+  updateGlobalBatchProgress();
 }
 
 // Otimização de renderização concorrente via requestAnimationFrame batching
@@ -1192,111 +1199,66 @@ function removeQueueItem(itemId) {
 }
 
 /**
- * Rolagem automática inteligente confinada exclusivamente ao container interno da fila de documentos.
- * Utiliza getBoundingClientRect() para cálculo relativo e scrollBy suave,
- * garantindo total imobilidade da janela principal (window, body, dropzone).
- * @param {string|HTMLElement} itemOrId Elemento DOM ou ID do item da fila
+ * Auto-scroll desativado em definitivo para garantir estabilidade visual da fila.
+ * A fila de documentos permanece 100% estática na posição definida pelo usuário,
+ * sem solavancos durante a conversão concorrente.
+ * Mantida como no-op para retrocompatibilidade com suítes de teste e módulos externos.
+ * @param {string|HTMLElement} itemOrId
  */
 export function scrollQueueToActiveItem(itemOrId) {
-  if (!itemOrId) return;
-
-  // Obtém o elemento exato que possui a barra de rolagem ativa
-  const queueScrollContainer = (elements && elements.fileQueueList) ||
-    (typeof document !== 'undefined' ? (
-      document.querySelector('.file-queue-list') || 
-      document.getElementById('file-queue-list') || 
-      document.querySelector('.queue-items-container')
-    ) : null);
-
-  if (!queueScrollContainer) return;
-
-  // Se o usuário interagiu manualmente e não está no final, respeite
-  if (state && state.userIsScrolling) return;
-
-  let itemElement = null;
-  if (typeof itemOrId === 'object' && itemOrId !== null) {
-    if (itemOrId.nodeType || typeof itemOrId.getBoundingClientRect === 'function') {
-      itemElement = itemOrId;
-    } else if (itemOrId.id) {
-      itemOrId = itemOrId.id;
-    }
-  }
-
-  if (!itemElement && typeof itemOrId === 'string') {
-    if (queueScrollContainer.querySelector) {
-      itemElement = queueScrollContainer.querySelector(`.queue-item[data-id="${itemOrId}"]`) ||
-                    queueScrollContainer.querySelector(`[data-id="${itemOrId}"]`);
-    } else if (typeof document !== 'undefined' && document.querySelector) {
-      itemElement = document.querySelector(`.queue-item[data-id="${itemOrId}"]`) ||
-                    document.querySelector(`[data-id="${itemOrId}"]`);
-    }
-  }
-
-  if (!itemElement) return;
-
-  // Calcula a posição relativa do item dentro do container
-  if (typeof queueScrollContainer.getBoundingClientRect === 'function' && typeof itemElement.getBoundingClientRect === 'function') {
-    const containerTop = queueScrollContainer.getBoundingClientRect().top;
-    const itemTop = itemElement.getBoundingClientRect().top;
-    const relativeOffset = itemTop - containerTop;
-    const containerHeight = queueScrollContainer.clientHeight || 480;
-    const itemHeight = itemElement.offsetHeight || 84;
-    const targetDelta = relativeOffset - (containerHeight / 2) + (itemHeight / 2);
-
-    // Executa a rolagem interna de forma direta e segura
-    if (typeof queueScrollContainer.scrollBy === 'function') {
-      queueScrollContainer.scrollBy({
-        top: targetDelta,
-        behavior: 'smooth'
-      });
-    } else if (typeof queueScrollContainer.scrollTo === 'function') {
-      queueScrollContainer.scrollTo({
-        top: (queueScrollContainer.scrollTop || 0) + targetDelta,
-        behavior: 'smooth'
-      });
-    } else {
-      queueScrollContainer.scrollTop = (queueScrollContainer.scrollTop || 0) + targetDelta;
-    }
-  } else {
-    // Fallback para ambientes de teste sem suporte a getBoundingClientRect
-    const containerTop = queueScrollContainer.offsetTop || 0;
-    const itemTop = typeof itemElement.offsetTop === 'number' ? itemElement.offsetTop : 0;
-    const relativeOffset = itemTop - containerTop;
-    const containerHeight = queueScrollContainer.clientHeight || 480;
-    const itemHeight = itemElement.offsetHeight || 84;
-    const targetDelta = relativeOffset - (containerHeight / 2) + (itemHeight / 2);
-    const targetTop = Math.max(0, (queueScrollContainer.scrollTop || 0) + targetDelta);
-
-    if (typeof queueScrollContainer.scrollBy === 'function') {
-      queueScrollContainer.scrollBy({
-        top: targetDelta,
-        behavior: 'smooth'
-      });
-    } else if (typeof queueScrollContainer.scrollTo === 'function') {
-      queueScrollContainer.scrollTo({
-        top: targetTop,
-        behavior: 'smooth'
-      });
-    } else {
-      queueScrollContainer.scrollTop = targetTop;
-    }
-  }
+  // Auto-scroll desativado em definitivo (fila 100% estática)
+  return;
 }
 
 /**
- * Alias de retrocompatibilidade para scrollQueueToActiveItem
+ * Alias de retrocompatibilidade para scrollQueueToActiveItem (no-op)
  * @param {string|HTMLElement} itemOrId
  */
 export function scrollQueueToItem(itemOrId) {
-  return scrollQueueToActiveItem(itemOrId);
+  return;
 }
 
 /**
- * Alias adicional para scrollQueueToActiveItem
+ * Alias adicional para scrollQueueToActiveItem (no-op)
  * @param {string|HTMLElement} itemIdOrElement
  */
 export function scrollToActiveItem(itemIdOrElement) {
-  return scrollQueueToActiveItem(itemIdOrElement);
+  return;
+}
+
+/**
+ * Atualiza em tempo real a barra de progresso global agregada para lotes (> 10 arquivos).
+ * Para até 10 arquivos, a barra permanece estritamente oculta (display = 'none').
+ */
+export function updateGlobalBatchProgress() {
+  const total = state && state.queue ? state.queue.length : 0;
+  const globalProgressEl = (elements && elements.batchGlobalProgress) || (typeof document !== 'undefined' ? document.getElementById('batch-global-progress') : null);
+  if (!globalProgressEl) return;
+
+  if (total > 10) {
+    globalProgressEl.style.display = 'block';
+  } else {
+    globalProgressEl.style.display = 'none';
+    return;
+  }
+
+  const completed = state.queue.filter(item => item.status === 'completed' || item.status === 'error').length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  const counterEl = (elements && elements.globalProgressCounter) || (typeof document !== 'undefined' ? document.getElementById('global-progress-counter') : null);
+  const fillEl = (elements && elements.globalProgressFill) || (typeof document !== 'undefined' ? document.getElementById('global-progress-fill') : null);
+
+  if (counterEl) {
+    counterEl.textContent = `${completed.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} arquivos processados (${percent}%)`;
+  }
+  if (fillEl) {
+    fillEl.style.width = `${percent}%`;
+    if (percent === 100) {
+      fillEl.classList.add('finished');
+    } else {
+      fillEl.classList.remove('finished');
+    }
+  }
 }
 
 /**
@@ -1363,7 +1325,6 @@ async function processQueueItem(item) {
   item.convertText = 'Aguardando...';
   item.progress = 0;
   updateQueueItemDOM(item);
-  scrollQueueToActiveItem(item.id);
 
   const startTime = performance.now();
   updateDebugStatus(`[Processando]: ${item.file.name} (${formatBytes(item.file.size)})`);
@@ -1393,7 +1354,6 @@ async function processQueueItem(item) {
     item.convertText = '20% (Iniciando parser...)';
     item.statusText = 'Iniciando conversão... (20%)';
     updateQueueItemDOM(item);
-    scrollQueueToActiveItem(item.id);
 
     item.file.arrayBuffer = () => Promise.resolve(arrayBuffer);
 
@@ -1535,7 +1495,7 @@ async function processQueueItem(item) {
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
-    scrollQueueToActiveItem(item.id);
+    updateGlobalBatchProgress();
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Concluído]: ${item.file.name} em ${formattedDuration} (MD: ${formattedMdSize})`);
@@ -1566,11 +1526,12 @@ async function processQueueItem(item) {
 
     item.durationMs = duration;
     updateQueueItemDOM(item);
-    scrollQueueToActiveItem(item.id);
+    updateGlobalBatchProgress();
 
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage} (${formattedDuration})`, true);
   } finally {
+    updateGlobalBatchProgress();
     dispatchNext();
   }
 }

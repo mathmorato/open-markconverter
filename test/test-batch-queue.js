@@ -19,6 +19,7 @@ import {
   scrollToActiveItem,
   getFormattedTimestamp,
   sortQueueByName,
+  sortQueueBySize,
   renderQueueUI,
   buildBacklogSection,
   buildDirectoryTreeAscii,
@@ -33,7 +34,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.8)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.7.9)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -831,7 +832,7 @@ if (!htmlContent.includes('1,5 GB</strong> por arquivo ou pacote compactado')) {
   console.error('[FALHA] Badge informativa de limite expandido ausente no index.html');
   process.exit(1);
 }
-console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.8 validados com perfeição!');
+console.log('  -> [OK] Todos os textos, subtítulos, badges e limites da v.1.7.9 validados com perfeição!');
 
 // 23. Teste de Escalonamento Dinâmico de Concorrência (1000 Workers para Lotes Grandes e Descompactação)
 console.log('[TESTE 23] Testando escalonamento dinâmico de concorrência com lote de 60 arquivos (até 1000 workers paralelos)...');
@@ -843,10 +844,10 @@ if (getDynamicConcurrency(5) !== 4 || getDynamicConcurrency(25) !== 1000) {
 }
 console.log('  -> [OK] getDynamicConcurrency validado: 4 para lotes moderados e 1000 para alto volume!');
 
-// Cria lote de 60 arquivos válidos
+// Cria lote de 60 arquivos válidos com tamanhos variados
 const batch60 = [];
 for (let i = 1; i <= 60; i++) {
-  const content = `# Documento ${i}\nConteúdo de teste para validação de throughput com até 1000 workers paralelos.`;
+  const content = 'A'.repeat(i * 200) + `\n# Documento ${i}\nConteúdo de teste para validação de throughput com até 1000 workers paralelos.`;
   batch60.push(new File([content], `doc_concorrente_${String(i).padStart(2, '0')}.md`, { type: 'text/markdown' }));
 }
 
@@ -856,6 +857,32 @@ appState.maxConcurrency = 4; // Começa com padrão moderado
 
 // Adiciona os 60 arquivos via realAddFilesToQueue
 await realAddFilesToQueue(batch60);
+
+// Validação de ordenação: para muitos arquivos (> 20), a fila deve ser ordenada dos maiores para os menores
+for (let j = 0; j < appState.queue.length - 1; j++) {
+  const currentSize = appState.queue[j].file.size;
+  const nextSize = appState.queue[j + 1].file.size;
+  if (currentSize < nextSize) {
+    console.error(`[FALHA] Fila de alto volume não está ordenada dos maiores para os menores na posição ${j}: ${currentSize} < ${nextSize}`);
+    process.exit(1);
+  }
+}
+console.log('  -> [OK] Fila de muitos arquivos ordenada com sucesso dos maiores para os menores (tamanho decrescente)!');
+
+// Valida sortQueueBySize
+sortQueueBySize(false);
+if (appState.queue[0].file.size > appState.queue[appState.queue.length - 1].file.size) {
+  console.error('[FALHA] sortQueueBySize(false) não ordenou em ordem crescente de tamanho');
+  process.exit(1);
+}
+console.log('  -> [OK] sortQueueBySize(false) ordenou corretamente em ordem crescente!');
+
+sortQueueBySize(true);
+if (appState.queue[0].file.size < appState.queue[appState.queue.length - 1].file.size) {
+  console.error('[FALHA] sortQueueBySize(true) não ordenou em ordem decrescente de tamanho');
+  process.exit(1);
+}
+console.log('  -> [OK] sortQueueBySize(true) ordenou com sucesso os maiores arquivos primeiro!');
 
 // Verifica se a concorrência escalou dinamicamente para 1000
 if (appState.maxConcurrency !== 1000) {
@@ -906,5 +933,5 @@ if (appState.maxConcurrency !== 1000) {
 console.log('  -> [OK] Extração de pacote compactado ativou alta concorrência (1000 workers) com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.8)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.7.9)');
 console.log('===============================================================');

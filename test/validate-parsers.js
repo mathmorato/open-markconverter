@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.7.8') {
-  console.error('[ERRO] Versão diferente de v.1.7.8');
+if (APP_CONFIG.VERSION !== 'v.1.7.9') {
+  console.error('[ERRO] Versão diferente de v.1.7.9');
   process.exit(1);
 }
 if (APP_CONFIG.APP_NAME !== 'Open Mark') {
@@ -47,7 +47,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.7.8' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.7.9' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -55,8 +55,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.7.8')) {
-  console.error('[ERRO] index.html não contém v.1.7.8');
+if (!indexHtml.includes('v.1.7.9')) {
+  console.error('[ERRO] index.html não contém v.1.7.9');
   process.exit(1);
 }
 if (!indexHtml.includes('brand-logo-svg') || !indexHtml.includes('Open <span class="accent">Mark</span>')) {
@@ -140,7 +140,7 @@ if (!indexHtml.includes('+algumas linguagens de código')) {
   console.error('[ERRO] index.html não contém a badge destacada +algumas linguagens de código');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.7.8, novo cabeçalho Open Mark com logo SVG e dropzone semântica');
+console.log('[OK] index.html contém v.1.7.9, novo cabeçalho Open Mark com logo SVG e dropzone semântica');
 
 // 3.1. Verifica concorrência dinâmica de 1000 workers e otimização requestAnimationFrame
 const configJs = fs.readFileSync('./js/config.js', 'utf8');
@@ -181,8 +181,8 @@ if (!appJs.includes('scrollQueueToActiveItem') || !appJs.includes('scrollQueueTo
   console.error('[ERRO] js/app.js não contém auto-scroll inteligente confinado (scrollQueueToActiveItem / scrollQueueToItem / scrollToActiveItem / userIsScrolling)');
   process.exit(1);
 }
-if (!appJs.includes('getFormattedTimestamp') || !appJs.includes('sortQueueByName')) {
-  console.error('[ERRO] js/app.js não contém getFormattedTimestamp ou sortQueueByName');
+if (!appJs.includes('getFormattedTimestamp') || !appJs.includes('sortQueueByName') || !appJs.includes('sortQueueBySize')) {
+  console.error('[ERRO] js/app.js não contém getFormattedTimestamp, sortQueueByName ou sortQueueBySize');
   process.exit(1);
 }
 if (!appJs.includes('buildBacklogSection') || !appJs.includes('buildDirectoryTreeAscii')) {
@@ -397,8 +397,8 @@ console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), e
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.7.8')) {
-  console.error('[ERRO] README.md não contém v.1.7.8');
+if (!readme.includes('v.1.7.9')) {
+  console.error('[ERRO] README.md não contém v.1.7.9');
   process.exit(1);
 }
 if (!readme.includes('# Open Mark')) {
@@ -409,7 +409,7 @@ if (!readme.includes('https://mathmorato.github.io/open-mark/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-mark/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.7.8, título # Open Mark e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.7.9, título # Open Mark e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.7.8
+ * @version v.1.7.9
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -729,7 +729,46 @@ export async function addFilesToQueue(files) {
     newItems.push(queueItem);
   });
 
+  // Se houver muitos arquivos (lote > 20 ou total acumulado > 20), ordena dos maiores para os menores
+  const isHighVolume = queueCandidates.length > 20 || (state.queue.length + newItems.length) > 20;
+  if (isHighVolume) {
+    newItems.sort((a, b) => {
+      const sizeA = a.file ? a.file.size : (a.size || 0);
+      const sizeB = b.file ? b.file.size : (b.size || 0);
+      if (sizeA !== sizeB) return sizeB - sizeA;
+      const nameA = a.file ? a.file.name : (a.name || '');
+      const nameB = b.file ? b.file.name : (b.name || '');
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
   state.queue.push(...newItems);
+
+  // Se a fila acumulada contiver muitos arquivos (> 20), ordena os itens pendentes dos maiores para os menores
+  if (state.queue.length > 20) {
+    const queuedIndices = [];
+    const queuedList = [];
+    state.queue.forEach((item, idx) => {
+      if (item.status === 'queued' && !item.cancelled) {
+        queuedIndices.push(idx);
+        queuedList.push(item);
+      }
+    });
+    if (queuedList.length > 0) {
+      queuedList.sort((a, b) => {
+        const sizeA = a.file ? a.file.size : (a.size || 0);
+        const sizeB = b.file ? b.file.size : (b.size || 0);
+        if (sizeA !== sizeB) return sizeB - sizeA;
+        const nameA = a.file ? a.file.name : (a.name || '');
+        const nameB = b.file ? b.file.name : (b.name || '');
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      queuedIndices.forEach((pos, i) => {
+        state.queue[pos] = queuedList[i];
+      });
+    }
+  }
+
   state.userIsScrolling = false;
 
   // Escala dinamicamente a concorrência para até 1000 workers ao descompactar ou com lote > 20 arquivos
@@ -1268,10 +1307,23 @@ export function dispatchNext() {
   let processingCount = state.queue.filter(it => it.status === 'processing' && !it.cancelled).length;
 
   while (processingCount < state.maxConcurrency) {
-    const nextItem = state.queue.find(it => it.status === 'queued' && !it.cancelled);
-    if (!nextItem) {
+    const queuedItems = state.queue.filter(it => it.status === 'queued' && !it.cancelled);
+    if (queuedItems.length === 0) {
       break;
     }
+
+    let nextItem;
+    // Para muitos arquivos (> 20 na fila), despacha primeiro os arquivos maiores para os menores
+    if (state.queue.length > 20 || queuedItems.length > 20) {
+      nextItem = queuedItems.reduce((max, it) => {
+        const itSize = it.file ? it.file.size : (it.size || 0);
+        const maxSize = max.file ? max.file.size : (max.size || 0);
+        return itSize > maxSize ? it : max;
+      }, queuedItems[0]);
+    } else {
+      nextItem = queuedItems[0];
+    }
+
     nextItem.status = 'processing';
     processingCount++;
     processQueueItem(nextItem);
@@ -1797,6 +1849,26 @@ export function sortQueueByName(ascending = true) {
   });
   renderQueueUI();
   updateSortButtonUI();
+}
+
+/**
+ * Ordena os itens da fila de documentos de acordo com o tamanho dos arquivos.
+ * Por padrão, ordena dos maiores para os menores (decrescente).
+ * @param {boolean} [descending=true] true para maiores primeiro, false para menores primeiro
+ */
+export function sortQueueBySize(descending = true) {
+  if (!state || !state.queue) return;
+  state.queue.sort((a, b) => {
+    const sizeA = a.file ? a.file.size : (a.size || 0);
+    const sizeB = b.file ? b.file.size : (b.size || 0);
+    if (sizeA !== sizeB) {
+      return descending ? (sizeB - sizeA) : (sizeA - sizeB);
+    }
+    const nameA = a.file ? a.file.name : (a.name || '');
+    const nameB = b.file ? b.file.name : (b.name || '');
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+  renderQueueUI();
 }
 
 /**

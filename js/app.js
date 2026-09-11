@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.8
+ * @version v.1.8.9
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -46,7 +46,10 @@ export const state = {
   maxConcurrency: 4,
   userIsScrolling: false,
   isMergeEnabled: false,
-  sortAscending: true
+  sortAscending: true,
+  isExtracting: false,
+  isProcessing: false,
+  isExporting: false
 };
 
 /**
@@ -339,17 +342,35 @@ function getFormatIcon(category, fileName = '') {
   return renderFileBadgeIcon(ext);
 }
 
-function downloadMarkdownFile(baseName, content) {
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = baseName.endsWith('.md') ? baseName : `${baseName}.md`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+export function getOutputFileName(fileName) {
+  if (!fileName) return 'documento.md';
+  const base = fileName.replace(/\.[^/.]+$/, '');
+  return `${base}.md`;
 }
+
+export function downloadMarkdownFile(baseName, content) {
+  const fileName = baseName.endsWith('.md') ? baseName : `${baseName}.md`;
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' && typeof document !== 'undefined' && document.createElement) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    if (document.body && document.body.appendChild) {
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      a.click();
+    }
+    if (typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(url);
+    }
+  }
+  return { fileName, blob, content };
+}
+
+export const triggerDownload = downloadMarkdownFile;
 
 /**
  * Gera timestamp padronizado com data, hora e minuto para nomenclatura de downloads.
@@ -608,56 +629,64 @@ export async function extractRarOrOtherArchive(file, ext) {
 export async function addFilesToQueue(files) {
   if (!files || files.length === 0) return;
 
+  state.isProcessing = true;
   const fileList = Array.from(files);
   const queueCandidates = [];
   let isArchiveExtraction = false;
 
-  for (const file of fileList) {
-    const cleanExt = getFileExtension(file.name);
-    const ext = cleanExt ? `.${cleanExt}` : '';
-    if (isArchiveExtension(ext)) {
-      if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
-        queueCandidates.push({
-          file,
-          isArchiveError: true,
-          errorMessage: 'Arquivo compactado excede o limite máximo permitido de 1,5 GB.'
-        });
-        continue;
-      }
-
-      updateDebugStatus(`[Descompactando]: ${file.name}...`);
-      try {
-        const extracted = await extractArchiveFiles(file);
-        if (extracted && extracted.length > 0) {
-          isArchiveExtraction = true;
-          extracted.forEach(f => queueCandidates.push({
-            file: f,
-            archiveOrigin: f.archiveOrigin || file.name,
-            relativePath: f.relativePath || f.name,
-            folderPath: f.folderPath || (f.relativePath && f.relativePath.includes('/') ? f.relativePath.substring(0, f.relativePath.lastIndexOf('/')) : 'Raiz do Pacote')
-          }));
-        } else {
-          throw new Error('Nenhum documento compatível encontrado no pacote compactado.');
+  try {
+    for (const file of fileList) {
+      const cleanExt = getFileExtension(file.name);
+      const ext = cleanExt ? `.${cleanExt}` : '';
+      if (isArchiveExtension(ext)) {
+        if (file.size > APP_CONFIG.MAX_FILE_SIZE_BYTES) {
+          queueCandidates.push({
+            file,
+            isArchiveError: true,
+            errorMessage: 'Arquivo compactado excede o limite máximo permitido de 1,5 GB.'
+          });
+          continue;
         }
-      } catch (err) {
-        console.error(`[doc2md] Falha na extração de ${file.name}:`, err);
+
+        updateDebugStatus(`[Descompactando]: ${file.name}...`);
+        state.isExtracting = true;
+        try {
+          const extracted = await extractArchiveFiles(file);
+          if (extracted && extracted.length > 0) {
+            isArchiveExtraction = true;
+            extracted.forEach(f => queueCandidates.push({
+              file: f,
+              archiveOrigin: f.archiveOrigin || file.name,
+              relativePath: f.relativePath || f.name,
+              folderPath: f.folderPath || (f.relativePath && f.relativePath.includes('/') ? f.relativePath.substring(0, f.relativePath.lastIndexOf('/')) : 'Raiz do Pacote')
+            }));
+          } else {
+            throw new Error('Nenhum documento compatível encontrado no pacote compactado.');
+          }
+        } catch (err) {
+          console.error(`[doc2md] Falha na extração de ${file.name}:`, err);
+          queueCandidates.push({
+            file,
+            isArchiveError: true,
+            errorMessage: err.message || 'Falha ao descompactar pacote (arquivo corrompido ou com senha)',
+            archiveOrigin: file.name,
+            relativePath: file.name,
+            folderPath: 'Raiz do Pacote'
+          });
+        } finally {
+          state.isExtracting = false;
+        }
+      } else {
         queueCandidates.push({
           file,
-          isArchiveError: true,
-          errorMessage: err.message || 'Falha ao descompactar pacote (arquivo corrompido ou com senha)',
-          archiveOrigin: file.name,
-          relativePath: file.name,
-          folderPath: 'Raiz do Pacote'
+          archiveOrigin: file.archiveOrigin || '(Upload Direto)',
+          relativePath: file.relativePath || file.name,
+          folderPath: file.folderPath || 'Raiz'
         });
       }
-    } else {
-      queueCandidates.push({
-        file,
-        archiveOrigin: file.archiveOrigin || '(Upload Direto)',
-        relativePath: file.relativePath || file.name,
-        folderPath: file.folderPath || 'Raiz'
-      });
     }
+  } finally {
+    state.isExtracting = false;
   }
 
   const newItems = [];
@@ -726,6 +755,7 @@ export async function addFilesToQueue(files) {
       convertText,
       progress,
       markdown: '',
+      markdownOutput: '',
       durationMs: 0,
       mdSize: 0,
       formattedMdSize: '',
@@ -791,6 +821,7 @@ export async function addFilesToQueue(files) {
 
   renderQueue();
   updateGlobalBatchProgress();
+  updateGlobalBatchButtonsState();
   dispatchNext();
 }
 
@@ -945,12 +976,52 @@ export function computeAndAnimateTotalMdBytes() {
   return totalBytes;
 }
 
+/**
+ * Atualiza e desbloqueia os botões globais de download da fila (#btn-queue-download-all e #btn-download-unified)
+ * Garantindo ausência de bloqueios remanescentes (disabled / pointer-events / is-consolidating)
+ */
+export function updateGlobalBatchButtonsState() {
+  const completedItems = (state && state.queue) ? state.queue.filter(it => it.status === 'completed' && (it.markdown || it.markdownOutput)) : [];
+  const completedCount = completedItems.length;
+  const isAllResolved = state && state.queue && state.queue.length > 0 && !state.queue.some(it => (it.status === 'queued' || it.status === 'processing') && !it.cancelled);
+
+  if (isAllResolved) {
+    state.isProcessing = false;
+    state.isExtracting = false;
+  }
+
+  const btnDownloadAll = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
+  const btnDownloadUnified = (elements && elements.btnDownloadUnified) || (elements && elements.btnQueueDownloadMerged) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
+
+  if (btnDownloadAll) {
+    if (completedCount > 0) {
+      if (typeof btnDownloadAll.removeAttribute === 'function') btnDownloadAll.removeAttribute('disabled');
+      btnDownloadAll.disabled = false;
+      if (btnDownloadAll.style) btnDownloadAll.style.pointerEvents = 'auto';
+      if (btnDownloadAll.classList && btnDownloadAll.classList.remove) btnDownloadAll.classList.remove('is-consolidating');
+    } else {
+      if (typeof btnDownloadAll.setAttribute === 'function') btnDownloadAll.setAttribute('disabled', '');
+      btnDownloadAll.disabled = true;
+    }
+  }
+
+  if (btnDownloadUnified) {
+    if (completedCount > 0) {
+      if (typeof btnDownloadUnified.removeAttribute === 'function') btnDownloadUnified.removeAttribute('disabled');
+      btnDownloadUnified.disabled = false;
+      if (btnDownloadUnified.style) btnDownloadUnified.style.pointerEvents = 'auto';
+      if (btnDownloadUnified.classList && btnDownloadUnified.classList.remove) btnDownloadUnified.classList.remove('is-consolidating');
+    } else {
+      if (typeof btnDownloadUnified.setAttribute === 'function') btnDownloadUnified.setAttribute('disabled', '');
+      btnDownloadUnified.disabled = true;
+    }
+  }
+}
+
 function renderQueue() {
   const queueSection = (elements && elements.fileQueueSection) || (typeof document !== 'undefined' ? document.getElementById('file-queue-section') : null);
   const queueList = (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.getElementById('file-queue-list') || document.querySelector('.file-queue-list')) : null);
   const queueCounter = (elements && elements.queueCounter) || (typeof document !== 'undefined' ? document.getElementById('queue-counter') : null);
-  const btnDownloadAll = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
-  const btnDownloadMerged = (elements && elements.btnQueueDownloadMerged) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
 
   if (!queueSection || !queueList) return;
 
@@ -960,6 +1031,7 @@ function renderQueue() {
     if (queueCounter) queueCounter.textContent = '0 arquivos';
     computeAndAnimateTotalMdBytes();
     updateGlobalBatchProgress();
+    updateGlobalBatchButtonsState();
     return;
   }
 
@@ -968,15 +1040,7 @@ function renderQueue() {
     queueCounter.textContent = `${total} ${total === 1 ? 'arquivo' : 'arquivos'}`;
   }
 
-  const completedCount = state.queue.filter(it => it.status === 'completed' && it.markdown).length;
-  if (btnDownloadAll) {
-    if (completedCount === 0) btnDownloadAll.setAttribute('disabled', '');
-    else btnDownloadAll.removeAttribute('disabled');
-  }
-  if (btnDownloadMerged) {
-    if (completedCount === 0) btnDownloadMerged.setAttribute('disabled', '');
-    else btnDownloadMerged.removeAttribute('disabled');
-  }
+  updateGlobalBatchButtonsState();
 
   const isHeadless = shouldEnableHeadlessMode(total);
   computeAndAnimateTotalMdBytes();
@@ -1113,14 +1177,14 @@ function renderQueue() {
 
           <span class="queue-item-status ${statusClass} ${badgeErrorClass}" id="status-badge-${item.id}" style="display: none;">${item.statusText}</span>
 
-          <button type="button" class="btn-item-action btn-download btn-queue-item-download" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
+          <button type="button" class="btn-item-action btn-download btn-queue-item-download btn-download-item" data-id="${item.id}" ${isCompleted ? '' : 'disabled'} title="Baixar ${baseName}.md" aria-label="Baixar ${baseName}.md">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
           </button>
-          <button type="button" class="btn-item-action btn-remove btn-queue-item-remove" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
+          <button type="button" class="btn-item-action btn-remove btn-queue-item-remove btn-remove-item" data-id="${item.id}" title="Remover ${item.file.name}" aria-label="Remover item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 6h18"/>
               <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -1344,34 +1408,30 @@ function applyQueueItemDOMUpdate(item) {
     }
   }
 
-  const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download`);
+  const downloadBtn = itemEl.querySelector(`.btn-download, .btn-queue-item-download, .btn-download-item`);
   if (downloadBtn) {
     if (item.status === 'completed') {
-      downloadBtn.removeAttribute('disabled');
+      if (typeof downloadBtn.removeAttribute === 'function') downloadBtn.removeAttribute('disabled');
+      downloadBtn.disabled = false;
+      if (downloadBtn.style) downloadBtn.style.pointerEvents = 'auto';
     } else {
-      downloadBtn.setAttribute('disabled', '');
+      if (typeof downloadBtn.setAttribute === 'function') downloadBtn.setAttribute('disabled', '');
+      downloadBtn.disabled = true;
     }
   }
 
-  const completedCount = state.queue.filter(it => it.status === 'completed' && it.markdown).length;
-  if (elements.btnQueueDownloadAll) {
-    if (completedCount === 0) elements.btnQueueDownloadAll.setAttribute('disabled', '');
-    else elements.btnQueueDownloadAll.removeAttribute('disabled');
-  }
-  if (elements.btnQueueDownloadMerged) {
-    if (completedCount === 0) elements.btnQueueDownloadMerged.setAttribute('disabled', '');
-    else elements.btnQueueDownloadMerged.removeAttribute('disabled');
-  }
+  updateGlobalBatchButtonsState();
 }
 
-function downloadQueueItem(itemId) {
-  const item = state.queue.find(it => it.id === itemId);
-  if (!item || item.status !== 'completed' || !item.markdown) {
-    return;
+export function downloadQueueItem(itemId) {
+  const item = (state && state.queue) ? state.queue.find(it => it.id === itemId) : null;
+  if (!item || item.status !== 'completed' || (!item.markdown && !item.markdownOutput)) {
+    return null;
   }
 
-  const baseName = item.file.name.replace(/\.[^/.]+$/, '');
-  downloadMarkdownFile(baseName, item.markdown);
+  const fileName = getOutputFileName(item.file ? item.file.name : item.name);
+  const content = item.markdownOutput || item.markdown || '';
+  return downloadMarkdownFile(fileName, content);
 }
 
 export function removeQueueItem(itemId) {
@@ -1504,6 +1564,10 @@ export const batchAnimationController = {
         globalProgressEl.classList.remove('is-completed');
       }
     }
+
+    if (displayPercent >= 99.99 || (this.total > 0 && displayCount >= this.total)) {
+      updateGlobalBatchButtonsState();
+    }
   },
 
   reset() {
@@ -1579,11 +1643,15 @@ export function updateGlobalBatchProgress() {
   } else {
     globalProgressEl.style.display = 'none';
     batchAnimationController.reset();
+    updateGlobalBatchButtonsState();
     return;
   }
 
   const completed = state.queue.filter(item => item.status === 'completed' || item.status === 'error').length;
   batchAnimationController.updateTargets(completed, total);
+  if (total > 0 && completed >= total) {
+    updateGlobalBatchButtonsState();
+  }
 }
 
 /**
@@ -1614,6 +1682,13 @@ export function dispatchNext() {
     nextItem.status = 'processing';
     processingCount++;
     processQueueItem(nextItem);
+  }
+
+  const hasActiveItems = state.queue.some(it => (it.status === 'queued' || it.status === 'processing') && !it.cancelled);
+  state.isProcessing = hasActiveItems;
+  if (!hasActiveItems) {
+    state.isExtracting = false;
+    updateGlobalBatchButtonsState();
   }
 }
 
@@ -1816,6 +1891,7 @@ async function processQueueItem(item) {
     item.progress = 100;
     item.statusText = 'Concluído';
     item.markdown = markdown;
+    item.markdownOutput = markdown;
     item.durationMs = duration;
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
@@ -1865,6 +1941,7 @@ async function processQueueItem(item) {
     }
     computeAndAnimateTotalMdBytes();
     updateGlobalBatchProgress();
+    updateGlobalBatchButtonsState();
     dispatchNext();
   }
 }
@@ -1939,22 +2016,24 @@ export function hideConsolidationProgress() {
    Ações Globais de Fila (Limpar e Download em Lote .ZIP Assíncrono)
    ========================================================================== */
 export async function downloadAllZip() {
-  const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
+  const completed = (state && state.queue) ? state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput)) : [];
   const total = completed.length;
   if (total === 0) {
-    return;
+    return null;
   }
 
   if (total === 1) {
     const item = completed[0];
     const baseName = (item.file ? item.file.name : (item.name || 'documento')).replace(/\.[^/.]+$/, '');
-    downloadMarkdownFile(`${baseName}.md`, item.markdown);
-    return;
+    return downloadMarkdownFile(`${baseName}.md`, item.markdownOutput || item.markdown);
   }
 
   const btn = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
   const originalHtml = btn ? btn.innerHTML : '';
   const originalTitle = btn ? btn.getAttribute('title') : '';
+
+  let zipBlob = null;
+  state.isExporting = true;
 
   try {
     if (btn) {
@@ -1981,8 +2060,18 @@ export async function downloadAllZip() {
 
     showConsolidationProgress('Compactando .ZIP:', `0 / ${total} arquivos (0%)`);
 
-    await loadScript(APP_CONFIG.CDN.JSZIP);
-    const JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+    let JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+    if (!JSZipClass && typeof window !== 'undefined') {
+      await loadScript(APP_CONFIG.CDN.JSZIP);
+      JSZipClass = window.JSZip || globalThis.JSZip;
+    }
+    if (!JSZipClass && typeof process !== 'undefined') {
+      try {
+        const jszipMod = await import('jszip');
+        JSZipClass = jszipMod.default || jszipMod;
+      } catch (_) {}
+    }
+
     if (!JSZipClass) {
       throw new Error('Biblioteca JSZip indisponível.');
     }
@@ -2004,7 +2093,7 @@ export async function downloadAllZip() {
           counter++;
         }
         usedNames.add(fileName);
-        zip.file(fileName, item.markdown || item.markdownOutput || '');
+        zip.file(fileName, item.markdownOutput || item.markdown || '');
       }
       const processed = Math.min(i + CHUNK_SIZE, total);
       const prepPercent = Math.round((processed / total) * 30);
@@ -2019,7 +2108,7 @@ export async function downloadAllZip() {
     }
 
     // Geração do ZIP com callback onUpdate nativo (30% a 100%)
-    const zipBlob = await zip.generateAsync(
+    zipBlob = await zip.generateAsync(
       { type: 'blob', compression: 'DEFLATE' },
       function updateCallback(metadata) {
         const compressionPercent = Math.round(metadata.percent || 0);
@@ -2037,29 +2126,40 @@ export async function downloadAllZip() {
 
     updateConsolidationProgress(total, total, 100, 'Concluído:');
 
-    if (typeof URL !== 'undefined' && typeof document !== 'undefined' && document.createElement) {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' && typeof document !== 'undefined' && document.createElement) {
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `documentos_markdown_${getFormattedTimestamp()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (document.body && document.body.appendChild) {
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        a.click();
+      }
+      if (typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(url);
+      }
     }
 
     await new Promise(r => setTimeout(r, 200));
   } catch (err) {
     console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
   } finally {
+    state.isExporting = false;
     hideConsolidationProgress();
     if (btn) {
-      btn.removeAttribute('disabled');
-      btn.classList.remove('is-consolidating');
+      if (typeof btn.removeAttribute === 'function') btn.removeAttribute('disabled');
+      btn.disabled = false;
+      if (btn.classList && btn.classList.remove) btn.classList.remove('is-consolidating');
+      if (btn.style) btn.style.pointerEvents = 'auto';
       btn.innerHTML = originalHtml;
-      if (originalTitle) btn.setAttribute('title', originalTitle);
+      if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
+    updateGlobalBatchButtonsState();
   }
+  return { zipBlob, total };
 }
 
 export const downloadAllAsZip = downloadAllZip;
@@ -2295,15 +2395,18 @@ export async function generateUnifiedMarkdownWithProgress(items, onProgress) {
  * Dispara o download unificado com feedback de progresso assíncrono e não-bloqueante
  */
 export async function downloadUnifiedMarkdown() {
-  const completed = state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput));
+  const completed = (state && state.queue) ? state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput)) : [];
   const total = completed.length;
   if (total === 0) {
-    return;
+    return null;
   }
 
   const btn = (elements && elements.btnDownloadUnified) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
   const originalHtml = btn ? btn.innerHTML : '';
   const originalTitle = btn ? btn.getAttribute('title') : '';
+
+  let downloadResult = null;
+  state.isExporting = true;
 
   try {
     if (btn) {
@@ -2344,21 +2447,26 @@ export async function downloadUnifiedMarkdown() {
     });
 
     const fileName = `documento_unificado_${getFormattedTimestamp()}.md`;
-    downloadMarkdownFile(fileName, mergedContent);
+    downloadResult = downloadMarkdownFile(fileName, mergedContent);
 
     updateConsolidationProgress(total, total, 100, 'Concluído:');
     await new Promise(r => setTimeout(r, 200));
   } catch (err) {
     console.error('[doc2md] Erro ao consolidar Markdown unificado:', err);
   } finally {
+    state.isExporting = false;
     hideConsolidationProgress();
     if (btn) {
-      btn.removeAttribute('disabled');
-      btn.classList.remove('is-consolidating');
+      if (typeof btn.removeAttribute === 'function') btn.removeAttribute('disabled');
+      btn.disabled = false;
+      if (btn.classList && btn.classList.remove) btn.classList.remove('is-consolidating');
+      if (btn.style) btn.style.pointerEvents = 'auto';
       btn.innerHTML = originalHtml;
-      if (originalTitle) btn.setAttribute('title', originalTitle);
+      if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
+    updateGlobalBatchButtonsState();
   }
+  return downloadResult;
 }
 
 /**
@@ -2452,15 +2560,48 @@ export function clearQueue() {
   if (!state || !state.queue) return;
   state.queue.forEach(it => { it.cancelled = true; });
   state.queue = [];
+  state.isExtracting = false;
+  state.isProcessing = false;
+  state.isExporting = false;
   state.userIsScrolling = false;
   completedCountSinceLastScroll = 0;
   totalBytesAnimController.reset();
   batchAnimationController.reset();
   computeAndAnimateTotalMdBytes();
   renderQueue();
+  updateGlobalBatchButtonsState();
 }
 
 function initQueueEvents() {
+  const queueContainer = (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
+  if (queueContainer && !queueContainer.__hasDelegatedQueueEvents) {
+    queueContainer.__hasDelegatedQueueEvents = true;
+    queueContainer.addEventListener('click', (e) => {
+      const downloadBtn = e.target.closest('.btn-download-item, .btn-queue-item-download, .btn-download');
+      if (downloadBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const itemId = downloadBtn.dataset.id;
+        const item = (state && state.queue) ? state.queue.find(q => q.id === itemId) : null;
+        if (item && (item.markdownOutput || item.markdown)) {
+          triggerDownload(getOutputFileName(item.file ? item.file.name : item.name), item.markdownOutput || item.markdown);
+        } else if (itemId) {
+          downloadQueueItem(itemId);
+        }
+        return;
+      }
+
+      const removeBtn = e.target.closest('.btn-remove-item, .btn-queue-item-remove, .btn-remove');
+      if (removeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const itemId = removeBtn.dataset.id;
+        removeQueueItem(itemId);
+        return;
+      }
+    });
+  }
+
   if (elements.btnQueueClear) {
     elements.btnQueueClear.addEventListener('click', () => {
       if (state.queue.length === 0) return;
@@ -2468,8 +2609,11 @@ function initQueueEvents() {
     });
   }
 
-  if (elements.btnQueueDownloadAll) {
-    elements.btnQueueDownloadAll.addEventListener('click', () => {
+  const btnQueueDownloadAll = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
+  if (btnQueueDownloadAll && !btnQueueDownloadAll.__hasDownloadListener) {
+    btnQueueDownloadAll.__hasDownloadListener = true;
+    btnQueueDownloadAll.addEventListener('click', (e) => {
+      e.preventDefault();
       downloadAllZip();
     });
   }
@@ -2506,12 +2650,11 @@ function initQueueEvents() {
     });
   }
 
-  if (elements.btnDownloadUnified) {
-    elements.btnDownloadUnified.addEventListener('click', () => {
-      downloadUnifiedMarkdown();
-    });
-  } else if (elements.btnQueueDownloadMerged) {
-    elements.btnQueueDownloadMerged.addEventListener('click', () => {
+  const btnUnified = (elements && elements.btnDownloadUnified) || (elements && elements.btnQueueDownloadMerged) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
+  if (btnUnified && !btnUnified.__hasUnifiedListener) {
+    btnUnified.__hasUnifiedListener = true;
+    btnUnified.addEventListener('click', (e) => {
+      e.preventDefault();
       downloadUnifiedMarkdown();
     });
   }

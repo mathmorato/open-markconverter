@@ -1673,36 +1673,43 @@ body {
 
 .btn-item-action svg,
 .btn-queue-item-download svg,
-.btn-queue-item-remove svg {
+.btn-download-item svg,
+.btn-queue-item-remove svg,
+.btn-remove-item svg {
   width: 22px;
   height: 22px;
 }
 
 .btn-item-action.btn-download,
-.btn-queue-item-download {
+.btn-queue-item-download,
+.btn-download-item {
   color: var(--blue-primary);
 }
 
 .btn-item-action.btn-download:hover:not(:disabled),
-.btn-queue-item-download:hover:not(:disabled) {
+.btn-queue-item-download:hover:not(:disabled),
+.btn-download-item:hover:not(:disabled) {
   color: var(--blue-hover);
   background: var(--blue-subtle);
 }
 
 .btn-item-action.btn-download:disabled,
-.btn-queue-item-download:disabled {
+.btn-queue-item-download:disabled,
+.btn-download-item:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   color: var(--text-muted);
 }
 
 .btn-item-action.btn-remove,
-.btn-queue-item-remove {
+.btn-queue-item-remove,
+.btn-remove-item {
   color: var(--text-muted);
 }
 
 .btn-item-action.btn-remove:hover,
-.btn-queue-item-remove:hover {
+.btn-queue-item-remove:hover,
+.btn-remove-item:hover {
   color: var(--error-color);
   background: var(--error-bg);
 }

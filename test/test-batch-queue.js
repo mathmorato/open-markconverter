@@ -44,6 +44,10 @@ import {
   hideConsolidationProgress,
   downloadUnifiedMarkdown,
   downloadAllZip,
+  downloadQueueItem,
+  getOutputFileName,
+  triggerDownload,
+  updateGlobalBatchButtonsState,
   removeItemFromQueue,
   state as appState
 } from '../js/app.js';
@@ -52,7 +56,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.8)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.9)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -1573,7 +1577,162 @@ if (mockConsolidationProgress.style.display !== 'none') {
 }
 console.log('  -> [OK] downloadAllZip() executou com telemetria assíncrona e restaurou botões e barras com sucesso!');
 
+// =========================================================================
+// TESTE 29: Ingestão de Pacote .ZIP, Resolução de Estado 100% e Disparo Imediato no Primeiro Clique
+// =========================================================================
+console.log('\n[TESTE 29] Testando ingestão de pacote .zip, consolidação de estado e download imediato no primeiro clique...');
+
+// 29.1. Limpa fila anterior e inicializa estado limpo
+realClearQueue();
+if (appState.queue.length !== 0 || appState.isExtracting || appState.isProcessing) {
+  console.error('[FALHA] realClearQueue não restaurou o estado limpo da fila e flags');
+  process.exit(1);
+}
+
+// 29.2. Cria pacote .ZIP em memória com JSZip contendo 2 arquivos textuais suportados
+const testZip = new JSZip();
+testZip.file('relatorio_financeiro.txt', 'Relatório Financeiro do Q3:\nReceita: R$ 1.500.000,00\nLucro Líquido: R$ 350.000,00');
+testZip.file('planejamento_estrategico.txt', 'Planejamento Estratégico 2027:\nMetas e diretrizes de expansão nacional.');
+const testZipBuffer = await testZip.generateAsync({ type: 'arraybuffer' });
+
+const mockZipUploadFile = {
+  name: 'pacote_empresa.zip',
+  size: testZipBuffer.byteLength,
+  arrayBuffer: async () => testZipBuffer
+};
+
+// 29.3. Simula ingestão assíncrona do pacote .ZIP
+await realAddFilesToQueue([mockZipUploadFile]);
+
+// 29.4. Aguarda resolução assíncrona completa do lote (100% dos arquivos concluídos)
+const startTimeWait = Date.now();
+while (appState.queue.some(it => it.status === 'queued' || it.status === 'processing')) {
+  dispatchNext();
+  await new Promise(r => setTimeout(r, 15));
+  if (Date.now() - startTimeWait > 8000) {
+    console.error('[FALHA] Timeout aguardando resolução de lote do pacote .ZIP');
+    process.exit(1);
+  }
+}
+
+// Valida resolução completa do lote (100%)
+if (appState.queue.length !== 2) {
+  console.error(`[FALHA] Esperava 2 itens na fila pós-extração, encontrados: ${appState.queue.length}`);
+  process.exit(1);
+}
+
+const allCompleted = appState.queue.every(it => it.status === 'completed');
+if (!allCompleted) {
+  console.error('[FALHA] Nem todos os itens extraídos do ZIP atingiram status "completed"');
+  process.exit(1);
+}
+
+const allHaveMarkdownOutput = appState.queue.every(it => it.markdown && it.markdownOutput && it.markdown === it.markdownOutput);
+if (!allHaveMarkdownOutput) {
+  console.error('[FALHA] Itens da fila pós-extração não consolidaram markdownOutput e markdown');
+  process.exit(1);
+}
+
+if (appState.isExtracting !== false || appState.isProcessing !== false) {
+  console.error(`[FALHA] Flags de bloqueio presas após resolução: isExtracting=${appState.isExtracting}, isProcessing=${appState.isProcessing}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Lote do pacote .ZIP descompactado e processado com 100% de sucesso (isExtracting=false, isProcessing=false)!');
+
+// 29.5. Dispara imediatamente no PRIMEIRO CLIQUE o Download Unificado (.md)
+let unifiedClickTriggered = false;
+let unifiedBlobGenerated = null;
+let unifiedFileNameGenerated = null;
+
+global.document.createElement = (tag) => {
+  return {
+    style: {},
+    setAttribute: () => {},
+    click: function() {
+      unifiedClickTriggered = true;
+      unifiedBlobGenerated = this.href;
+      unifiedFileNameGenerated = this.download;
+    }
+  };
+};
+
+const test29UnifiedResult = await downloadUnifiedMarkdown();
+if (!test29UnifiedResult || !test29UnifiedResult.blob || !test29UnifiedResult.content) {
+  console.error('[FALHA] downloadUnifiedMarkdown não retornou Blob/conteúdo válido na primeira chamada');
+  process.exit(1);
+}
+if (!test29UnifiedResult.content.includes('Relatório Financeiro do Q3') || !test29UnifiedResult.content.includes('Planejamento Estratégico 2027')) {
+  console.error('[FALHA] Conteúdo do Markdown Unificado não contém o texto dos arquivos extraídos');
+  process.exit(1);
+}
+if (!unifiedClickTriggered || !unifiedFileNameGenerated || !unifiedFileNameGenerated.startsWith('documento_unificado_')) {
+  console.error('[FALHA] Clique sintético da tag <a> do download unificado não disparou no primeiro acionamento');
+  process.exit(1);
+}
+console.log('  -> [OK] Download Unificado disparou imediatamente no primeiro clique com Blob e conteúdo válidos!');
+
+// 29.6. Dispara imediatamente no PRIMEIRO CLIQUE o Download Individual por item
+let individualClickTriggered = false;
+let individualBlobGenerated = null;
+let individualFileNameGenerated = null;
+
+global.document.createElement = (tag) => {
+  return {
+    style: {},
+    setAttribute: () => {},
+    click: function() {
+      individualClickTriggered = true;
+      individualBlobGenerated = this.href;
+      individualFileNameGenerated = this.download;
+    }
+  };
+};
+
+const test29ItemToDownload = appState.queue[0];
+const individualResult = downloadQueueItem(test29ItemToDownload.id);
+if (!individualResult || !individualResult.blob || !individualResult.content) {
+  console.error('[FALHA] downloadQueueItem não retornou Blob/conteúdo válido na primeira chamada');
+  process.exit(1);
+}
+if (!individualResult.content.includes('Relatório Financeiro do Q3')) {
+  console.error('[FALHA] Conteúdo do download individual inconsistente com o arquivo');
+  process.exit(1);
+}
+if (!individualClickTriggered || individualFileNameGenerated !== 'relatorio_financeiro.md') {
+  console.error(`[FALHA] Clique sintético do download individual falhou no primeiro acionamento: ${individualFileNameGenerated}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Download Individual disparou imediatamente no primeiro clique com Blob e conteúdo válidos!');
+
+// 29.7. Dispara imediatamente no PRIMEIRO CLIQUE o Download de Todos em .ZIP
+let zipDownloadTriggered = false;
+let zipBlobGenerated = null;
+let zipNameGenerated = null;
+
+global.document.createElement = (tag) => {
+  return {
+    style: {},
+    setAttribute: () => {},
+    click: function() {
+      zipDownloadTriggered = true;
+      zipBlobGenerated = this.href;
+      zipNameGenerated = this.download;
+    }
+  };
+};
+
+const zipResult = await downloadAllZip();
+if (!zipResult || !zipResult.zipBlob) {
+  console.error('[FALHA] downloadAllZip não gerou pacote ZIP válido na primeira chamada');
+  process.exit(1);
+}
+if (!zipDownloadTriggered || !zipNameGenerated || !zipNameGenerated.startsWith('documentos_markdown_')) {
+  console.error('[FALHA] Clique sintético da tag <a> do download .zip falhou no primeiro acionamento');
+  process.exit(1);
+}
+console.log('  -> [OK] Download de Todos (.zip) disparou imediatamente no primeiro clique com Blob válido!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.8)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.9)');
 console.log('===============================================================');
 

@@ -5,7 +5,7 @@
 import { APP_CONFIG } from '../js/config.js';
 import { getFormatCategory, getFileExtension, isSupportedDocumentExtension } from '../js/app.js';
 
-console.log('--- Testando lógica de detecção e validações (v.1.8.8) ---');
+console.log('--- Testando lógica de detecção e validações (v.1.8.9) ---');
 
 // 1. Testa formatos aceitos
 const testFiles = [

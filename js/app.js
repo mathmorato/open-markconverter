@@ -49,8 +49,48 @@ export const state = {
   sortAscending: true,
   isExtracting: false,
   isProcessing: false,
-  isExporting: false
+  isExporting: false,
+  isExportingZip: false,
+  isExportingUnified: false
 };
+
+// Templates canônicos de botões de exportação (prevenção de estados travados e feedback visual de conclusão)
+export const DEFAULT_ZIP_BUTTON_HTML = `
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+  Baixar Todos (.zip)
+`.trim();
+
+export const DEFAULT_UNIFIED_BUTTON_HTML = `
+  <span class="icon-merge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="12" y1="18" x2="12" y2="12"/>
+      <polyline points="9 15 12 18 15 15"/>
+    </svg>
+  </span>
+  Baixar Markdown Unificado (.md)
+`.trim();
+
+export const COMPLETED_ZIP_BUTTON_HTML = `
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-check-icon">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+  <span class="btn-text-label">Concluído!</span>
+`.trim();
+
+export const COMPLETED_UNIFIED_BUTTON_HTML = `
+  <span class="icon-merge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-check-icon">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+  </span>
+  <span class="btn-text-label">Concluído!</span>
+`.trim();
 
 /**
  * Escala dinamicamente o teto de concorrência conforme o volume da fila ou pacotes descompactados
@@ -1013,24 +1053,32 @@ export function updateGlobalActionButtonsState() {
   const btnDownloadAll = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
   const btnDownloadUnified = (elements && elements.btnDownloadUnified) || (elements && elements.btnQueueDownloadMerged) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
 
-  if (btnDownloadAll) {
+  if (btnDownloadAll && !state.isExportingZip && !btnDownloadAll.__isShowingSuccess) {
     if (completedCount > 0) {
       if (typeof btnDownloadAll.removeAttribute === 'function') btnDownloadAll.removeAttribute('disabled');
       btnDownloadAll.disabled = false;
       if (btnDownloadAll.style) btnDownloadAll.style.pointerEvents = 'auto';
       if (btnDownloadAll.classList && btnDownloadAll.classList.remove) btnDownloadAll.classList.remove('is-consolidating');
+      // Previne que textos residuais de consolidação permaneçam travados no botão
+      if (btnDownloadAll.innerHTML && (btnDownloadAll.innerHTML.includes('Preparando') || btnDownloadAll.innerHTML.includes('Compactando') || btnDownloadAll.innerHTML.includes('radial-spinner-svg'))) {
+        btnDownloadAll.innerHTML = DEFAULT_ZIP_BUTTON_HTML;
+      }
     } else {
       if (typeof btnDownloadAll.setAttribute === 'function') btnDownloadAll.setAttribute('disabled', '');
       btnDownloadAll.disabled = true;
     }
   }
 
-  if (btnDownloadUnified) {
+  if (btnDownloadUnified && !state.isExportingUnified && !btnDownloadUnified.__isShowingSuccess) {
     if (completedCount > 0) {
       if (typeof btnDownloadUnified.removeAttribute === 'function') btnDownloadUnified.removeAttribute('disabled');
       btnDownloadUnified.disabled = false;
       if (btnDownloadUnified.style) btnDownloadUnified.style.pointerEvents = 'auto';
       if (btnDownloadUnified.classList && btnDownloadUnified.classList.remove) btnDownloadUnified.classList.remove('is-consolidating');
+      // Previne que textos residuais de consolidação permaneçam travados no botão
+      if (btnDownloadUnified.innerHTML && (btnDownloadUnified.innerHTML.includes('Consolidando') || btnDownloadUnified.innerHTML.includes('radial-spinner-svg'))) {
+        btnDownloadUnified.innerHTML = DEFAULT_UNIFIED_BUTTON_HTML;
+      }
     } else {
       if (typeof btnDownloadUnified.setAttribute === 'function') btnDownloadUnified.setAttribute('disabled', '');
       btnDownloadUnified.disabled = true;
@@ -1488,7 +1536,29 @@ export function downloadQueueItem(itemId) {
 
   const fileName = getOutputFileName(item.file ? item.file.name : item.name);
   const content = item.markdownOutput || item.markdown || '';
-  return triggerDownload(fileName, content);
+  const result = triggerDownload(fileName, content);
+
+  // Feedback visual temporário de conclusão no botão do card
+  if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
+    const cardBtn = document.querySelector(`.btn-download-item[data-id="${itemId}"], .btn-queue-item-download[data-id="${itemId}"]`);
+    if (cardBtn && !cardBtn.__isShowingSuccess) {
+      cardBtn.__isShowingSuccess = true;
+      if (cardBtn.classList && cardBtn.classList.add) cardBtn.classList.add('is-completed-success');
+      const originalHtml = cardBtn.innerHTML;
+      cardBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+      setTimeout(() => {
+        if (cardBtn.classList && cardBtn.classList.remove) cardBtn.classList.remove('is-completed-success');
+        cardBtn.innerHTML = originalHtml;
+        cardBtn.__isShowingSuccess = false;
+      }, 2000);
+    }
+  }
+
+  return result;
 }
 
 export function removeQueueItem(itemId) {
@@ -2079,18 +2149,27 @@ export async function downloadAllZip() {
     return null;
   }
 
+  if (state.isExportingZip) {
+    return null;
+  }
+  state.isExportingZip = true;
+  state.isExporting = true;
+
   if (total === 1) {
-    const item = completed[0];
-    const baseName = (item.file ? item.file.name : (item.name || 'documento')).replace(/\.[^/.]+$/, '');
-    return triggerDownload(getOutputFileName(baseName), item.markdownOutput || item.markdown);
+    try {
+      const item = completed[0];
+      const baseName = (item.file ? item.file.name : (item.name || 'documento')).replace(/\.[^/.]+$/, '');
+      return triggerDownload(getOutputFileName(baseName), item.markdownOutput || item.markdown);
+    } finally {
+      state.isExportingZip = false;
+      state.isExporting = false;
+    }
   }
 
   const btn = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
-  const originalHtml = btn ? btn.innerHTML : '';
   const originalTitle = btn ? btn.getAttribute('title') : '';
 
   let zipBlob = null;
-  state.isExporting = true;
 
   try {
     if (btn) {
@@ -2207,13 +2286,27 @@ export async function downloadAllZip() {
     console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
   } finally {
     state.isExporting = false;
+    state.isExportingZip = false;
     hideConsolidationProgress();
     if (btn) {
       if (typeof btn.removeAttribute === 'function') btn.removeAttribute('disabled');
       btn.disabled = false;
       if (btn.classList && btn.classList.remove) btn.classList.remove('is-consolidating');
       if (btn.style) btn.style.pointerEvents = 'auto';
-      btn.innerHTML = originalHtml;
+
+      if (zipBlob) {
+        btn.classList.add('is-completed-success');
+        btn.__isShowingSuccess = true;
+        btn.innerHTML = COMPLETED_ZIP_BUTTON_HTML;
+        setTimeout(() => {
+          if (btn.classList && btn.classList.remove) btn.classList.remove('is-completed-success');
+          btn.innerHTML = DEFAULT_ZIP_BUTTON_HTML;
+          btn.__isShowingSuccess = false;
+          updateGlobalActionButtonsState();
+        }, 2500);
+      } else {
+        btn.innerHTML = DEFAULT_ZIP_BUTTON_HTML;
+      }
       if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
     updateGlobalActionButtonsState();
@@ -2460,12 +2553,16 @@ export async function downloadUnifiedMarkdown() {
     return null;
   }
 
+  if (state.isExportingUnified) {
+    return null;
+  }
+  state.isExportingUnified = true;
+  state.isExporting = true;
+
   const btn = (elements && elements.btnDownloadUnified) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
-  const originalHtml = btn ? btn.innerHTML : '';
   const originalTitle = btn ? btn.getAttribute('title') : '';
 
   let downloadResult = null;
-  state.isExporting = true;
 
   try {
     if (btn) {
@@ -2514,13 +2611,27 @@ export async function downloadUnifiedMarkdown() {
     console.error('[doc2md] Erro ao consolidar Markdown unificado:', err);
   } finally {
     state.isExporting = false;
+    state.isExportingUnified = false;
     hideConsolidationProgress();
     if (btn) {
       if (typeof btn.removeAttribute === 'function') btn.removeAttribute('disabled');
       btn.disabled = false;
       if (btn.classList && btn.classList.remove) btn.classList.remove('is-consolidating');
       if (btn.style) btn.style.pointerEvents = 'auto';
-      btn.innerHTML = originalHtml;
+
+      if (downloadResult) {
+        btn.classList.add('is-completed-success');
+        btn.__isShowingSuccess = true;
+        btn.innerHTML = COMPLETED_UNIFIED_BUTTON_HTML;
+        setTimeout(() => {
+          if (btn.classList && btn.classList.remove) btn.classList.remove('is-completed-success');
+          btn.innerHTML = DEFAULT_UNIFIED_BUTTON_HTML;
+          btn.__isShowingSuccess = false;
+          updateGlobalActionButtonsState();
+        }, 2500);
+      } else {
+        btn.innerHTML = DEFAULT_UNIFIED_BUTTON_HTML;
+      }
       if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
     updateGlobalActionButtonsState();
@@ -2622,6 +2733,8 @@ export function clearQueue() {
   state.isExtracting = false;
   state.isProcessing = false;
   state.isExporting = false;
+  state.isExportingZip = false;
+  state.isExportingUnified = false;
   state.userIsScrolling = false;
   completedCountSinceLastScroll = 0;
   totalBytesAnimController.reset();
@@ -2841,6 +2954,8 @@ if (typeof document !== 'undefined') {
         : null;
       if (btnUnified) {
         if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        else if (typeof e.stopPropagation === 'function') e.stopPropagation();
         downloadUnifiedMarkdown();
         return;
       }
@@ -2851,6 +2966,8 @@ if (typeof document !== 'undefined') {
         : null;
       if (btnZip) {
         if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        else if (typeof e.stopPropagation === 'function') e.stopPropagation();
         downloadAllZip();
         return;
       }
@@ -2861,13 +2978,10 @@ if (typeof document !== 'undefined') {
         : null;
       if (btnItem) {
         if (typeof e.preventDefault === 'function') e.preventDefault();
-        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        else if (typeof e.stopPropagation === 'function') e.stopPropagation();
         const itemId = btnItem.dataset ? btnItem.dataset.id : (btnItem.getAttribute ? btnItem.getAttribute('data-id') : null);
-        const item = (state && state.queue) ? state.queue.find(q => q.id === itemId) : null;
-        if (item && (item.markdownOutput || item.markdown)) {
-          const fileName = (item.file && item.file.name) || item.name || 'documento.md';
-          triggerDownload(getOutputFileName(fileName), item.markdownOutput || item.markdown);
-        } else if (itemId) {
+        if (itemId) {
           downloadQueueItem(itemId);
         }
         return;

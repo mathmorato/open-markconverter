@@ -2259,6 +2259,27 @@ body.dark-mode .consolidation-track,
   pointer-events: none;
 }
 
+/* Feedback Visual de Conclusão / Sucesso de Download */
+.btn.is-completed-success {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 
+.btn.is-completed-success svg {
+  stroke: #ffffff !important;
+}
 
+.btn.is-completed-success .btn-text-label {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
 
+.btn-item-action.is-completed-success {
+  color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10b981 !important;
+  transition: all 0.2s ease !important;
+}

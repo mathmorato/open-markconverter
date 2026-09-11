@@ -1548,8 +1548,8 @@ global.document.createElement = (tag) => {
 
 await downloadUnifiedMarkdown();
 
-if (!mockBtnDownloadUnified.innerHTML.includes('Baixar Markdown Unificado (.md)')) {
-  console.error('[FALHA] downloadUnifiedMarkdown não restaurou o texto original do botão');
+if (!mockBtnDownloadUnified.innerHTML.includes('Concluído') && !mockBtnDownloadUnified.innerHTML.includes('Baixar Markdown Unificado (.md)')) {
+  console.error('[FALHA] downloadUnifiedMarkdown não apresentou estado Concluído nem restaurou o botão');
   process.exit(1);
 }
 if (mockBtnDownloadUnified.disabled !== false) {
@@ -1560,14 +1560,14 @@ if (mockConsolidationProgress.style.display !== 'none') {
   console.error('[FALHA] downloadUnifiedMarkdown deixou a barra de consolidação visível');
   process.exit(1);
 }
-console.log('  -> [OK] downloadUnifiedMarkdown() executou assincronamente e restaurou botões e barras com sucesso!');
+console.log('  -> [OK] downloadUnifiedMarkdown() executou assincronamente, exibiu feedback de Concluído e liberou o botão!');
 
 // 28.4. Teste de downloadAllZip assíncrono com feedback no botão
 mockBtnQueueDownloadAll.innerHTML = '<span class="btn-text">Baixar Todos (.zip)</span>';
 await downloadAllZip();
 
-if (!mockBtnQueueDownloadAll.innerHTML.includes('Baixar Todos (.zip)')) {
-  console.error('[FALHA] downloadAllZip não restaurou o texto original do botão');
+if (!mockBtnQueueDownloadAll.innerHTML.includes('Concluído') && !mockBtnQueueDownloadAll.innerHTML.includes('Baixar Todos (.zip)')) {
+  console.error('[FALHA] downloadAllZip não apresentou estado Concluído nem restaurou o botão');
   process.exit(1);
 }
 if (mockBtnQueueDownloadAll.disabled !== false) {
@@ -1578,7 +1578,7 @@ if (mockConsolidationProgress.style.display !== 'none') {
   console.error('[FALHA] downloadAllZip deixou a barra de consolidação visível');
   process.exit(1);
 }
-console.log('  -> [OK] downloadAllZip() executou com telemetria assíncrona e restaurou botões e barras com sucesso!');
+console.log('  -> [OK] downloadAllZip() executou com telemetria assíncrona, exibiu feedback de Concluído e liberou o botão!');
 
 // =========================================================================
 // TESTE 29: Ingestão de Pacote .ZIP, Resolução de Estado 100% e Disparo Imediato no Primeiro Clique

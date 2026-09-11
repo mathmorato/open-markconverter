@@ -1,6 +1,6 @@
 {
   "name": "open-mark",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Open Mark: Conversor universal de documentos para Markdown 100% client-side",
   "main": "index.html",
   "type": "module",

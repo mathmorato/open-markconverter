@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.0
+ * @version v.1.8.1
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -1227,6 +1227,103 @@ export function scrollToActiveItem(itemIdOrElement) {
 }
 
 /**
+ * Controlador de Animação com Delta-Time e Amortecimento Exponencial (Lerp)
+ * Garante sincronia a 60 FPS, sem saltos bruscos ou jank visual sob alta concorrência.
+ */
+export const batchAnimationController = {
+  currentCount: 0,
+  targetCount: 0,
+  currentPercent: 0,
+  targetPercent: 0,
+  total: 0,
+  lastFrameTime: null,
+  rafId: null,
+
+  updateTargets(completed, total) {
+    this.targetCount = completed;
+    this.total = total;
+    this.targetPercent = total > 0 ? (completed / total) * 100 : 0;
+
+    if (typeof requestAnimationFrame === 'function') {
+      if (!this.rafId) {
+        this.lastFrameTime = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+        this.rafId = requestAnimationFrame((now) => this.tick(now));
+      }
+    } else {
+      // Fallback síncrono para ambientes sem requestAnimationFrame (ex: Node.js)
+      this.currentCount = this.targetCount;
+      this.currentPercent = this.targetPercent;
+      this.render(this.targetCount, this.targetPercent);
+    }
+  },
+
+  tick(now) {
+    const perfNow = typeof now === 'number' ? now : (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+    const dt = Math.min((perfNow - (this.lastFrameTime || perfNow)) / 1000, 0.1); // Trava dt máximo para evitar saltos após tab background
+    this.lastFrameTime = perfNow;
+
+    // Coeficiente de convergência ágil (ajuste fino para não arrastar nem travar)
+    const smoothing = 1 - Math.exp(-12 * dt);
+
+    const diffCount = this.targetCount - this.currentCount;
+    const diffPercent = this.targetPercent - this.currentPercent;
+
+    if (Math.abs(diffCount) > 0.08 || Math.abs(diffPercent) > 0.08) {
+      this.currentCount += diffCount * smoothing;
+      this.currentPercent += diffPercent * smoothing;
+
+      this.render(Math.round(this.currentCount), this.currentPercent);
+      if (typeof requestAnimationFrame === 'function') {
+        this.rafId = requestAnimationFrame((n) => this.tick(n));
+      } else {
+        this.rafId = null;
+      }
+    } else {
+      // Encerramento preciso no alvo
+      this.currentCount = this.targetCount;
+      this.currentPercent = this.targetPercent;
+      this.render(this.targetCount, this.targetPercent);
+      this.rafId = null;
+    }
+  },
+
+  render(displayCount, displayPercent) {
+    const counterEl = (elements && elements.globalProgressCounter) || (typeof document !== 'undefined' ? document.getElementById('global-progress-counter') : null);
+    const fillEl = (elements && elements.globalProgressFill) || (typeof document !== 'undefined' ? document.getElementById('global-progress-fill') : null);
+
+    if (counterEl) {
+      const roundedPct = Math.min(100, Math.round(displayPercent));
+      counterEl.textContent = `${displayCount.toLocaleString('pt-BR')} / ${this.total.toLocaleString('pt-BR')} arquivos processados (${roundedPct}%)`;
+    }
+
+    if (fillEl) {
+      fillEl.style.width = `${displayPercent.toFixed(2)}%`;
+      if (displayPercent >= 99.99) {
+        fillEl.classList.add('finished');
+      } else {
+        fillEl.classList.remove('finished');
+      }
+    }
+  },
+
+  reset() {
+    if (this.rafId) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.rafId);
+      }
+      this.rafId = null;
+    }
+    this.currentCount = 0;
+    this.targetCount = 0;
+    this.currentPercent = 0;
+    this.targetPercent = 0;
+    this.total = 0;
+    this.lastFrameTime = null;
+    this.render(0, 0);
+  }
+};
+
+/**
  * Atualiza em tempo real a barra de progresso global agregada para lotes (> 10 arquivos).
  * Para até 10 arquivos, a barra permanece estritamente oculta (display = 'none').
  */
@@ -1239,26 +1336,12 @@ export function updateGlobalBatchProgress() {
     globalProgressEl.style.display = 'block';
   } else {
     globalProgressEl.style.display = 'none';
+    batchAnimationController.reset();
     return;
   }
 
   const completed = state.queue.filter(item => item.status === 'completed' || item.status === 'error').length;
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  const counterEl = (elements && elements.globalProgressCounter) || (typeof document !== 'undefined' ? document.getElementById('global-progress-counter') : null);
-  const fillEl = (elements && elements.globalProgressFill) || (typeof document !== 'undefined' ? document.getElementById('global-progress-fill') : null);
-
-  if (counterEl) {
-    counterEl.textContent = `${completed.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} arquivos processados (${percent}%)`;
-  }
-  if (fillEl) {
-    fillEl.style.width = `${percent}%`;
-    if (percent === 100) {
-      fillEl.classList.add('finished');
-    } else {
-      fillEl.classList.remove('finished');
-    }
-  }
+  batchAnimationController.updateTargets(completed, total);
 }
 
 /**
@@ -1875,14 +1958,23 @@ function updateMergeButtonVisibility() {
   }
 }
 
+/**
+ * Limpa integralmente a fila de processamento, cancela tarefas ativas e reseta animações.
+ */
+export function clearQueue() {
+  if (!state || !state.queue) return;
+  state.queue.forEach(it => { it.cancelled = true; });
+  state.queue = [];
+  state.userIsScrolling = false;
+  batchAnimationController.reset();
+  renderQueue();
+}
+
 function initQueueEvents() {
   if (elements.btnQueueClear) {
     elements.btnQueueClear.addEventListener('click', () => {
       if (state.queue.length === 0) return;
-      state.queue.forEach(it => { it.cancelled = true; });
-      state.queue = [];
-      state.userIsScrolling = false;
-      renderQueue();
+      clearQueue();
     });
   }
 

@@ -1970,6 +1970,9 @@ body.dark-mode .global-progress-header,
 
 .global-progress-counter {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+  display: inline-block;
   font-weight: 600;
 }
 
@@ -1979,6 +1982,8 @@ body.dark-mode .global-progress-header,
   background: #E2E8F0;
   border-radius: 9999px;
   overflow: hidden;
+  position: relative;
+  contain: layout paint;
 }
 
 body.dark-mode .global-progress-track,
@@ -1991,7 +1996,9 @@ body.dark-mode .global-progress-track,
   width: 0%;
   background: #2563EB; /* Azul Tech */
   border-radius: 9999px;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+  transform: translateZ(0); /* Força camada de composição GPU */
+  transition: width 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.3s ease;
 }
 
 .global-progress-fill.finished {

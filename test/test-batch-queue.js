@@ -21,6 +21,8 @@ import {
   sortQueueByName,
   sortQueueBySize,
   updateGlobalBatchProgress,
+  batchAnimationController,
+  clearQueue as realClearQueue,
   renderQueueUI,
   buildBacklogSection,
   buildDirectoryTreeAscii,
@@ -35,7 +37,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.0)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.1)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -514,7 +516,7 @@ if (!mockProgressCounter.textContent.includes('6 / 11') || !mockProgressCounter.
   console.error(`[FALHA] Contador de progresso global incorreto: "${mockProgressCounter.textContent}"`);
   process.exit(1);
 }
-if (mockProgressFill.style.width !== '55%') {
+if (!mockProgressFill.style.width.startsWith('54.55%') && mockProgressFill.style.width !== '55%') {
   console.error(`[FALHA] Largura da barra de progresso incorreta: "${mockProgressFill.style.width}"`);
   process.exit(1);
 }
@@ -523,11 +525,90 @@ console.log(`  -> [OK] Barra global exibida para lote de 11 arquivos: "${mockPro
 // Quando 100% concluído
 appState.queue.forEach(it => { it.status = 'completed'; });
 updateGlobalBatchProgress();
-if (mockProgressFill.style.width !== '100%' || !mockProgressFill.classList.contains('finished')) {
+if (!mockProgressFill.style.width.startsWith('100') || !mockProgressFill.classList.contains('finished')) {
   console.error(`[FALHA] Classe .finished ou largura 100% ausente ao concluir lote`);
   process.exit(1);
 }
 console.log('  -> [OK] Barra global atinge 100% e recebe classe .finished ao concluir todos os arquivos!');
+
+// 12.3. Validação do batchAnimationController (amortecimento exponencial, convergência e cancelamento RAF)
+console.log('[TESTE 12.3] Validando batchAnimationController com requestAnimationFrame e delta-time...');
+
+let rafQueue = [];
+let rafIdCounter = 0;
+let cancelRafCalledWith = null;
+
+global.requestAnimationFrame = (callback) => {
+  const id = ++rafIdCounter;
+  rafQueue.push({ id, callback });
+  return id;
+};
+
+global.cancelAnimationFrame = (id) => {
+  cancelRafCalledWith = id;
+  rafQueue = rafQueue.filter(item => item.id !== id);
+};
+
+// Reseta o controlador para estado limpo
+batchAnimationController.reset();
+
+// Dispara transição com 50 concluídos de 100
+batchAnimationController.updateTargets(50, 100);
+
+if (!batchAnimationController.rafId) {
+  console.error('[FALHA] batchAnimationController não iniciou o loop requestAnimationFrame ao receber novos alvos');
+  process.exit(1);
+}
+
+// Simula frames do navegador avançando o tempo a ~60 FPS (dt = 16.6ms)
+let simulatedTime = 1000;
+let frameCount = 0;
+while (rafQueue.length > 0 && frameCount < 120) {
+  frameCount++;
+  simulatedTime += 16.66;
+  const currentPending = [...rafQueue];
+  rafQueue = [];
+  currentPending.forEach(entry => entry.callback(simulatedTime));
+}
+
+// 1. Estabilização exata no alvo final
+if (batchAnimationController.currentCount !== 50 || batchAnimationController.currentPercent !== 50) {
+  console.error(`[FALHA] batchAnimationController não estabilizou no alvo exato: count=${batchAnimationController.currentCount}, percent=${batchAnimationController.currentPercent}`);
+  process.exit(1);
+}
+if (batchAnimationController.rafId !== null) {
+  console.error('[FALHA] batchAnimationController rafId não foi encerrado (null) após estabilizar');
+  process.exit(1);
+}
+console.log(`  -> [OK] Contador convergiu e estabilizou exatamente no alvo (${batchAnimationController.currentCount} / 100 - 50%) em ${frameCount} frames!`);
+
+// 2. Cancelamento adequado de requestAnimationFrame no clearQueue
+batchAnimationController.updateTargets(80, 100);
+const activeRafId = batchAnimationController.rafId;
+if (!activeRafId) {
+  console.error('[FALHA] batchAnimationController não iniciou RAF para novo alvo');
+  process.exit(1);
+}
+
+realClearQueue();
+
+if (batchAnimationController.rafId !== null) {
+  console.error('[FALHA] realClearQueue() não limpou batchAnimationController.rafId');
+  process.exit(1);
+}
+if (cancelRafCalledWith !== activeRafId) {
+  console.error(`[FALHA] cancelAnimationFrame não foi chamado com o id ativo (${activeRafId}), recebeu: ${cancelRafCalledWith}`);
+  process.exit(1);
+}
+if (batchAnimationController.currentCount !== 0 || batchAnimationController.total !== 0) {
+  console.error('[FALHA] batchAnimationController não resetou os contadores para 0 no realClearQueue');
+  process.exit(1);
+}
+console.log('  -> [OK] requestAnimationFrame cancelado e métricas redefinidas com sucesso ao chamar clearQueue()!');
+
+// Limpa mocks de RAF
+delete global.requestAnimationFrame;
+delete global.cancelAnimationFrame;
 
 // 13. Teste de conversão resiliente de arquivo .html
 console.log('[TESTE 13] Testando conversão resiliente de arquivo HTML com fallback nativo...');
@@ -984,5 +1065,5 @@ if (appState.maxConcurrency !== 1000) {
 console.log('  -> [OK] Extração de pacote compactado ativou alta concorrência (1000 workers) com sucesso!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.0)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.1)');
 console.log('===============================================================');

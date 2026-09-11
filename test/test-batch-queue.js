@@ -44,10 +44,13 @@ import {
   hideConsolidationProgress,
   downloadUnifiedMarkdown,
   downloadAllZip,
+  downloadAllAsZip,
   downloadQueueItem,
   getOutputFileName,
   triggerDownload,
   updateGlobalBatchButtonsState,
+  updateGlobalActionButtonsState,
+  setupQueueListDelegation,
   removeItemFromQueue,
   state as appState
 } from '../js/app.js';
@@ -1731,6 +1734,58 @@ if (!zipDownloadTriggered || !zipNameGenerated || !zipNameGenerated.startsWith('
   process.exit(1);
 }
 console.log('  -> [OK] Download de Todos (.zip) disparou imediatamente no primeiro clique com Blob válido!');
+
+// 29.8. Testa o clique direto via delegação de eventos em .file-queue-list
+let delegatedClickFired = false;
+let delegatedFileName = null;
+global.document.createElement = (tag) => {
+  return {
+    style: {},
+    setAttribute: () => {},
+    click: function() {
+      delegatedClickFired = true;
+      delegatedFileName = this.download;
+    }
+  };
+};
+
+let queueListListener = null;
+const mockQueueContainer = {
+  dataset: {},
+  addEventListener: (event, handler) => {
+    if (event === 'click') queueListListener = handler;
+  }
+};
+setupQueueListDelegation(mockQueueContainer);
+if (mockQueueContainer.dataset.listenerAttached !== 'true' || !queueListListener) {
+  console.error('[FALHA] setupQueueListDelegation não anexou listener com dataset.listenerAttached = true');
+  process.exit(1);
+}
+
+// Simula clique em botão .btn-download-item do card
+const mockItemBtn = {
+  dataset: { id: test29ItemToDownload.id },
+  closest: (sel) => (sel.includes('btn-download-item') ? mockItemBtn : null)
+};
+queueListListener({
+  target: mockItemBtn,
+  preventDefault: () => {},
+  stopPropagation: () => {}
+});
+
+if (!delegatedClickFired || delegatedFileName !== 'relatorio_financeiro.md') {
+  console.error(`[FALHA] Delegação de eventos no container pai não disparou download no primeiro clique: ${delegatedFileName}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Delegação de eventos no container pai (.file-queue-list) disparou download imediatamente no primeiro clique!');
+
+// 29.9. Valida alias downloadAllAsZip
+const zipAsResult = await downloadAllAsZip();
+if (!zipAsResult || !zipAsResult.blob) {
+  console.error('[FALHA] downloadAllAsZip alias falhou');
+  process.exit(1);
+}
+console.log('  -> [OK] downloadAllAsZip disparou com sucesso e retornou Blob!');
 
 console.log('===============================================================');
 console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.9)');

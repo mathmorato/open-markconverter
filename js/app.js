@@ -82,7 +82,7 @@ const elements = typeof document !== 'undefined' ? {
   themeIconSun: document.getElementById('theme-icon-sun'),
   themeIconMoon: document.getElementById('theme-icon-moon'),
   headerVersion: document.getElementById('header-version'),
-  footerVersion: document.getElementById('footer-version'),
+  footerVersion: (typeof document !== 'undefined') ? (document.getElementById('footer-version') || document.querySelector('.footer-version') || document.getElementById('app-version')) : null,
   
   dropzone: document.getElementById('dropzone'),
   fileInput: document.getElementById('file-input'),
@@ -117,9 +117,15 @@ const elements = typeof document !== 'undefined' ? {
 /* ==========================================================================
    SemVer & Inicialização de Metadados
    ========================================================================== */
-function initVersion() {
+export function initVersion() {
   if (elements.headerVersion) elements.headerVersion.textContent = APP_CONFIG.VERSION;
   if (elements.footerVersion) elements.footerVersion.textContent = APP_CONFIG.VERSION;
+  if (typeof document !== 'undefined' && document.querySelectorAll) {
+    const versionElements = document.querySelectorAll('.footer-version, #footer-version, #app-version, .header-version, #header-version');
+    versionElements.forEach(el => {
+      el.textContent = APP_CONFIG.VERSION;
+    });
+  }
 }
 
 /* ==========================================================================
@@ -517,104 +523,112 @@ export async function extractArchiveFiles(file) {
 }
 
 export async function extractZipArchive(file) {
-  let JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
+  state.isExtracting = true;
+  try {
+    let JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
 
-  if (!JSZipClass && typeof window !== 'undefined') {
-    await loadScript(APP_CONFIG.CDN.JSZIP);
-    JSZipClass = window.JSZip || globalThis.JSZip;
-  }
+    if (!JSZipClass && typeof window !== 'undefined') {
+      await loadScript(APP_CONFIG.CDN.JSZIP);
+      JSZipClass = window.JSZip || globalThis.JSZip;
+    }
 
-  if (!JSZipClass && typeof process !== 'undefined') {
-    try {
-      const jszipMod = await import('jszip');
-      JSZipClass = jszipMod.default || jszipMod;
-    } catch (_) {}
-  }
+    if (!JSZipClass && typeof process !== 'undefined') {
+      try {
+        const jszipMod = await import('jszip');
+        JSZipClass = jszipMod.default || jszipMod;
+      } catch (_) {}
+    }
 
-  if (!JSZipClass) {
-    throw new Error('Biblioteca JSZip indisponível para descompactação.');
-  }
+    if (!JSZipClass) {
+      throw new Error('Biblioteca JSZip indisponível para descompactação.');
+    }
 
-  let buffer;
-  if (typeof file.arrayBuffer === 'function') {
-    buffer = await file.arrayBuffer();
-  } else if (file instanceof ArrayBuffer) {
-    buffer = file;
-  } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(file)) {
-    buffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-  } else {
-    buffer = await new Promise((resolve, reject) => {
-      if (typeof FileReader === 'undefined') {
-        return reject(new Error('FileReader indisponível e file.arrayBuffer ausente.'));
+    let buffer;
+    if (typeof file.arrayBuffer === 'function') {
+      buffer = await file.arrayBuffer();
+    } else if (file instanceof ArrayBuffer) {
+      buffer = file;
+    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(file)) {
+      buffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+    } else {
+      buffer = await new Promise((resolve, reject) => {
+        if (typeof FileReader === 'undefined') {
+          return reject(new Error('FileReader indisponível e file.arrayBuffer ausente.'));
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Falha ao ler dados binários do pacote ZIP'));
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    const zip = await JSZipClass.loadAsync(buffer);
+    const entriesToExtract = [];
+
+    zip.forEach((relativePath, entry) => {
+      if (entry.dir) return;
+
+      // Ignora pastas vazias, arquivos ocultos e metadados de sistema (__MACOSX, .DS_Store, Thumbs.db, etc.)
+      if (
+        relativePath.includes('__MACOSX') || 
+        relativePath.includes('.DS_Store') || 
+        relativePath.includes('Thumbs.db') ||
+        relativePath.startsWith('.') || 
+        relativePath.includes('/.')
+      ) {
+        return;
       }
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('Falha ao ler dados binários do pacote ZIP'));
-      reader.readAsArrayBuffer(file);
+
+      const fileName = relativePath.split('/').pop();
+      if (!fileName || fileName.startsWith('.')) return;
+
+      const entryExt = '.' + fileName.split('.').pop().toLowerCase();
+      if (!isSupportedDocumentExtension(entryExt)) {
+        return;
+      }
+
+      entriesToExtract.push({ fileName, relativePath, entry, entryExt });
     });
-  }
 
-  const zip = await JSZipClass.loadAsync(buffer);
-  const entriesToExtract = [];
-
-  zip.forEach((relativePath, entry) => {
-    if (entry.dir) return;
-
-    // Ignora pastas vazias, arquivos ocultos e metadados de sistema (__MACOSX, .DS_Store, Thumbs.db, etc.)
-    if (
-      relativePath.includes('__MACOSX') || 
-      relativePath.includes('.DS_Store') || 
-      relativePath.includes('Thumbs.db') ||
-      relativePath.startsWith('.') || 
-      relativePath.includes('/.')
-    ) {
-      return;
+    if (entriesToExtract.length === 0) {
+      throw new Error('Nenhum documento compatível encontrado dentro do pacote ZIP.');
     }
 
-    const fileName = relativePath.split('/').pop();
-    if (!fileName || fileName.startsWith('.')) return;
+    const extractedFiles = [];
+    for (const item of entriesToExtract) {
+      const fileBuffer = await item.entry.async('arraybuffer');
+      const mimeType = getMimeTypeForExt(item.entryExt);
+      const folderPath = item.relativePath.includes('/')
+        ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/'))
+        : 'Raiz do Pacote';
 
-    const entryExt = '.' + fileName.split('.').pop().toLowerCase();
-    if (!isSupportedDocumentExtension(entryExt)) {
-      return;
+      const nativeFile = (typeof File !== 'undefined')
+        ? new File([fileBuffer], item.fileName, {
+            type: mimeType,
+            lastModified: item.entry.date ? item.entry.date.getTime() : Date.now()
+          })
+        : {
+            name: item.fileName,
+            size: fileBuffer.byteLength,
+            type: mimeType,
+            lastModified: item.entry.date ? item.entry.date.getTime() : Date.now(),
+            arrayBuffer: async () => fileBuffer
+          };
+
+      nativeFile.archiveOrigin = file.name;
+      nativeFile.relativePath = item.relativePath;
+      nativeFile.folderPath = folderPath;
+
+      extractedFiles.push(nativeFile);
     }
 
-    entriesToExtract.push({ fileName, relativePath, entry, entryExt });
-  });
-
-  if (entriesToExtract.length === 0) {
-    throw new Error('Nenhum documento compatível encontrado dentro do pacote ZIP.');
+    return extractedFiles;
+  } finally {
+    state.isExtracting = false;
+    state.isProcessing = false;
+    // Força a reavaliação imediata de disponibilidade dos botões
+    updateGlobalActionButtonsState();
   }
-
-  const extractedFiles = [];
-  for (const item of entriesToExtract) {
-    const fileBuffer = await item.entry.async('arraybuffer');
-    const mimeType = getMimeTypeForExt(item.entryExt);
-    const folderPath = item.relativePath.includes('/')
-      ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/'))
-      : 'Raiz do Pacote';
-
-    const nativeFile = (typeof File !== 'undefined')
-      ? new File([fileBuffer], item.fileName, {
-          type: mimeType,
-          lastModified: item.entry.date ? item.entry.date.getTime() : Date.now()
-        })
-      : {
-          name: item.fileName,
-          size: fileBuffer.byteLength,
-          type: mimeType,
-          lastModified: item.entry.date ? item.entry.date.getTime() : Date.now(),
-          arrayBuffer: async () => fileBuffer
-        };
-
-    nativeFile.archiveOrigin = file.name;
-    nativeFile.relativePath = item.relativePath;
-    nativeFile.folderPath = folderPath;
-
-    extractedFiles.push(nativeFile);
-  }
-
-  return extractedFiles;
 }
 
 export async function extractRarOrOtherArchive(file, ext) {
@@ -675,6 +689,8 @@ export async function addFilesToQueue(files) {
           });
         } finally {
           state.isExtracting = false;
+          state.isProcessing = false;
+          updateGlobalActionButtonsState();
         }
       } else {
         queueCandidates.push({
@@ -687,6 +703,8 @@ export async function addFilesToQueue(files) {
     }
   } finally {
     state.isExtracting = false;
+    state.isProcessing = false;
+    updateGlobalActionButtonsState();
   }
 
   const newItems = [];
@@ -980,8 +998,8 @@ export function computeAndAnimateTotalMdBytes() {
  * Atualiza e desbloqueia os botões globais de download da fila (#btn-queue-download-all e #btn-download-unified)
  * Garantindo ausência de bloqueios remanescentes (disabled / pointer-events / is-consolidating)
  */
-export function updateGlobalBatchButtonsState() {
-  const completedItems = (state && state.queue) ? state.queue.filter(it => it.status === 'completed' && (it.markdown || it.markdownOutput)) : [];
+export function updateGlobalActionButtonsState() {
+  const completedItems = (state && state.queue) ? state.queue.filter(i => i.status === 'completed' || Boolean(i.markdownOutput)) : [];
   const completedCount = completedItems.length;
   const isAllResolved = state && state.queue && state.queue.length > 0 && !state.queue.some(it => (it.status === 'queued' || it.status === 'processing') && !it.cancelled);
 
@@ -1015,6 +1033,59 @@ export function updateGlobalBatchButtonsState() {
       if (typeof btnDownloadUnified.setAttribute === 'function') btnDownloadUnified.setAttribute('disabled', '');
       btnDownloadUnified.disabled = true;
     }
+  }
+}
+
+export const updateGlobalBatchButtonsState = updateGlobalActionButtonsState;
+
+/**
+ * Delegação de eventos centralizada para a lista da fila (.file-queue-list).
+ * Garante que cards e botões injetados assincronamente (incluindo lotes massivos de .zip)
+ * respondam instantaneamente ao primeiro clique sem requerer re-binding.
+ * @param {HTMLElement} [queueListElement]
+ */
+export function setupQueueListDelegation(queueListElement) {
+  const queueList = queueListElement || (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
+  if (!queueList) return;
+
+  const isAttached = queueList.dataset ? (queueList.dataset.listenerAttached === 'true') : Boolean(queueList.__hasDelegatedQueueEvents);
+  if (isAttached) return;
+
+  if (queueList.dataset) {
+    queueList.dataset.listenerAttached = 'true';
+  }
+  queueList.__hasDelegatedQueueEvents = true;
+
+  if (typeof queueList.addEventListener === 'function') {
+    queueList.addEventListener('click', (e) => {
+      const btn = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('.btn-download-item, .btn-queue-item-download, .btn-download')
+        : null;
+      if (btn) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        const itemId = btn.dataset ? btn.dataset.id : (btn.getAttribute ? btn.getAttribute('data-id') : null);
+        const item = (state && state.queue) ? state.queue.find(q => q.id === itemId) : null;
+        if (item && (item.markdownOutput || item.markdown)) {
+          const fileName = (item.file && item.file.name) || item.name || 'documento.md';
+          triggerDownload(getOutputFileName(fileName), item.markdownOutput || item.markdown);
+        } else if (itemId) {
+          downloadQueueItem(itemId);
+        }
+        return;
+      }
+
+      const removeBtn = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('.btn-remove-item, .btn-queue-item-remove, .btn-remove')
+        : null;
+      if (removeBtn) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        const itemId = removeBtn.dataset ? removeBtn.dataset.id : (removeBtn.getAttribute ? removeBtn.getAttribute('data-id') : null);
+        removeQueueItem(itemId);
+        return;
+      }
+    });
   }
 }
 
@@ -1198,24 +1269,8 @@ function renderQueue() {
     `;
   }).join('');
 
-  // Eventos de clique para download individual e remoção
-  if (queueList.querySelectorAll) {
-    queueList.querySelectorAll('.btn-queue-item-download').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.id;
-        downloadQueueItem(id);
-      });
-    });
-
-    queueList.querySelectorAll('.btn-queue-item-remove').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.id;
-        removeQueueItem(id);
-      });
-    });
-  }
+  // Delegação centralizada na lista pai (.file-queue-list) evitando perdas de handlers assíncronos
+  setupQueueListDelegation(queueList);
 
   updateGlobalBatchProgress();
 }
@@ -1425,13 +1480,13 @@ function applyQueueItemDOMUpdate(item) {
 
 export function downloadQueueItem(itemId) {
   const item = (state && state.queue) ? state.queue.find(it => it.id === itemId) : null;
-  if (!item || item.status !== 'completed' || (!item.markdown && !item.markdownOutput)) {
+  if (!item || (!item.markdown && !item.markdownOutput)) {
     return null;
   }
 
   const fileName = getOutputFileName(item.file ? item.file.name : item.name);
   const content = item.markdownOutput || item.markdown || '';
-  return downloadMarkdownFile(fileName, content);
+  return triggerDownload(fileName, content);
 }
 
 export function removeQueueItem(itemId) {
@@ -2016,7 +2071,7 @@ export function hideConsolidationProgress() {
    Ações Globais de Fila (Limpar e Download em Lote .ZIP Assíncrono)
    ========================================================================== */
 export async function downloadAllZip() {
-  const completed = (state && state.queue) ? state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput)) : [];
+  const completed = (state && state.queue) ? state.queue.filter(i => i.status === 'completed' || Boolean(i.markdownOutput)) : [];
   const total = completed.length;
   if (total === 0) {
     return null;
@@ -2025,7 +2080,7 @@ export async function downloadAllZip() {
   if (total === 1) {
     const item = completed[0];
     const baseName = (item.file ? item.file.name : (item.name || 'documento')).replace(/\.[^/.]+$/, '');
-    return downloadMarkdownFile(`${baseName}.md`, item.markdownOutput || item.markdown);
+    return triggerDownload(getOutputFileName(baseName), item.markdownOutput || item.markdown);
   }
 
   const btn = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
@@ -2157,9 +2212,9 @@ export async function downloadAllZip() {
       btn.innerHTML = originalHtml;
       if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
-    updateGlobalBatchButtonsState();
+    updateGlobalActionButtonsState();
   }
-  return { zipBlob, total };
+  return { zipBlob, total, blob: zipBlob };
 }
 
 export const downloadAllAsZip = downloadAllZip;
@@ -2364,7 +2419,7 @@ export function mergeMarkdownOutputs(items) {
  * @returns {Promise<string>} Markdown consolidado
  */
 export async function generateUnifiedMarkdownWithProgress(items, onProgress) {
-  const completedItems = (items || state.queue).filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput));
+  const completedItems = (items || state.queue).filter(i => i.status === 'completed' || Boolean(i.markdownOutput));
   const total = completedItems.length;
   if (total === 0) return '';
 
@@ -2395,7 +2450,7 @@ export async function generateUnifiedMarkdownWithProgress(items, onProgress) {
  * Dispara o download unificado com feedback de progresso assíncrono e não-bloqueante
  */
 export async function downloadUnifiedMarkdown() {
-  const completed = (state && state.queue) ? state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput)) : [];
+  const completed = (state && state.queue) ? state.queue.filter(i => i.status === 'completed' || Boolean(i.markdownOutput)) : [];
   const total = completed.length;
   if (total === 0) {
     return null;
@@ -2447,7 +2502,7 @@ export async function downloadUnifiedMarkdown() {
     });
 
     const fileName = `documento_unificado_${getFormattedTimestamp()}.md`;
-    downloadResult = downloadMarkdownFile(fileName, mergedContent);
+    downloadResult = triggerDownload(fileName, mergedContent);
 
     updateConsolidationProgress(total, total, 100, 'Concluído:');
     await new Promise(r => setTimeout(r, 200));
@@ -2464,7 +2519,7 @@ export async function downloadUnifiedMarkdown() {
       btn.innerHTML = originalHtml;
       if (originalTitle && typeof btn.setAttribute === 'function') btn.setAttribute('title', originalTitle);
     }
-    updateGlobalBatchButtonsState();
+    updateGlobalActionButtonsState();
   }
   return downloadResult;
 }
@@ -2574,32 +2629,8 @@ export function clearQueue() {
 
 function initQueueEvents() {
   const queueContainer = (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
-  if (queueContainer && !queueContainer.__hasDelegatedQueueEvents) {
-    queueContainer.__hasDelegatedQueueEvents = true;
-    queueContainer.addEventListener('click', (e) => {
-      const downloadBtn = e.target.closest('.btn-download-item, .btn-queue-item-download, .btn-download');
-      if (downloadBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const itemId = downloadBtn.dataset.id;
-        const item = (state && state.queue) ? state.queue.find(q => q.id === itemId) : null;
-        if (item && (item.markdownOutput || item.markdown)) {
-          triggerDownload(getOutputFileName(item.file ? item.file.name : item.name), item.markdownOutput || item.markdown);
-        } else if (itemId) {
-          downloadQueueItem(itemId);
-        }
-        return;
-      }
-
-      const removeBtn = e.target.closest('.btn-remove-item, .btn-queue-item-remove, .btn-remove');
-      if (removeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const itemId = removeBtn.dataset.id;
-        removeQueueItem(itemId);
-        return;
-      }
-    });
+  if (queueContainer) {
+    setupQueueListDelegation(queueContainer);
   }
 
   if (elements.btnQueueClear) {

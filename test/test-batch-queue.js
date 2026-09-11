@@ -45,7 +45,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.6)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.7)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -1394,5 +1394,5 @@ if (testKb.formatted !== '50 kB' || testMb.formatted !== '377 MB' || testGb.form
 console.log('  -> [OK] formatMdTelemetrySize validado com sucesso para kB, MB, GB e Zero!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.6)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.7)');
 console.log('===============================================================');

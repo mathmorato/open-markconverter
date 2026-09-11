@@ -2126,15 +2126,15 @@ body.dark-mode .live-total-bytes-counter,
 
 .live-total-formatted-unit {
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #10B981; /* Verde esmeralda de conformidade */
-  margin-left: 0.2rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-left: 0.15rem;
 }
 
 body.dark-mode .live-total-formatted-unit,
 [data-theme="dark"] .live-total-formatted-unit {
-  color: #34D399;
+  color: #F8FAFC;
 }
 
 

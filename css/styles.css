@@ -2137,5 +2137,121 @@ body.dark-mode .live-total-formatted-unit,
   color: #F8FAFC;
 }
 
+/* ==========================================================================
+   Barra de Progresso de Consolidação e Exportação Assíncrona (.md e .zip)
+   ========================================================================== */
+.consolidation-progress-bar {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  animation: fadeInConsolidation 0.25s ease-out;
+}
+
+body.dark-mode .consolidation-progress-bar,
+[data-theme="dark"] .consolidation-progress-bar {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+@keyframes fadeInConsolidation {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.consolidation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+body.dark-mode .consolidation-header,
+[data-theme="dark"] .consolidation-header {
+  color: #94A3B8;
+}
+
+.consolidation-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
+.consolidation-counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+body.dark-mode .consolidation-counter,
+[data-theme="dark"] .consolidation-counter {
+  color: #F8FAFC;
+}
+
+.consolidation-track {
+  width: 100%;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+body.dark-mode .consolidation-track,
+[data-theme="dark"] .consolidation-track {
+  background: #334155;
+}
+
+.consolidation-fill {
+  height: 100%;
+  background: #2563EB;
+  border-radius: 9999px;
+  width: 0%;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+}
+
+.consolidation-fill.finished {
+  background: #10B981;
+}
+
+.consolidation-spinner-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+}
+
+.consolidation-spinner-icon .radial-spinner-svg {
+  width: 14px;
+  height: 14px;
+  animation: batchRadialSpin 1s steps(12, end) infinite;
+}
+
+.inline-btn-spinner {
+  animation: batchRadialSpin 1s steps(12, end) infinite;
+  stroke: currentColor;
+}
+
+.inline-btn-spinner line {
+  stroke: currentColor;
+}
+
+.btn.is-consolidating {
+  opacity: 0.85;
+  cursor: wait !important;
+  pointer-events: none;
+}
+
+
 
 

@@ -37,6 +37,13 @@ import {
   totalBytesAnimController,
   computeAndAnimateTotalMdBytes,
   formatMdTelemetrySize,
+  formatItemForUnifiedMarkdown,
+  generateUnifiedMarkdownWithProgress,
+  showConsolidationProgress,
+  updateConsolidationProgress,
+  hideConsolidationProgress,
+  downloadUnifiedMarkdown,
+  downloadAllZip,
   removeItemFromQueue,
   state as appState
 } from '../js/app.js';
@@ -45,7 +52,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.7)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.8)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -492,7 +499,66 @@ const mockTotalFormattedUnit = {
   textContent: '(0 KB)'
 };
 
+const mockConsolidationProgress = {
+  style: { display: 'none' }
+};
+const mockConsolidationCounter = {
+  textContent: '0 / 0 (0%)'
+};
+const mockConsolidationStatusText = {
+  textContent: 'Consolidando:'
+};
+const createClassListMock = () => {
+  const classes = new Set();
+  return {
+    add(cls) { classes.add(cls); },
+    remove(cls) { classes.delete(cls); },
+    contains(cls) { return classes.has(cls); }
+  };
+};
+
+const mockConsolidationFill = {
+  style: { width: '0%' },
+  classList: createClassListMock()
+};
+
+const createMockButton = () => {
+  const attrs = new Map();
+  return {
+    attrs,
+    innerHTML: '',
+    disabled: false,
+    classList: createClassListMock(),
+    setAttribute(k, v) { attrs.set(k, v); },
+    removeAttribute(k) { attrs.delete(k); },
+    getAttribute(k) { return attrs.get(k) || null; },
+    querySelector: () => null
+  };
+};
+
+const mockBtnDownloadUnified = createMockButton();
+const mockBtnQueueDownloadAll = createMockButton();
+
+if (typeof global.URL === 'undefined') {
+  global.URL = {
+    createObjectURL: () => 'blob:mock-url',
+    revokeObjectURL: () => {}
+  };
+} else if (!global.URL.createObjectURL) {
+  global.URL.createObjectURL = () => 'blob:mock-url';
+  global.URL.revokeObjectURL = () => {};
+}
+
 global.document = {
+  body: {
+    appendChild: () => {},
+    removeChild: () => {}
+  },
+  createElement: () => ({
+    href: '',
+    download: '',
+    click: () => {}
+  }),
   querySelector: (sel) => (sel === '.file-queue-list' ? mockQueueList : null),
   getElementById: (id) => {
     if (id === 'file-queue-section') return mockQueueSection;
@@ -504,6 +570,12 @@ global.document = {
     if (id === 'queue-total-bytes-card') return mockTotalBytesCard;
     if (id === 'live-total-bytes-counter') return mockTotalBytesCounter;
     if (id === 'live-total-formatted-unit') return mockTotalFormattedUnit;
+    if (id === 'consolidation-progress') return mockConsolidationProgress;
+    if (id === 'consolidation-counter') return mockConsolidationCounter;
+    if (id === 'consolidation-fill') return mockConsolidationFill;
+    if (id === 'consolidation-status-text') return mockConsolidationStatusText;
+    if (id === 'btn-download-unified' || id === 'btn-queue-download-merged') return mockBtnDownloadUnified;
+    if (id === 'btn-queue-download-all') return mockBtnQueueDownloadAll;
     if (id === 'headless-mode-notice') return null;
     return null;
   }
@@ -1393,6 +1465,115 @@ if (testKb.formatted !== '50 kB' || testMb.formatted !== '377 MB' || testGb.form
 }
 console.log('  -> [OK] formatMdTelemetrySize validado com sucesso para kB, MB, GB e Zero!');
 
+// 28. Testando Pipeline de Consolidação Assíncrona e Barra de Progresso Não-Bloqueante
+console.log('[TESTE 28] Testando consolidação assíncrona com progresso e exportação não-bloqueante...');
+
+// 28.1. Teste de generateUnifiedMarkdownWithProgress com chunks e callbacks
+const itemsToConsolidate = Array.from({ length: 25 }, (_, i) => ({
+  id: `chunk_item_${i}`,
+  file: new File([`texto ${i}`], `item_${i}.txt`, { type: 'text/plain' }),
+  status: 'completed',
+  markdown: `# Titulo ${i}\n\nConteudo do arquivo ${i}.`
+}));
+
+const progressCalls = [];
+const consolidatedMd = await generateUnifiedMarkdownWithProgress(itemsToConsolidate, (current, total, percent) => {
+  progressCalls.push({ current, total, percent });
+});
+
+if (progressCalls.length !== 3) { // 25 itens com chunk 10: 10, 20, 25 -> 3 chamadas
+  console.error(`[FALHA] generateUnifiedMarkdownWithProgress chamou onProgress ${progressCalls.length} vezes, esperado 3`);
+  process.exit(1);
+}
+if (progressCalls[0].current !== 10 || progressCalls[0].percent !== 40) {
+  console.error(`[FALHA] Primeiro chunk incorreto:`, progressCalls[0]);
+  process.exit(1);
+}
+if (progressCalls[2].current !== 25 || progressCalls[2].percent !== 100) {
+  console.error(`[FALHA] Último chunk não atingiu 100%:`, progressCalls[2]);
+  process.exit(1);
+}
+if (!consolidatedMd.includes('# Titulo 0') || !consolidatedMd.includes('# Titulo 24')) {
+  console.error('[FALHA] Conteúdo gerado por generateUnifiedMarkdownWithProgress incompleto');
+  process.exit(1);
+}
+console.log(`  -> [OK] generateUnifiedMarkdownWithProgress fatiou 25 itens em ${progressCalls.length} chunks com 100% de integridade!`);
+
+// 28.2. Teste de showConsolidationProgress, updateConsolidationProgress e hideConsolidationProgress
+showConsolidationProgress('Consolidando arquivos Markdown...');
+if (mockConsolidationProgress.style.display !== 'block') {
+  console.error(`[FALHA] showConsolidationProgress não exibiu a barra: display=${mockConsolidationProgress.style.display}`);
+  process.exit(1);
+}
+if (mockConsolidationStatusText.textContent !== 'Consolidando arquivos Markdown...') {
+  console.error(`[FALHA] Texto de status incorreto: ${mockConsolidationStatusText.textContent}`);
+  process.exit(1);
+}
+
+updateConsolidationProgress(15, 30, 50);
+if (mockConsolidationCounter.textContent !== '15 / 30 arquivos (50%)' || mockConsolidationFill.style.width !== '50%') {
+  console.error(`[FALHA] updateConsolidationProgress não atualizou contador ou largura: "${mockConsolidationCounter.textContent}" / "${mockConsolidationFill.style.width}"`);
+  process.exit(1);
+}
+
+hideConsolidationProgress();
+if (mockConsolidationProgress.style.display !== 'none') {
+  console.error('[FALHA] hideConsolidationProgress não ocultou a barra');
+  process.exit(1);
+}
+console.log('  -> [OK] UI de progresso de consolidação (exibição, atualização, ocultação) validada com sucesso!');
+
+// 28.3. Teste de downloadUnifiedMarkdown assíncrono com feedback no botão
+appState.queue = itemsToConsolidate;
+mockBtnDownloadUnified.innerHTML = '<span class="btn-text">Baixar Markdown Unificado (.md)</span>';
+let downloadedBlob = null;
+let downloadedName = null;
+global.document.createElement = (tag) => {
+  return {
+    style: {},
+    setAttribute: () => {},
+    click: function() {
+      downloadedBlob = this.href;
+      downloadedName = this.download;
+    }
+  };
+};
+
+await downloadUnifiedMarkdown();
+
+if (!mockBtnDownloadUnified.innerHTML.includes('Baixar Markdown Unificado (.md)')) {
+  console.error('[FALHA] downloadUnifiedMarkdown não restaurou o texto original do botão');
+  process.exit(1);
+}
+if (mockBtnDownloadUnified.disabled !== false) {
+  console.error('[FALHA] downloadUnifiedMarkdown deixou o botão desabilitado');
+  process.exit(1);
+}
+if (mockConsolidationProgress.style.display !== 'none') {
+  console.error('[FALHA] downloadUnifiedMarkdown deixou a barra de consolidação visível');
+  process.exit(1);
+}
+console.log('  -> [OK] downloadUnifiedMarkdown() executou assincronamente e restaurou botões e barras com sucesso!');
+
+// 28.4. Teste de downloadAllZip assíncrono com feedback no botão
+mockBtnQueueDownloadAll.innerHTML = '<span class="btn-text">Baixar Todos (.zip)</span>';
+await downloadAllZip();
+
+if (!mockBtnQueueDownloadAll.innerHTML.includes('Baixar Todos (.zip)')) {
+  console.error('[FALHA] downloadAllZip não restaurou o texto original do botão');
+  process.exit(1);
+}
+if (mockBtnQueueDownloadAll.disabled !== false) {
+  console.error('[FALHA] downloadAllZip deixou o botão desabilitado');
+  process.exit(1);
+}
+if (mockConsolidationProgress.style.display !== 'none') {
+  console.error('[FALHA] downloadAllZip deixou a barra de consolidação visível');
+  process.exit(1);
+}
+console.log('  -> [OK] downloadAllZip() executou com telemetria assíncrona e restaurou botões e barras com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.7)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.8)');
 console.log('===============================================================');
+

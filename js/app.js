@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.7
+ * @version v.1.8.8
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -104,7 +104,11 @@ const elements = typeof document !== 'undefined' ? {
   globalProgressFill: document.getElementById('global-progress-fill'),
   queueTotalBytesCard: document.getElementById('queue-total-bytes-card'),
   liveTotalBytesCounter: document.getElementById('live-total-bytes-counter'),
-  liveTotalFormattedUnit: document.getElementById('live-total-formatted-unit')
+  liveTotalFormattedUnit: document.getElementById('live-total-formatted-unit'),
+  consolidationProgress: document.getElementById('consolidation-progress'),
+  consolidationCounter: document.getElementById('consolidation-counter'),
+  consolidationFill: document.getElementById('consolidation-fill'),
+  consolidationStatusText: document.getElementById('consolidation-status-text')
 } : {};
 
 /* ==========================================================================
@@ -1872,22 +1876,111 @@ async function convertFile(file) {
 }
 
 /* ==========================================================================
-   Ações Globais de Fila (Limpar e Download em Lote .ZIP)
+   Feedback Visual de Consolidação e Exportação Assíncrona (.md e .zip)
+   ========================================================================== */
+export function showConsolidationProgress(labelText = 'Consolidando:', initialCounter = '0 / 0 (0%)') {
+  const bar = (elements && elements.consolidationProgress) || (typeof document !== 'undefined' ? document.getElementById('consolidation-progress') : null);
+  const fill = (elements && elements.consolidationFill) || (typeof document !== 'undefined' ? document.getElementById('consolidation-fill') : null);
+  const counter = (elements && elements.consolidationCounter) || (typeof document !== 'undefined' ? document.getElementById('consolidation-counter') : null);
+  const statusText = (elements && elements.consolidationStatusText) || (typeof document !== 'undefined' ? document.getElementById('consolidation-status-text') : null);
+
+  if (bar) {
+    bar.style.display = 'block';
+  }
+  if (fill) {
+    fill.style.width = '0%';
+    fill.classList.remove('finished');
+  }
+  if (statusText) {
+    statusText.textContent = labelText;
+  }
+  if (counter) {
+    counter.textContent = initialCounter;
+  }
+}
+
+export function updateConsolidationProgress(current, total, percent, customText = null) {
+  const fill = (elements && elements.consolidationFill) || (typeof document !== 'undefined' ? document.getElementById('consolidation-fill') : null);
+  const counter = (elements && elements.consolidationCounter) || (typeof document !== 'undefined' ? document.getElementById('consolidation-counter') : null);
+  const statusText = (elements && elements.consolidationStatusText) || (typeof document !== 'undefined' ? document.getElementById('consolidation-status-text') : null);
+
+  const clampedPercent = Math.min(100, Math.max(0, Math.round(percent)));
+  if (fill) {
+    fill.style.width = `${clampedPercent}%`;
+    if (clampedPercent >= 100) {
+      fill.classList.add('finished');
+    }
+  }
+  if (customText && statusText) {
+    statusText.textContent = customText;
+  }
+  if (counter) {
+    if (total > 0) {
+      counter.textContent = `${current} / ${total} arquivos (${clampedPercent}%)`;
+    } else {
+      counter.textContent = `${clampedPercent}%`;
+    }
+  }
+}
+
+export function hideConsolidationProgress() {
+  const bar = (elements && elements.consolidationProgress) || (typeof document !== 'undefined' ? document.getElementById('consolidation-progress') : null);
+  const fill = (elements && elements.consolidationFill) || (typeof document !== 'undefined' ? document.getElementById('consolidation-fill') : null);
+  if (fill) {
+    fill.style.width = '0%';
+    fill.classList.remove('finished');
+  }
+  if (bar) {
+    bar.style.display = 'none';
+  }
+}
+
+/* ==========================================================================
+   Ações Globais de Fila (Limpar e Download em Lote .ZIP Assíncrono)
    ========================================================================== */
 export async function downloadAllZip() {
   const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
-  if (completed.length === 0) {
+  const total = completed.length;
+  if (total === 0) {
     return;
   }
 
-  if (completed.length === 1) {
+  if (total === 1) {
     const item = completed[0];
-    const baseName = item.file.name.replace(/\.[^/.]+$/, '');
-    downloadMarkdownFile(baseName, item.markdown);
+    const baseName = (item.file ? item.file.name : (item.name || 'documento')).replace(/\.[^/.]+$/, '');
+    downloadMarkdownFile(`${baseName}.md`, item.markdown);
     return;
   }
+
+  const btn = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
+  const originalHtml = btn ? btn.innerHTML : '';
+  const originalTitle = btn ? btn.getAttribute('title') : '';
 
   try {
+    if (btn) {
+      btn.setAttribute('disabled', 'true');
+      btn.classList.add('is-consolidating');
+      btn.innerHTML = `
+        <svg class="radial-spinner-svg inline-btn-spinner" viewBox="0 0 100 100" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;">
+          <line x1="50" y1="14" x2="50" y2="28" stroke-width="8" stroke-linecap="round" class="ray ray-1" />
+          <line x1="68" y1="18.8" x2="61" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-2" />
+          <line x1="81.2" y1="32" x2="69.1" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-3" />
+          <line x1="86" y1="50" x2="72" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-4" />
+          <line x1="81.2" y1="68" x2="69.1" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-5" />
+          <line x1="68" y1="81.2" x2="61" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-6" />
+          <line x1="50" y1="86" x2="50" y2="72" stroke-width="8" stroke-linecap="round" class="ray ray-7" />
+          <line x1="32" y1="81.2" x2="39" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-8" />
+          <line x1="18.8" y1="68" x2="30.9" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-9" />
+          <line x1="14" y1="50" x2="28" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-10" />
+          <line x1="18.8" y1="32" x2="30.9" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-11" />
+          <line x1="32" y1="18.8" x2="39" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-12" />
+        </svg>
+        <span class="btn-text-label">Compactando...</span>
+      `;
+    }
+
+    showConsolidationProgress('Compactando .ZIP:', `0 / ${total} arquivos (0%)`);
+
     await loadScript(APP_CONFIG.CDN.JSZIP);
     const JSZipClass = (typeof window !== 'undefined' && window.JSZip) || globalThis.JSZip;
     if (!JSZipClass) {
@@ -1897,29 +1990,75 @@ export async function downloadAllZip() {
     const zip = new JSZipClass();
     const usedNames = new Set();
 
-    completed.forEach(item => {
-      let baseName = item.file.name.replace(/\.[^/.]+$/, '');
-      let fileName = `${baseName}.md`;
-      let counter = 1;
-      while (usedNames.has(fileName)) {
-        fileName = `${baseName}_${counter}.md`;
-        counter++;
+    // Adiciona arquivos em fatias assíncronas para não travar a UI (primeiros 30%)
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < total; i += CHUNK_SIZE) {
+      const slice = completed.slice(i, i + CHUNK_SIZE);
+      for (const item of slice) {
+        const itemFileName = item.file ? item.file.name : (item.name || 'documento.md');
+        let baseName = itemFileName.replace(/\.[^/.]+$/, '');
+        let fileName = `${baseName}.md`;
+        let counter = 1;
+        while (usedNames.has(fileName)) {
+          fileName = `${baseName}_${counter}.md`;
+          counter++;
+        }
+        usedNames.add(fileName);
+        zip.file(fileName, item.markdown || item.markdownOutput || '');
       }
-      usedNames.add(fileName);
-      zip.file(fileName, item.markdown);
-    });
+      const processed = Math.min(i + CHUNK_SIZE, total);
+      const prepPercent = Math.round((processed / total) * 30);
+      updateConsolidationProgress(processed, total, prepPercent, 'Preparando .ZIP:');
+      if (btn) {
+        const textLabel = btn.querySelector('.btn-text-label');
+        if (textLabel) {
+          textLabel.textContent = `Preparando ${processed}/${total}...`;
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
 
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `documentos_markdown_${getFormattedTimestamp()}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Geração do ZIP com callback onUpdate nativo (30% a 100%)
+    const zipBlob = await zip.generateAsync(
+      { type: 'blob', compression: 'DEFLATE' },
+      function updateCallback(metadata) {
+        const compressionPercent = Math.round(metadata.percent || 0);
+        const totalProgress = Math.min(100, Math.round(30 + (compressionPercent * 0.7)));
+        const currentEstimated = Math.round((totalProgress / 100) * total);
+        updateConsolidationProgress(currentEstimated, total, totalProgress, 'Compactando .ZIP:');
+        if (btn) {
+          const textLabel = btn.querySelector('.btn-text-label');
+          if (textLabel) {
+            textLabel.textContent = `Compactando (${totalProgress}%)...`;
+          }
+        }
+      }
+    );
+
+    updateConsolidationProgress(total, total, 100, 'Concluído:');
+
+    if (typeof URL !== 'undefined' && typeof document !== 'undefined' && document.createElement) {
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `documentos_markdown_${getFormattedTimestamp()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    await new Promise(r => setTimeout(r, 200));
   } catch (err) {
     console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
+  } finally {
+    hideConsolidationProgress();
+    if (btn) {
+      btn.removeAttribute('disabled');
+      btn.classList.remove('is-consolidating');
+      btn.innerHTML = originalHtml;
+      if (originalTitle) btn.setAttribute('title', originalTitle);
+    }
   }
 }
 
@@ -2057,69 +2196,169 @@ export function buildBacklogSection(items) {
   ].join('\n');
 }
 
+/**
+ * Formata um único item da fila com seus cabeçalhos demarcadores padronizados para unificação
+ * @param {Object} item - Item da fila
+ * @returns {string} Bloco formatado com delimitadores
+ */
+export function formatItemForUnifiedMarkdown(item) {
+  const fileName = item.file ? item.file.name : (item.name || 'documento.md');
+  const fileSize = item.file ? item.file.size : (item.size || 0);
+  const sizeFormatted = formatBytes(fileSize);
+  const ext = (fileName.split('.').pop() || 'TXT').toUpperCase();
+  const archiveOrigin = item.archiveOrigin || (item.file && item.file.archiveOrigin) || '(Upload Direto)';
+  const relativePath = item.relativePath || (item.file && item.file.relativePath) || fileName;
+  let folderPath = item.folderPath || (item.file && item.file.folderPath);
+  if (!folderPath) {
+    if (relativePath.includes('/')) {
+      folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
+    } else {
+      folderPath = archiveOrigin === '(Upload Direto)' ? 'Raiz' : 'Raiz do Pacote';
+    }
+  }
+  const cleanFolder = (folderPath === 'Raiz' || folderPath === 'Raiz do Pacote')
+    ? folderPath
+    : (folderPath.endsWith('/') ? folderPath : folderPath + '/');
+
+  let md = (item.markdown || item.markdownOutput || '').trim();
+
+  // Prevenção de quebra de layout: fechamento seguro de blocos de código abertos
+  const codeFenceCount = (md.match(/^```/gm) || []).length;
+  if (codeFenceCount % 2 !== 0) {
+    md += '\n```';
+  }
+
+  const headerDelimiter = [
+    '<!-- ================================================================= -->',
+    `<!-- INÍCIO DO ARQUIVO: ${relativePath} -->`,
+    `<!-- PACOTE DE ORIGEM: ${archiveOrigin} | DIRETÓRIO: ${cleanFolder} -->`,
+    `<!-- FORMATO: .${ext} | FORMATO ORIGINAL: ${ext} | TAMANHO: ${sizeFormatted} -->`,
+    '<!-- ================================================================= -->'
+  ].join('\n');
+
+  const footerDelimiter = [
+    '<!-- ================================================================= -->',
+    `<!-- FIM DO ARQUIVO: ${relativePath} -->`,
+    '<!-- ================================================================= -->'
+  ].join('\n');
+
+  return `${headerDelimiter}\n\n# ${fileName}\n*Origem: \`${archiveOrigin} > ${relativePath}\`*\n\n${md}\n\n${footerDelimiter}\n\n---`;
+}
+
+/**
+ * Mesclagem síncrona dos arquivos Markdown para compatibilidade e testes
+ * @param {Array<Object>} items
+ * @returns {string} Markdown unificado
+ */
 export function mergeMarkdownOutputs(items) {
   if (!items || items.length === 0) return '';
-
   const backlog = buildBacklogSection(items);
-
-  const mergedBody = items.map(item => {
-    const fileName = item.file ? item.file.name : (item.name || 'documento.md');
-    const fileSize = item.file ? item.file.size : (item.size || 0);
-    const sizeFormatted = formatBytes(fileSize);
-    const ext = (fileName.split('.').pop() || 'TXT').toUpperCase();
-    const archiveOrigin = item.archiveOrigin || (item.file && item.file.archiveOrigin) || '(Upload Direto)';
-    const relativePath = item.relativePath || (item.file && item.file.relativePath) || fileName;
-    let folderPath = item.folderPath || (item.file && item.file.folderPath);
-    if (!folderPath) {
-      if (relativePath.includes('/')) {
-        folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
-      } else {
-        folderPath = archiveOrigin === '(Upload Direto)' ? 'Raiz' : 'Raiz do Pacote';
-      }
-    }
-    const cleanFolder = (folderPath === 'Raiz' || folderPath === 'Raiz do Pacote')
-      ? folderPath
-      : (folderPath.endsWith('/') ? folderPath : folderPath + '/');
-
-    let md = (item.markdown || item.markdownOutput || '').trim();
-
-    // Prevenção de quebra de layout: fechamento seguro de blocos de código abertos
-    const codeFenceCount = (md.match(/^```/gm) || []).length;
-    if (codeFenceCount % 2 !== 0) {
-      md += '\n```';
-    }
-
-    const headerDelimiter = [
-      '<!-- ================================================================= -->',
-      `<!-- INÍCIO DO ARQUIVO: ${relativePath} -->`,
-      `<!-- PACOTE DE ORIGEM: ${archiveOrigin} | DIRETÓRIO: ${cleanFolder} -->`,
-      `<!-- FORMATO: .${ext} | FORMATO ORIGINAL: ${ext} | TAMANHO: ${sizeFormatted} -->`,
-      '<!-- ================================================================= -->'
-    ].join('\n');
-
-    const footerDelimiter = [
-      '<!-- ================================================================= -->',
-      `<!-- FIM DO ARQUIVO: ${relativePath} -->`,
-      '<!-- ================================================================= -->'
-    ].join('\n');
-
-    return `${headerDelimiter}\n\n# ${fileName}\n*Origem: \`${archiveOrigin} > ${relativePath}\`*\n\n${md}\n\n${footerDelimiter}\n\n---`;
-  }).join('\n\n') + '\n';
-
+  const mergedBody = items.map(formatItemForUnifiedMarkdown).join('\n\n') + '\n';
   return backlog + mergedBody;
 }
 
+/**
+ * Concatena de forma assíncrona e não-bloqueante os arquivos Markdown com feedback de progresso
+ * @param {Array<Object>} [items]
+ * @param {Function} [onProgress] Callback com (processedCount, total, percent)
+ * @returns {Promise<string>} Markdown consolidado
+ */
+export async function generateUnifiedMarkdownWithProgress(items, onProgress) {
+  const completedItems = (items || state.queue).filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput));
+  const total = completedItems.length;
+  if (total === 0) return '';
+
+  const backlog = buildBacklogSection(completedItems);
+  const parts = [];
+
+  const CHUNK_SIZE = 10;
+  for (let i = 0; i < total; i += CHUNK_SIZE) {
+    const slice = completedItems.slice(i, i + CHUNK_SIZE);
+    for (const item of slice) {
+      parts.push(formatItemForUnifiedMarkdown(item));
+    }
+
+    if (typeof onProgress === 'function') {
+      const currentProcessed = Math.min(i + CHUNK_SIZE, total);
+      const percent = Math.round((currentProcessed / total) * 100);
+      onProgress(currentProcessed, total, percent);
+    }
+
+    // Devolve o controle para o navegador renderizar a UI/barra a 60 FPS
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  return (backlog || '') + parts.join('\n\n') + '\n';
+}
+
+/**
+ * Dispara o download unificado com feedback de progresso assíncrono e não-bloqueante
+ */
 export async function downloadUnifiedMarkdown() {
   const completed = state.queue.filter(item => item.status === 'completed' && (item.markdown || item.markdownOutput));
-  if (completed.length === 0) {
+  const total = completed.length;
+  if (total === 0) {
     return;
   }
 
-  // Garante que a mesclagem respeite rigorosamente a ordem alfanumérica dos itens na fila
-  const orderedItems = [...completed];
-  const mergedContent = mergeMarkdownOutputs(orderedItems);
-  const fileName = `documento_unificado_${getFormattedTimestamp()}.md`;
-  downloadMarkdownFile(fileName, mergedContent);
+  const btn = (elements && elements.btnDownloadUnified) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
+  const originalHtml = btn ? btn.innerHTML : '';
+  const originalTitle = btn ? btn.getAttribute('title') : '';
+
+  try {
+    if (btn) {
+      btn.setAttribute('disabled', 'true');
+      btn.classList.add('is-consolidating');
+      btn.innerHTML = `
+        <span class="icon-merge">
+          <svg class="radial-spinner-svg inline-btn-spinner" viewBox="0 0 100 100" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;">
+            <line x1="50" y1="14" x2="50" y2="28" stroke-width="8" stroke-linecap="round" class="ray ray-1" />
+            <line x1="68" y1="18.8" x2="61" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-2" />
+            <line x1="81.2" y1="32" x2="69.1" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-3" />
+            <line x1="86" y1="50" x2="72" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-4" />
+            <line x1="81.2" y1="68" x2="69.1" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-5" />
+            <line x1="68" y1="81.2" x2="61" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-6" />
+            <line x1="50" y1="86" x2="50" y2="72" stroke-width="8" stroke-linecap="round" class="ray ray-7" />
+            <line x1="32" y1="81.2" x2="39" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-8" />
+            <line x1="18.8" y1="68" x2="30.9" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-9" />
+            <line x1="14" y1="50" x2="28" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-10" />
+            <line x1="18.8" y1="32" x2="30.9" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-11" />
+            <line x1="32" y1="18.8" x2="39" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-12" />
+          </svg>
+        </span>
+        <span class="btn-text-label">Consolidando 0 / ${total} (0%)...</span>
+      `;
+    }
+
+    showConsolidationProgress('Consolidando:', `0 / ${total} arquivos (0%)`);
+
+    const orderedItems = [...completed];
+    const mergedContent = await generateUnifiedMarkdownWithProgress(orderedItems, (current, totalFiles, percent) => {
+      updateConsolidationProgress(current, totalFiles, percent, 'Consolidando:');
+      if (btn) {
+        const textLabel = btn.querySelector('.btn-text-label');
+        if (textLabel) {
+          textLabel.textContent = `Consolidando ${current} / ${totalFiles} (${percent}%)...`;
+        }
+      }
+    });
+
+    const fileName = `documento_unificado_${getFormattedTimestamp()}.md`;
+    downloadMarkdownFile(fileName, mergedContent);
+
+    updateConsolidationProgress(total, total, 100, 'Concluído:');
+    await new Promise(r => setTimeout(r, 200));
+  } catch (err) {
+    console.error('[doc2md] Erro ao consolidar Markdown unificado:', err);
+  } finally {
+    hideConsolidationProgress();
+    if (btn) {
+      btn.removeAttribute('disabled');
+      btn.classList.remove('is-consolidating');
+      btn.innerHTML = originalHtml;
+      if (originalTitle) btn.setAttribute('title', originalTitle);
+    }
+  }
 }
 
 /**

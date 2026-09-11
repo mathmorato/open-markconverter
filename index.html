@@ -33,7 +33,7 @@
         </div>
         <div class="brand-title">
           <span>Open <span class="accent">Mark</span></span>
-          <span class="version-badge" id="header-version">v.1.8.7</span>
+          <span class="version-badge" id="header-version">v.1.8.8</span>
         </div>
       </a>
 
@@ -252,6 +252,35 @@
               </span>
             </div>
           </div>
+
+          <!-- BARRA DE PROGRESSO DE CONSOLIDAÇÃO & EXPORTAÇÃO ASSÍNCRONA -->
+          <div id="consolidation-progress" class="consolidation-progress-bar" style="display: none;">
+            <div class="consolidation-header">
+              <span class="consolidation-label">
+                <span class="consolidation-spinner-icon" id="consolidation-spinner-icon" aria-hidden="true">
+                  <svg viewBox="0 0 100 100" class="radial-spinner-svg">
+                    <line x1="50" y1="14" x2="50" y2="28" stroke-width="8" stroke-linecap="round" class="ray ray-1" />
+                    <line x1="68" y1="18.8" x2="61" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-2" />
+                    <line x1="81.2" y1="32" x2="69.1" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-3" />
+                    <line x1="86" y1="50" x2="72" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-4" />
+                    <line x1="81.2" y1="68" x2="69.1" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-5" />
+                    <line x1="68" y1="81.2" x2="61" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-6" />
+                    <line x1="50" y1="86" x2="50" y2="72" stroke-width="8" stroke-linecap="round" class="ray ray-7" />
+                    <line x1="32" y1="81.2" x2="39" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-8" />
+                    <line x1="18.8" y1="68" x2="30.9" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-9" />
+                    <line x1="14" y1="50" x2="28" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-10" />
+                    <line x1="18.8" y1="32" x2="30.9" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-11" />
+                    <line x1="32" y1="18.8" x2="39" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-12" />
+                  </svg>
+                </span>
+                <span id="consolidation-status-text">Consolidando:</span>
+              </span>
+              <strong id="consolidation-counter" class="consolidation-counter">0 / 0 (0%)</strong>
+            </div>
+            <div class="consolidation-track">
+              <div id="consolidation-fill" class="consolidation-fill" style="width: 0%;"></div>
+            </div>
+          </div>
         </div>
 
         <!-- BARRA DE CARREGAMENTO / PROGRESSO GLOBAL PARA LOTES (> 10 ARQUIVOS) -->
@@ -303,7 +332,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.8.7</span>
+        <span class="version-badge" id="footer-version">v.1.8.8</span>
         <a href="https://github.com/mathmorato/open-mark" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

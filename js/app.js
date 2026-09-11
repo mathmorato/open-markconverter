@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.5
+ * @version v.1.8.6
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -813,6 +813,35 @@ export function updateGlobalMdAccumulator() {
 }
 
 /**
+ * Formata o peso acumulado de Markdown exclusivamente em kB, MB ou GB (sem bytes brutos)
+ * @param {number} bytes - Quantidade em bytes
+ * @returns {{ value: string, unit: string, formatted: string }}
+ */
+export function formatMdTelemetrySize(bytes) {
+  const num = Number(bytes) || 0;
+  if (num <= 0) {
+    return { value: '0', unit: 'kB', formatted: '0 kB' };
+  }
+  const k = 1024;
+  const m = k * k;
+  const g = m * k;
+
+  if (num < m) {
+    const kb = num / k;
+    const val = kb < 0.05 ? '< 0,1' : (kb >= 100 ? Math.round(kb).toLocaleString('pt-BR') : parseFloat(kb.toFixed(1)).toLocaleString('pt-BR'));
+    return { value: String(val), unit: 'kB', formatted: `${val} kB` };
+  }
+  if (num < g) {
+    const mb = num / m;
+    const val = mb >= 100 ? Math.round(mb).toLocaleString('pt-BR') : parseFloat(mb.toFixed(1)).toLocaleString('pt-BR');
+    return { value: String(val), unit: 'MB', formatted: `${val} MB` };
+  }
+  const gb = num / g;
+  const val = parseFloat(gb.toFixed(1)).toLocaleString('pt-BR');
+  return { value: String(val), unit: 'GB', formatted: `${val} GB` };
+}
+
+/**
  * Controlador de interpolação contínua e desacoplada (60 FPS) via requestAnimationFrame
  * para contagem suave de bytes consolidados de Markdown (rolling count-up sem jank)
  */
@@ -860,9 +889,10 @@ export const totalBytesAnimController = {
     const formattedEl = (elements && elements.liveTotalFormattedUnit) || (typeof document !== 'undefined' ? document.getElementById('live-total-formatted-unit') : null);
     if (!counterEl) return;
 
-    counterEl.textContent = bytes.toLocaleString('pt-BR');
+    const { value, unit } = formatMdTelemetrySize(bytes);
+    counterEl.textContent = value;
     if (formattedEl) {
-      formattedEl.textContent = `(${formatFileSize(bytes)})`;
+      formattedEl.textContent = unit;
     }
   },
 

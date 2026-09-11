@@ -36,6 +36,7 @@ import {
   getDynamicConcurrency,
   totalBytesAnimController,
   computeAndAnimateTotalMdBytes,
+  formatMdTelemetrySize,
   removeItemFromQueue,
   state as appState
 } from '../js/app.js';
@@ -44,7 +45,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.5)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.6)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -1339,17 +1340,13 @@ if (totalBytesAnimController.targetBytes !== expectedTotal) {
 }
 console.log(`  -> [OK] Soma cumulativa exata (${computedTotal.toLocaleString('pt-BR')} bytes) validada!`);
 
-// 27.2. Formatação brasileira e unidade legível no DOM (anti-jitter)
+// 27.2. Formatação brasileira e unidade legível no DOM (exclusivamente kB, MB, GB, sem bytes brutos)
 totalBytesAnimController.render(expectedTotal);
-if (mockTotalBytesCounter.textContent !== expectedTotal.toLocaleString('pt-BR')) {
-  console.error(`[FALHA] live-total-bytes-counter formatou como "${mockTotalBytesCounter.textContent}", esperado "${expectedTotal.toLocaleString('pt-BR')}"`);
+if (mockTotalBytesCounter.textContent !== '1,8' || mockTotalFormattedUnit.textContent !== 'MB') {
+  console.error(`[FALHA] live-total-bytes-counter formatou como "${mockTotalBytesCounter.textContent} ${mockTotalFormattedUnit.textContent}", esperado "1,8 MB"`);
   process.exit(1);
 }
-if (!mockTotalFormattedUnit.textContent.includes('MB')) {
-  console.error(`[FALHA] live-total-formatted-unit não calculou MB legível: "${mockTotalFormattedUnit.textContent}"`);
-  process.exit(1);
-}
-console.log(`  -> [OK] Contador exibido: ${mockTotalBytesCounter.textContent} bytes ${mockTotalFormattedUnit.textContent}!`);
+console.log(`  -> [OK] Contador exibido exclusivamente em MB/kB/GB: ${mockTotalBytesCounter.textContent} ${mockTotalFormattedUnit.textContent}!`);
 
 // 27.3. Remoção de item individual recomputa e atualiza alvo da animação
 removeItemFromQueue('item_md_3');
@@ -1367,20 +1364,35 @@ if (totalBytesAnimController.targetBytes !== 0 || totalBytesAnimController.curre
   console.error('[FALHA] realClearQueue() não zerou totalBytesAnimController');
   process.exit(1);
 }
-if (mockTotalBytesCounter.textContent !== '0') {
-  console.error(`[FALHA] Contador não retornou a 0 após clearQueue(): "${mockTotalBytesCounter.textContent}"`);
+if (mockTotalBytesCounter.textContent !== '0' || mockTotalFormattedUnit.textContent !== 'kB') {
+  console.error(`[FALHA] Contador não retornou a 0 kB após clearQueue(): "${mockTotalBytesCounter.textContent} ${mockTotalFormattedUnit.textContent}"`);
   process.exit(1);
 }
 console.log('  -> [OK] clearQueue() resetou a animação e zerou o contador com sucesso!');
 
-// 27.5. Validação de microcópia do rótulo da badge no index.html
+// 27.5. Validação de microcópia do rótulo da badge no index.html e ausência de 'bytes'
 const currentHtmlContent = fs.readFileSync('./index.html', 'utf8');
 if (!currentHtmlContent.includes('Tamanho do MD:')) {
   console.error('[FALHA] index.html não contém o rótulo "Tamanho do MD:" na badge');
   process.exit(1);
 }
-console.log('  -> [OK] Microcópia "Tamanho do MD:" validada com sucesso no HTML!');
+if (currentHtmlContent.includes('<span class="total-bytes-unit">bytes</span>')) {
+  console.error('[FALHA] index.html ainda contém informação textual bruta de bytes na badge');
+  process.exit(1);
+}
+console.log('  -> [OK] Microcópia "Tamanho do MD:" e remoção da unidade bruta de bytes validadas no HTML!');
+
+// 27.6. Validação direta de formatMdTelemetrySize (MB, kB, GB sem bytes brutos)
+const testKb = formatMdTelemetrySize(51200); // 50 kB
+const testMb = formatMdTelemetrySize(395283984); // 377 MB
+const testGb = formatMdTelemetrySize(1610612736); // 1,5 GB
+const testZero = formatMdTelemetrySize(0); // 0 kB
+if (testKb.formatted !== '50 kB' || testMb.formatted !== '377 MB' || testGb.formatted !== '1,5 GB' || testZero.formatted !== '0 kB') {
+  console.error(`[FALHA] formatMdTelemetrySize falhou: kB=${testKb.formatted}, MB=${testMb.formatted}, GB=${testGb.formatted}, Zero=${testZero.formatted}`);
+  process.exit(1);
+}
+console.log('  -> [OK] formatMdTelemetrySize validado com sucesso para kB, MB, GB e Zero!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.5)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.6)');
 console.log('===============================================================');

@@ -2006,40 +2006,53 @@ body.dark-mode .global-progress-track,
 }
 
 /* ==========================================================================
-   Modo Alto Desempenho / Headless Batch (>= 50 arquivos)
+   Spinner Radial e Transição de Conclusão do Lote
    ========================================================================== */
-.headless-mode-notice {
-  display: flex;
+.batch-spinner-icon {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  margin-top: 0.5rem;
-  background: #F8FAFC;
-  border: 1px dashed #CBD5E1;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  color: #64748B;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
-body.dark-mode .headless-mode-notice,
-[data-theme="dark"] .headless-mode-notice {
-  background: #1E293B;
-  border-color: #475569;
-  color: #94A3B8;
+.radial-spinner-svg {
+  width: 100%;
+  height: 100%;
+  animation: spinner-rotate-step 1s steps(12, end) infinite;
 }
 
-.headless-badge {
-  background: #EFF6FF;
-  color: #2563EB;
-  font-weight: 600;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  white-space: nowrap;
+/* Distribuição de opacidades dos raios para efeito de esteira */
+.radial-spinner-svg .ray { stroke: currentColor; }
+.radial-spinner-svg .ray-1  { opacity: 1.0; }
+.radial-spinner-svg .ray-2  { opacity: 0.91; }
+.radial-spinner-svg .ray-3  { opacity: 0.83; }
+.radial-spinner-svg .ray-4  { opacity: 0.74; }
+.radial-spinner-svg .ray-5  { opacity: 0.65; }
+.radial-spinner-svg .ray-6  { opacity: 0.56; }
+.radial-spinner-svg .ray-7  { opacity: 0.47; }
+.radial-spinner-svg .ray-8  { opacity: 0.38; }
+.radial-spinner-svg .ray-9  { opacity: 0.29; }
+.radial-spinner-svg .ray-10 { opacity: 0.20; }
+.radial-spinner-svg .ray-11 { opacity: 0.15; }
+.radial-spinner-svg .ray-12 { opacity: 0.10; }
+
+@keyframes spinner-rotate-step {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-body.dark-mode .headless-badge,
-[data-theme="dark"] .headless-badge {
-  background: #1E3A8A;
-  color: #93C5FD;
+/* Quando o lote atinge 100% */
+.batch-global-progress.is-completed .radial-spinner-svg {
+  animation: none;
+  display: none !important;
 }
+
+.batch-global-progress.is-completed .batch-success-check-svg {
+  display: inline-block !important;
+}
+
 

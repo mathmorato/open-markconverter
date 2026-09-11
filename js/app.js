@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.2
+ * @version v.1.8.3
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -101,8 +101,7 @@ const elements = typeof document !== 'undefined' ? {
   unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
   batchGlobalProgress: document.getElementById('batch-global-progress'),
   globalProgressCounter: document.getElementById('global-progress-counter'),
-  globalProgressFill: document.getElementById('global-progress-fill'),
-  headlessModeNotice: document.getElementById('headless-mode-notice')
+  globalProgressFill: document.getElementById('global-progress-fill')
 } : {};
 
 /* ==========================================================================
@@ -803,16 +802,6 @@ export function shouldEnableHeadlessMode(queueLength) {
 }
 
 /**
- * Atualiza a exibição do banner de Modo Alto Desempenho no topo da fila
- * @param {boolean} isHeadless
- */
-export function updateHeadlessBanner(isHeadless) {
-  const noticeEl = (elements && elements.headlessModeNotice) || (typeof document !== 'undefined' ? document.getElementById('headless-mode-notice') : null);
-  if (!noticeEl) return;
-  noticeEl.style.display = isHeadless ? 'flex' : 'none';
-}
-
-/**
  * Acumulador global em memória do peso do Markdown gerado
  * @returns {number} total de bytes
  */
@@ -836,7 +825,6 @@ function renderQueue() {
   if (total === 0) {
     queueSection.style.display = 'none';
     if (queueCounter) queueCounter.textContent = '0 arquivos';
-    updateHeadlessBanner(false);
     updateGlobalBatchProgress();
     return;
   }
@@ -857,7 +845,6 @@ function renderQueue() {
   }
 
   const isHeadless = shouldEnableHeadlessMode(total);
-  updateHeadlessBanner(isHeadless);
 
   if (isHeadless) {
     // Oculta e esvazia a lista de cards individuais para liberar 100% da CPU e zerar reflows
@@ -1355,6 +1342,7 @@ export const batchAnimationController = {
   render(displayCount, displayPercent) {
     const counterEl = (elements && elements.globalProgressCounter) || (typeof document !== 'undefined' ? document.getElementById('global-progress-counter') : null);
     const fillEl = (elements && elements.globalProgressFill) || (typeof document !== 'undefined' ? document.getElementById('global-progress-fill') : null);
+    const globalProgressEl = (elements && elements.batchGlobalProgress) || (typeof document !== 'undefined' ? document.getElementById('batch-global-progress') : null);
 
     if (counterEl) {
       const roundedPct = Math.min(100, Math.round(displayPercent));
@@ -1367,6 +1355,14 @@ export const batchAnimationController = {
         fillEl.classList.add('finished');
       } else {
         fillEl.classList.remove('finished');
+      }
+    }
+
+    if (globalProgressEl) {
+      if (displayPercent >= 99.99) {
+        globalProgressEl.classList.add('is-completed');
+      } else {
+        globalProgressEl.classList.remove('is-completed');
       }
     }
   },
@@ -1384,9 +1380,51 @@ export const batchAnimationController = {
     this.targetPercent = 0;
     this.total = 0;
     this.lastFrameTime = null;
+    const globalProgressEl = (elements && elements.batchGlobalProgress) || (typeof document !== 'undefined' ? document.getElementById('batch-global-progress') : null);
+    if (globalProgressEl) {
+      globalProgressEl.classList.remove('is-completed');
+    }
     this.render(0, 0);
   }
 };
+
+let completedCountSinceLastScroll = 0;
+
+/**
+ * Controla a rolagem automática em lotes de 5 em 5 para o modo normal (< 50 arquivos).
+ * Confinada estritamente ao container da fila (.file-queue-list), mantendo a janela estável.
+ * @param {number} itemIndex
+ * @param {number} totalQueueItems
+ */
+export function handleBatchChunkAutoScroll(itemIndex, totalQueueItems) {
+  // Só atua se estiver abaixo do limiar de alto rendimento (modo normal com cards visíveis)
+  if (totalQueueItems >= 50 || (state && state.userIsScrolling)) return;
+
+  completedCountSinceLastScroll++;
+
+  // Dispara a rolagem a cada 5 arquivos finalizados OU no fechamento da fila
+  const isFiveChunk = completedCountSinceLastScroll >= 5;
+  const isLastItem = itemIndex === totalQueueItems - 1;
+
+  if (isFiveChunk || isLastItem) {
+    completedCountSinceLastScroll = 0;
+
+    const queueList = (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.querySelector('.file-queue-list') || document.getElementById('file-queue-list')) : null);
+    if (!queueList || !queueList.children) return;
+
+    const currentItemCard = queueList.children[itemIndex];
+    if (!currentItemCard) return;
+
+    // Rolagem suave e isolada estritamente dentro do container da fila
+    const itemOffset = currentItemCard.offsetTop - queueList.offsetTop;
+    if (typeof queueList.scrollTo === 'function') {
+      queueList.scrollTo({
+        top: itemOffset - (queueList.clientHeight / 2) + (currentItemCard.offsetHeight / 2),
+        behavior: 'smooth'
+      });
+    }
+  }
+}
 
 /**
  * Atualiza em tempo real a barra de progresso global agregada para lotes (> 10 arquivos).
@@ -1679,6 +1717,12 @@ async function processQueueItem(item) {
     const formattedDuration = formatElapsedTime(duration);
     updateDebugStatus(`[Falha]: ${item.file.name} - ${item.errorMessage} (${formattedDuration})`, true);
   } finally {
+    if (state && state.queue) {
+      const itemIndex = state.queue.findIndex(it => it.id === item.id);
+      if (itemIndex !== -1) {
+        handleBatchChunkAutoScroll(itemIndex, state.queue.length);
+      }
+    }
     updateGlobalBatchProgress();
     dispatchNext();
   }
@@ -2033,8 +2077,8 @@ export function clearQueue() {
   state.queue.forEach(it => { it.cancelled = true; });
   state.queue = [];
   state.userIsScrolling = false;
+  completedCountSinceLastScroll = 0;
   batchAnimationController.reset();
-  updateHeadlessBanner(false);
   renderQueue();
 }
 

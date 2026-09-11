@@ -26,7 +26,7 @@ import {
   renderQueueUI,
   BATCH_HEADLESS_THRESHOLD,
   shouldEnableHeadlessMode,
-  updateHeadlessBanner,
+  handleBatchChunkAutoScroll,
   updateQueueItemDOM,
   buildBacklogSection,
   buildDirectoryTreeAscii,
@@ -41,7 +41,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.2)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.3)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -458,7 +458,13 @@ const mockHeadlessNotice = {
   style: { display: 'none' }
 };
 const mockBatchProgress = {
-  style: { display: 'none' }
+  style: { display: 'none' },
+  classList: {
+    classes: new Set(),
+    add(cls) { this.classes.add(cls); },
+    remove(cls) { this.classes.delete(cls); },
+    contains(cls) { return this.classes.has(cls); }
+  }
 };
 const mockProgressCounter = {
   textContent: ''
@@ -482,7 +488,7 @@ global.document = {
     if (id === 'batch-global-progress') return mockBatchProgress;
     if (id === 'global-progress-counter') return mockProgressCounter;
     if (id === 'global-progress-fill') return mockProgressFill;
-    if (id === 'headless-mode-notice') return mockHeadlessNotice;
+    if (id === 'headless-mode-notice') return null;
     return null;
   }
 };
@@ -1098,7 +1104,7 @@ if (shouldEnableHeadlessMode(49) !== false || shouldEnableHeadlessMode(50) !== t
 }
 console.log('  -> [OK] shouldEnableHeadlessMode validado: falso para < 50 e verdadeiro para >= 50!');
 
-// 24.2. Lote com 55 arquivos: supressão de cards no DOM e exibição do banner
+// 24.2. Lote com 55 arquivos: supressão de cards no DOM e ausência total de banners
 appState.queue = Array.from({ length: 55 }, (_, i) => ({
   id: `headless_item_${i}`,
   file: new File([`conteudo ${i}`], `arquivo_${String(i).padStart(2, '0')}.txt`, { type: 'text/plain' }),
@@ -1119,11 +1125,11 @@ if (mockQueueList.innerHTML !== '') {
   console.error(`[FALHA] .file-queue-list deveria estar vazio no DOM no modo headless, mas contém HTML`);
   process.exit(1);
 }
-if (mockHeadlessNotice.style.display !== 'flex') {
-  console.error(`[FALHA] #headless-mode-notice deveria estar visível (display: 'flex'), mas está: ${mockHeadlessNotice.style.display}`);
+if (document.getElementById('headless-mode-notice') !== null) {
+  console.error(`[FALHA] #headless-mode-notice não deve existir no DOM`);
   process.exit(1);
 }
-console.log('  -> [OK] Modo Headless ativado: cards individuais não instanciados no DOM e banner exibido!');
+console.log('  -> [OK] Modo Headless ativado: cards individuais não instanciados no DOM e zero avisos!');
 
 // 24.3. Bypass de atualizações de DOM individuais
 let domQueryHappened = false;
@@ -1183,24 +1189,119 @@ if (!mockQueueList.innerHTML.includes('normal_item_0')) {
   console.error('[FALHA] Cards individuais não foram renderizados no DOM para lote de 20 itens');
   process.exit(1);
 }
-if (mockHeadlessNotice.style.display !== 'none') {
-  console.error(`[FALHA] #headless-mode-notice deveria estar oculto para 20 itens, mas está: ${mockHeadlessNotice.style.display}`);
-  process.exit(1);
-}
 console.log('  -> [OK] Modo normal restaurado com sucesso para lote < 50 arquivos (cards instanciados)!');
 
 // 24.6. Limpeza total da fila restaura estado neutro
 realClearQueue();
-if (mockHeadlessNotice.style.display !== 'none') {
-  console.error('[FALHA] #headless-mode-notice não foi ocultado após realClearQueue()');
-  process.exit(1);
-}
 if (appState.queue.length !== 0) {
   console.error('[FALHA] realClearQueue() não esvaziou a fila');
   process.exit(1);
 }
 console.log('  -> [OK] realClearQueue() limpou a fila e restaurou o estado da interface!');
 
+// 25. Testando Auto-Scroll em Lotes de 5 em 5 para Modo Normal (< 50 arquivos)
+console.log('[TESTE 25] Testando auto-scroll agrupado de 5 em 5 itens para fila < 50 arquivos...');
+
+let lastScrollToParams = null;
+mockQueueList.scrollTo = (params) => {
+  lastScrollToParams = params;
+};
+mockQueueList.children = Array.from({ length: 12 }, (_, i) => ({
+  offsetTop: i * 84,
+  offsetHeight: 84
+}));
+mockQueueList.offsetTop = 0;
+mockQueueList.clientHeight = 480;
+
+// 25.1. Para >= 50 arquivos, NENHUM scroll deve ocorrer
+lastScrollToParams = null;
+handleBatchChunkAutoScroll(4, 50);
+if (lastScrollToParams !== null) {
+  console.error('[FALHA] handleBatchChunkAutoScroll disparou scroll para fila com >= 50 itens!');
+  process.exit(1);
+}
+console.log('  -> [OK] Auto-scroll suprimido no modo headless (>= 50 itens)!');
+
+// 25.2. Para < 50 arquivos, mas com state.userIsScrolling = true, NENHUM scroll deve ocorrer
+appState.userIsScrolling = true;
+lastScrollToParams = null;
+handleBatchChunkAutoScroll(0, 12);
+if (lastScrollToParams !== null) {
+  console.error('[FALHA] handleBatchChunkAutoScroll disparou scroll durante rolagem manual do usuário!');
+  process.exit(1);
+}
+appState.userIsScrolling = false;
+console.log('  -> [OK] Auto-scroll respeita o bloqueio de rolagem manual do usuário!');
+
+// 25.3. Cadência de 5 em 5: itens 0, 1, 2, 3 não devem disparar scroll, item 4 (5º item) dispara
+lastScrollToParams = null;
+handleBatchChunkAutoScroll(0, 12);
+handleBatchChunkAutoScroll(1, 12);
+handleBatchChunkAutoScroll(2, 12);
+handleBatchChunkAutoScroll(3, 12);
+if (lastScrollToParams !== null) {
+  console.error('[FALHA] handleBatchChunkAutoScroll disparou scroll antes de atingir bloco de 5 itens!');
+  process.exit(1);
+}
+handleBatchChunkAutoScroll(4, 12); // 5º item concluído
+if (!lastScrollToParams || lastScrollToParams.behavior !== 'smooth') {
+  console.error('[FALHA] handleBatchChunkAutoScroll não disparou scroll no 5º item concluído');
+  process.exit(1);
+}
+console.log('  -> [OK] Auto-scroll disparou com sucesso no 5º item com behavior: smooth!');
+
+// 25.4. Próximos 5 itens: itens 5, 6, 7, 8 não disparam; item 9 (10º item) dispara
+lastScrollToParams = null;
+handleBatchChunkAutoScroll(5, 12);
+handleBatchChunkAutoScroll(6, 12);
+handleBatchChunkAutoScroll(7, 12);
+handleBatchChunkAutoScroll(8, 12);
+if (lastScrollToParams !== null) {
+  console.error('[FALHA] handleBatchChunkAutoScroll disparou scroll antes do 10º item!');
+  process.exit(1);
+}
+handleBatchChunkAutoScroll(9, 12);
+if (!lastScrollToParams) {
+  console.error('[FALHA] handleBatchChunkAutoScroll não disparou scroll no 10º item');
+  process.exit(1);
+}
+console.log('  -> [OK] Auto-scroll disparou no 10º item com sucesso!');
+
+// 25.5. Item final remanescente: item 10 não dispara, mas item 11 (último da fila total 12) dispara!
+lastScrollToParams = null;
+handleBatchChunkAutoScroll(10, 12);
+if (lastScrollToParams !== null) {
+  console.error('[FALHA] handleBatchChunkAutoScroll disparou indevidamente no 11º item');
+  process.exit(1);
+}
+handleBatchChunkAutoScroll(11, 12); // itemIndex === totalQueueItems - 1
+if (!lastScrollToParams) {
+  console.error('[FALHA] handleBatchChunkAutoScroll não disparou no fechamento da fila (último item)');
+  process.exit(1);
+}
+console.log('  -> [OK] Auto-scroll disparou no fechamento da fila (último item remanescente)!');
+
+// 26. Testando Transição de Estado do Spinner Radial (.is-completed)
+console.log('[TESTE 26] Testando spinner radial e classe .is-completed no progresso do lote...');
+batchAnimationController.reset();
+if (mockBatchProgress.classList.contains('is-completed')) {
+  console.error('[FALHA] batchAnimationController.reset() não removeu a classe is-completed');
+  process.exit(1);
+}
+// Renderiza 50%
+batchAnimationController.render(5, 50);
+if (mockBatchProgress.classList.contains('is-completed')) {
+  console.error('[FALHA] mockBatchProgress não deveria conter is-completed a 50%');
+  process.exit(1);
+}
+// Renderiza 100%
+batchAnimationController.render(10, 100);
+if (!mockBatchProgress.classList.contains('is-completed')) {
+  console.error('[FALHA] mockBatchProgress deveria conter is-completed a 100%');
+  process.exit(1);
+}
+console.log('  -> [OK] Classe .is-completed adicionada a 100% e removida no reset com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.2)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.3)');
 console.log('===============================================================');

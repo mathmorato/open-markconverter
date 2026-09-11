@@ -33,7 +33,7 @@
         </div>
         <div class="brand-title">
           <span>Open <span class="accent">Mark</span></span>
-          <span class="version-badge" id="header-version">v.1.8.2</span>
+          <span class="version-badge" id="header-version">v.1.8.3</span>
         </div>
       </a>
 
@@ -241,17 +241,23 @@
         <div id="batch-global-progress" class="batch-global-progress" style="display: none;">
           <div class="global-progress-header">
             <span class="global-progress-label">
-              <span class="global-progress-icon">
-                <!-- SVG linear discreto de engrenagem / processamento -->
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="2" x2="12" y2="6"></line>
-                  <line x1="12" y1="18" x2="12" y2="22"></line>
-                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                  <line x1="2" y1="12" x2="6" y2="12"></line>
-                  <line x1="18" y1="12" x2="22" y2="12"></line>
-                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              <span class="batch-spinner-icon" id="batch-spinner-icon" aria-hidden="true">
+                <svg viewBox="0 0 100 100" class="radial-spinner-svg">
+                  <line x1="50" y1="14" x2="50" y2="28" stroke-width="8" stroke-linecap="round" class="ray ray-1" />
+                  <line x1="68" y1="18.8" x2="61" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-2" />
+                  <line x1="81.2" y1="32" x2="69.1" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-3" />
+                  <line x1="86" y1="50" x2="72" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-4" />
+                  <line x1="81.2" y1="68" x2="69.1" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-5" />
+                  <line x1="68" y1="81.2" x2="61" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-6" />
+                  <line x1="50" y1="86" x2="50" y2="72" stroke-width="8" stroke-linecap="round" class="ray ray-7" />
+                  <line x1="32" y1="81.2" x2="39" y2="69.1" stroke-width="8" stroke-linecap="round" class="ray ray-8" />
+                  <line x1="18.8" y1="68" x2="30.9" y2="61" stroke-width="8" stroke-linecap="round" class="ray ray-9" />
+                  <line x1="14" y1="50" x2="28" y2="50" stroke-width="8" stroke-linecap="round" class="ray ray-10" />
+                  <line x1="18.8" y1="32" x2="30.9" y2="39" stroke-width="8" stroke-linecap="round" class="ray ray-11" />
+                  <line x1="32" y1="18.8" x2="39" y2="30.9" stroke-width="8" stroke-linecap="round" class="ray ray-12" />
+                </svg>
+                <svg viewBox="0 0 24 24" class="batch-success-check-svg" style="display: none;" width="18" height="18" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </span>
               Progresso do Lote
@@ -261,12 +267,6 @@
           <div class="global-progress-track">
             <div id="global-progress-fill" class="global-progress-fill" style="width: 0%;"></div>
           </div>
-        </div>
-
-        <!-- AVISO DE MODO DE ALTO DESEMPENHO (HEADLESS BATCH PARA >= 50 ARQUIVOS) -->
-        <div id="headless-mode-notice" class="headless-mode-notice" style="display: none;">
-          <span class="headless-badge">Modo Alto Desempenho Ativo</span>
-          <span class="headless-text">Cards individuais ocultados para aceleração de lote (> 50 arquivos). Os arquivos processados estão prontos para download coletivo no topo.</span>
         </div>
 
         <div id="file-queue-list" class="file-queue-list" role="list">
@@ -286,7 +286,7 @@
       </div>
 
       <div class="footer-links">
-        <span class="version-badge" id="footer-version">v.1.8.2</span>
+        <span class="version-badge" id="footer-version">v.1.8.3</span>
         <a href="https://github.com/mathmorato/open-mark" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Licença MIT</span>
       </div>

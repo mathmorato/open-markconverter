@@ -2004,3 +2004,42 @@ body.dark-mode .global-progress-track,
 .global-progress-fill.finished {
   background: #10B981; /* Verde esmeralda */
 }
+
+/* ==========================================================================
+   Modo Alto Desempenho / Headless Batch (>= 50 arquivos)
+   ========================================================================== */
+.headless-mode-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  margin-top: 0.5rem;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #64748B;
+}
+
+body.dark-mode .headless-mode-notice,
+[data-theme="dark"] .headless-mode-notice {
+  background: #1E293B;
+  border-color: #475569;
+  color: #94A3B8;
+}
+
+.headless-badge {
+  background: #EFF6FF;
+  color: #2563EB;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+body.dark-mode .headless-badge,
+[data-theme="dark"] .headless-badge {
+  background: #1E3A8A;
+  color: #93C5FD;
+}
+

@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.1
+ * @version v.1.8.2
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -101,7 +101,8 @@ const elements = typeof document !== 'undefined' ? {
   unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
   batchGlobalProgress: document.getElementById('batch-global-progress'),
   globalProgressCounter: document.getElementById('global-progress-counter'),
-  globalProgressFill: document.getElementById('global-progress-fill')
+  globalProgressFill: document.getElementById('global-progress-fill'),
+  headlessModeNotice: document.getElementById('headless-mode-notice')
 } : {};
 
 /* ==========================================================================
@@ -787,33 +788,87 @@ export async function addFilesToQueue(files) {
   dispatchNext();
 }
 
+/* ==========================================================================
+   Modo Alto Desempenho / Headless Batch (>= 50 arquivos)
+   ========================================================================== */
+export const BATCH_HEADLESS_THRESHOLD = 50;
+
+/**
+ * Determina se a fila deve operar no Modo Headless (sem renderizar cards individuais no DOM)
+ * @param {number} queueLength
+ * @returns {boolean}
+ */
+export function shouldEnableHeadlessMode(queueLength) {
+  return queueLength >= BATCH_HEADLESS_THRESHOLD;
+}
+
+/**
+ * Atualiza a exibição do banner de Modo Alto Desempenho no topo da fila
+ * @param {boolean} isHeadless
+ */
+export function updateHeadlessBanner(isHeadless) {
+  const noticeEl = (elements && elements.headlessModeNotice) || (typeof document !== 'undefined' ? document.getElementById('headless-mode-notice') : null);
+  if (!noticeEl) return;
+  noticeEl.style.display = isHeadless ? 'flex' : 'none';
+}
+
+/**
+ * Acumulador global em memória do peso do Markdown gerado
+ * @returns {number} total de bytes
+ */
+export function updateGlobalMdAccumulator() {
+  const totalMdBytes = (state && state.queue)
+    ? state.queue.reduce((acc, it) => acc + (it.mdSize || 0), 0)
+    : 0;
+  return totalMdBytes;
+}
+
 function renderQueue() {
-  if (!elements.fileQueueSection || !elements.fileQueueList) return;
+  const queueSection = (elements && elements.fileQueueSection) || (typeof document !== 'undefined' ? document.getElementById('file-queue-section') : null);
+  const queueList = (elements && elements.fileQueueList) || (typeof document !== 'undefined' ? (document.getElementById('file-queue-list') || document.querySelector('.file-queue-list')) : null);
+  const queueCounter = (elements && elements.queueCounter) || (typeof document !== 'undefined' ? document.getElementById('queue-counter') : null);
+  const btnDownloadAll = (elements && elements.btnQueueDownloadAll) || (typeof document !== 'undefined' ? document.getElementById('btn-queue-download-all') : null);
+  const btnDownloadMerged = (elements && elements.btnQueueDownloadMerged) || (typeof document !== 'undefined' ? (document.getElementById('btn-download-unified') || document.getElementById('btn-queue-download-merged')) : null);
+
+  if (!queueSection || !queueList) return;
 
   const total = state.queue.length;
   if (total === 0) {
-    elements.fileQueueSection.style.display = 'none';
-    if (elements.queueCounter) elements.queueCounter.textContent = '0 arquivos';
+    queueSection.style.display = 'none';
+    if (queueCounter) queueCounter.textContent = '0 arquivos';
+    updateHeadlessBanner(false);
     updateGlobalBatchProgress();
     return;
   }
 
-  elements.fileQueueSection.style.display = 'block';
-  if (elements.queueCounter) {
-    elements.queueCounter.textContent = `${total} ${total === 1 ? 'arquivo' : 'arquivos'}`;
+  queueSection.style.display = 'block';
+  if (queueCounter) {
+    queueCounter.textContent = `${total} ${total === 1 ? 'arquivo' : 'arquivos'}`;
   }
 
   const completedCount = state.queue.filter(it => it.status === 'completed' && it.markdown).length;
-  if (elements.btnQueueDownloadAll) {
-    if (completedCount === 0) elements.btnQueueDownloadAll.setAttribute('disabled', '');
-    else elements.btnQueueDownloadAll.removeAttribute('disabled');
+  if (btnDownloadAll) {
+    if (completedCount === 0) btnDownloadAll.setAttribute('disabled', '');
+    else btnDownloadAll.removeAttribute('disabled');
   }
-  if (elements.btnQueueDownloadMerged) {
-    if (completedCount === 0) elements.btnQueueDownloadMerged.setAttribute('disabled', '');
-    else elements.btnQueueDownloadMerged.removeAttribute('disabled');
+  if (btnDownloadMerged) {
+    if (completedCount === 0) btnDownloadMerged.setAttribute('disabled', '');
+    else btnDownloadMerged.removeAttribute('disabled');
   }
 
-  elements.fileQueueList.innerHTML = state.queue.map(item => {
+  const isHeadless = shouldEnableHeadlessMode(total);
+  updateHeadlessBanner(isHeadless);
+
+  if (isHeadless) {
+    // Oculta e esvazia a lista de cards individuais para liberar 100% da CPU e zerar reflows
+    queueList.style.display = 'none';
+    queueList.innerHTML = '';
+    updateGlobalBatchProgress();
+    return;
+  }
+
+  queueList.style.display = 'flex';
+  queueList.innerHTML = state.queue.map(item => {
     const ext = item.file.name.split('.').pop() || item.formatInfo.parser;
     const formatIcon = renderFileBadgeIcon(ext);
     const statusClass = item.status;
@@ -957,21 +1012,23 @@ function renderQueue() {
   }).join('');
 
   // Eventos de clique para download individual e remoção
-  elements.fileQueueList.querySelectorAll('.btn-queue-item-download').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.id;
-      downloadQueueItem(id);
+  if (queueList.querySelectorAll) {
+    queueList.querySelectorAll('.btn-queue-item-download').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        downloadQueueItem(id);
+      });
     });
-  });
 
-  elements.fileQueueList.querySelectorAll('.btn-queue-item-remove').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.id;
-      removeQueueItem(id);
+    queueList.querySelectorAll('.btn-queue-item-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        removeQueueItem(id);
+      });
     });
-  });
+  }
 
   updateGlobalBatchProgress();
 }
@@ -996,6 +1053,10 @@ function flushQueueDOMUpdates() {
  * @param {boolean} immediate - Se true, ignora o RAF e atualiza síncrono
  */
 export function updateQueueItemDOM(item, immediate = false) {
+  if (shouldEnableHeadlessMode(state && state.queue ? state.queue.length : 0)) {
+    return;
+  }
+
   if (typeof window === 'undefined' || typeof requestAnimationFrame === 'undefined' || immediate) {
     applyQueueItemDOMUpdate(item);
     return;
@@ -1016,6 +1077,10 @@ export function updateQueueItemDOM(item, immediate = false) {
 }
 
 function applyQueueItemDOMUpdate(item) {
+  if (shouldEnableHeadlessMode(state && state.queue ? state.queue.length : 0)) {
+    return;
+  }
+
   const itemEl = elements.fileQueueList ? elements.fileQueueList.querySelector(`.queue-item[data-id="${item.id}"]`) : null;
   if (!itemEl) return;
 
@@ -1628,7 +1693,7 @@ async function convertFile(file) {
 /* ==========================================================================
    Ações Globais de Fila (Limpar e Download em Lote .ZIP)
    ========================================================================== */
-async function downloadAllZip() {
+export async function downloadAllZip() {
   const completed = state.queue.filter(item => item.status === 'completed' && item.markdown);
   if (completed.length === 0) {
     return;
@@ -1676,6 +1741,8 @@ async function downloadAllZip() {
     console.error('[doc2md] Erro ao gerar pacote ZIP:', err);
   }
 }
+
+export const downloadAllAsZip = downloadAllZip;
 
 /* ==========================================================================
    Unificação de Documentos Markdown (Mesclagem, Backlog e Rastreabilidade)
@@ -1967,6 +2034,7 @@ export function clearQueue() {
   state.queue = [];
   state.userIsScrolling = false;
   batchAnimationController.reset();
+  updateHeadlessBanner(false);
   renderQueue();
 }
 

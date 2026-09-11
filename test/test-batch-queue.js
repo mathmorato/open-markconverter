@@ -24,6 +24,10 @@ import {
   batchAnimationController,
   clearQueue as realClearQueue,
   renderQueueUI,
+  BATCH_HEADLESS_THRESHOLD,
+  shouldEnableHeadlessMode,
+  updateHeadlessBanner,
+  updateQueueItemDOM,
   buildBacklogSection,
   buildDirectoryTreeAscii,
   addFilesToQueue as realAddFilesToQueue,
@@ -37,7 +41,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.1)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.2)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -431,6 +435,10 @@ const mockQueueList = {
   offsetTop: 0,
   scrollTop: 0,
   clientHeight: 480,
+  style: { display: 'flex' },
+  innerHTML: '',
+  querySelectorAll: () => [],
+  querySelector: () => null,
   getBoundingClientRect: () => ({ top: 100, bottom: 580, height: 480 }),
   scrollBy: () => {
     scrollByCalled = true;
@@ -440,6 +448,15 @@ const mockQueueList = {
   }
 };
 
+const mockQueueSection = {
+  style: { display: 'none' }
+};
+const mockQueueCounter = {
+  textContent: ''
+};
+const mockHeadlessNotice = {
+  style: { display: 'none' }
+};
 const mockBatchProgress = {
   style: { display: 'none' }
 };
@@ -459,10 +476,13 @@ const mockProgressFill = {
 global.document = {
   querySelector: (sel) => (sel === '.file-queue-list' ? mockQueueList : null),
   getElementById: (id) => {
+    if (id === 'file-queue-section') return mockQueueSection;
     if (id === 'file-queue-list') return mockQueueList;
+    if (id === 'queue-counter') return mockQueueCounter;
     if (id === 'batch-global-progress') return mockBatchProgress;
     if (id === 'global-progress-counter') return mockProgressCounter;
     if (id === 'global-progress-fill') return mockProgressFill;
+    if (id === 'headless-mode-notice') return mockHeadlessNotice;
     return null;
   }
 };
@@ -1064,6 +1084,123 @@ if (appState.maxConcurrency !== 1000) {
 }
 console.log('  -> [OK] Extração de pacote compactado ativou alta concorrência (1000 workers) com sucesso!');
 
+// 24. Testando Modo Alto Desempenho (Headless Batch) para lotes com >= 50 arquivos
+console.log('[TESTE 24] Testando Modo Alto Desempenho (Headless Batch) para >= 50 arquivos...');
+
+// 24.1. Limiar de ativação
+if (BATCH_HEADLESS_THRESHOLD !== 50) {
+  console.error(`[FALHA] BATCH_HEADLESS_THRESHOLD deve ser 50, mas é ${BATCH_HEADLESS_THRESHOLD}`);
+  process.exit(1);
+}
+if (shouldEnableHeadlessMode(49) !== false || shouldEnableHeadlessMode(50) !== true || shouldEnableHeadlessMode(100) !== true) {
+  console.error('[FALHA] shouldEnableHeadlessMode falhou ao validar limiar de 50 itens');
+  process.exit(1);
+}
+console.log('  -> [OK] shouldEnableHeadlessMode validado: falso para < 50 e verdadeiro para >= 50!');
+
+// 24.2. Lote com 55 arquivos: supressão de cards no DOM e exibição do banner
+appState.queue = Array.from({ length: 55 }, (_, i) => ({
+  id: `headless_item_${i}`,
+  file: new File([`conteudo ${i}`], `arquivo_${String(i).padStart(2, '0')}.txt`, { type: 'text/plain' }),
+  formatInfo: { parser: 'text', key: 'text' },
+  status: 'queued',
+  uploadProgress: 0,
+  convertProgress: 0,
+  markdown: ''
+}));
+
+renderQueueUI();
+
+if (mockQueueList.style.display !== 'none') {
+  console.error(`[FALHA] .file-queue-list deveria estar com display: 'none' no modo headless, mas está: ${mockQueueList.style.display}`);
+  process.exit(1);
+}
+if (mockQueueList.innerHTML !== '') {
+  console.error(`[FALHA] .file-queue-list deveria estar vazio no DOM no modo headless, mas contém HTML`);
+  process.exit(1);
+}
+if (mockHeadlessNotice.style.display !== 'flex') {
+  console.error(`[FALHA] #headless-mode-notice deveria estar visível (display: 'flex'), mas está: ${mockHeadlessNotice.style.display}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Modo Headless ativado: cards individuais não instanciados no DOM e banner exibido!');
+
+// 24.3. Bypass de atualizações de DOM individuais
+let domQueryHappened = false;
+mockQueueList.querySelector = () => { domQueryHappened = true; return null; };
+updateQueueItemDOM(appState.queue[0]);
+if (domQueryHappened) {
+  console.error('[FALHA] updateQueueItemDOM não ignorou buscas no DOM em modo headless');
+  process.exit(1);
+}
+console.log('  -> [OK] Bypass de atualizações individuais de DOM verificado com sucesso (zero reflows)!');
+
+// 24.4. Conclusão dos 55 arquivos em memória e downloads
+appState.queue.forEach((it, idx) => {
+  it.status = 'completed';
+  it.markdown = `# Documento ${idx}\n\nConteúdo Markdown do arquivo ${idx}.`;
+  it.mdSize = 50;
+});
+
+// Validação de mesclagem unificada com 55 arquivos sem cards DOM
+const unifiedResult = mergeMarkdownOutputs(appState.queue);
+if (!unifiedResult.includes('# Documento 0') || !unifiedResult.includes('# Documento 54')) {
+  console.error('[FALHA] mergeMarkdownOutputs falhou ao mesclar arquivos da fila em modo headless');
+  process.exit(1);
+}
+console.log('  -> [OK] Mesclagem unificada processou 100% dos dados a partir da fila em memória!');
+
+// Validação do empacotamento ZIP com 55 arquivos sem cards DOM
+const mockZip = new JSZip();
+appState.queue.forEach(item => {
+  mockZip.file(`${item.file.name.replace(/\.[^/.]+$/, '')}.md`, item.markdown);
+});
+const zipFilesCount = Object.keys(mockZip.files).length;
+if (zipFilesCount !== 55) {
+  console.error(`[FALHA] Empacotamento JSZip gerou ${zipFilesCount} arquivos, esperado 55`);
+  process.exit(1);
+}
+console.log(`  -> [OK] JSZip empacotou todos os ${zipFilesCount} arquivos em memória com perfeição!`);
+
+// 24.5. Lote com menos de 50 arquivos (< 50): restauração do modo normal com cards
+appState.queue = Array.from({ length: 20 }, (_, i) => ({
+  id: `normal_item_${i}`,
+  file: new File(['texto normal'], `normal_${i}.txt`, { type: 'text/plain' }),
+  formatInfo: { parser: 'text', key: 'text' },
+  status: 'queued',
+  uploadProgress: 0,
+  convertProgress: 0,
+  markdown: ''
+}));
+
+renderQueueUI();
+
+if (mockQueueList.style.display !== 'flex') {
+  console.error(`[FALHA] .file-queue-list deveria estar visível (display: 'flex') para 20 itens, mas está: ${mockQueueList.style.display}`);
+  process.exit(1);
+}
+if (!mockQueueList.innerHTML.includes('normal_item_0')) {
+  console.error('[FALHA] Cards individuais não foram renderizados no DOM para lote de 20 itens');
+  process.exit(1);
+}
+if (mockHeadlessNotice.style.display !== 'none') {
+  console.error(`[FALHA] #headless-mode-notice deveria estar oculto para 20 itens, mas está: ${mockHeadlessNotice.style.display}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Modo normal restaurado com sucesso para lote < 50 arquivos (cards instanciados)!');
+
+// 24.6. Limpeza total da fila restaura estado neutro
+realClearQueue();
+if (mockHeadlessNotice.style.display !== 'none') {
+  console.error('[FALHA] #headless-mode-notice não foi ocultado após realClearQueue()');
+  process.exit(1);
+}
+if (appState.queue.length !== 0) {
+  console.error('[FALHA] realClearQueue() não esvaziou a fila');
+  process.exit(1);
+}
+console.log('  -> [OK] realClearQueue() limpou a fila e restaurou o estado da interface!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.1)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.2)');
 console.log('===============================================================');

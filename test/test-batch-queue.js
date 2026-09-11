@@ -44,7 +44,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.4)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.5)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -1373,6 +1373,14 @@ if (mockTotalBytesCounter.textContent !== '0') {
 }
 console.log('  -> [OK] clearQueue() resetou a animação e zerou o contador com sucesso!');
 
+// 27.5. Validação de microcópia do rótulo da badge no index.html
+const currentHtmlContent = fs.readFileSync('./index.html', 'utf8');
+if (!currentHtmlContent.includes('Tamanho do MD:')) {
+  console.error('[FALHA] index.html não contém o rótulo "Tamanho do MD:" na badge');
+  process.exit(1);
+}
+console.log('  -> [OK] Microcópia "Tamanho do MD:" validada com sucesso no HTML!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.4)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.5)');
 console.log('===============================================================');

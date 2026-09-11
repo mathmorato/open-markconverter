@@ -17,8 +17,8 @@ if (!semverDecimalRegex.test(APP_CONFIG.VERSION)) {
   console.error(`[ERRO] Versão ${APP_CONFIG.VERSION} viola a regra de base decimal estrita (Y e Z devem ser de 0 a 9)`);
   process.exit(1);
 }
-if (APP_CONFIG.VERSION !== 'v.1.8.3') {
-  console.error('[ERRO] Versão diferente de v.1.8.3');
+if (APP_CONFIG.VERSION !== 'v.1.8.4') {
+  console.error('[ERRO] Versão diferente de v.1.8.4');
   process.exit(1);
 }
 if (APP_CONFIG.APP_NAME !== 'Open Mark') {
@@ -47,7 +47,7 @@ console.log(`[OK] Pacotes compactados configurados: ${APP_CONFIG.ARCHIVE_EXTENSI
 
 // 2. Verifica package.json
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-if (pkg.version !== '1.8.3' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
+if (pkg.version !== '1.8.4' || !/^[0-9]\.[0-9]\.[0-9]$/.test(pkg.version)) {
   console.error('[ERRO] package.json version incompatível ou fora da base decimal');
   process.exit(1);
 }
@@ -55,8 +55,8 @@ console.log(`[OK] package.json version: ${pkg.version}`);
 
 // 3. Verifica sincronização no index.html, fila de downloads, container central, ausência de toasts e de exemplos
 const indexHtml = fs.readFileSync('./index.html', 'utf8');
-if (!indexHtml.includes('v.1.8.3')) {
-  console.error('[ERRO] index.html não contém v.1.8.3');
+if (!indexHtml.includes('v.1.8.4')) {
+  console.error('[ERRO] index.html não contém v.1.8.4');
   process.exit(1);
 }
 if (!indexHtml.includes('brand-logo-svg') || !indexHtml.includes('Open <span class="accent">Mark</span>')) {
@@ -81,6 +81,10 @@ if (indexHtml.includes('id="headless-mode-notice"') || indexHtml.includes('headl
 }
 if (!indexHtml.includes('id="batch-spinner-icon"') || !indexHtml.includes('radial-spinner-svg')) {
   console.error('[ERRO] index.html não contém o spinner radial vetorial (#batch-spinner-icon / .radial-spinner-svg)');
+  process.exit(1);
+}
+if (!indexHtml.includes('id="queue-total-bytes-card"') || !indexHtml.includes('id="live-total-bytes-counter"') || !indexHtml.includes('id="live-total-formatted-unit"')) {
+  console.error('[ERRO] index.html não contém o card de telemetria de bytes totais de MD (#queue-total-bytes-card)');
   process.exit(1);
 }
 if (!indexHtml.includes('id="btn-sort-files"') || !indexHtml.includes('merge-sort-container')) {
@@ -152,7 +156,7 @@ if (!indexHtml.includes('+algumas linguagens de código')) {
   console.error('[ERRO] index.html não contém a badge destacada +algumas linguagens de código');
   process.exit(1);
 }
-console.log('[OK] index.html contém v.1.8.3, novo cabeçalho Open Mark com logo SVG e spinner radial no progresso');
+console.log('[OK] index.html contém v.1.8.4, novo cabeçalho Open Mark com logo SVG e badge de Total MD');
 
 // 3.1. Verifica concorrência dinâmica de 1000 workers e otimização requestAnimationFrame
 const configJs = fs.readFileSync('./js/config.js', 'utf8');
@@ -172,11 +176,15 @@ if (!appJs.includes('BATCH_HEADLESS_THRESHOLD') || !appJs.includes('shouldEnable
   console.error('[ERRO] js/app.js não contém BATCH_HEADLESS_THRESHOLD, shouldEnableHeadlessMode ou handleBatchChunkAutoScroll');
   process.exit(1);
 }
+if (!appJs.includes('totalBytesAnimController') || !appJs.includes('computeAndAnimateTotalMdBytes')) {
+  console.error('[ERRO] js/app.js não contém totalBytesAnimController ou computeAndAnimateTotalMdBytes');
+  process.exit(1);
+}
 if (appJs.includes('updateHeadlessBanner')) {
   console.error('[ERRO] js/app.js ainda contém chamadas ou referências a updateHeadlessBanner');
   process.exit(1);
 }
-console.log('[OK] js/app.js contém pool dinâmico de até 1000 workers, batchAnimationController, handleBatchChunkAutoScroll e modo headless (>= 50 itens)');
+console.log('[OK] js/app.js contém pool dinâmico de até 1000 workers, totalBytesAnimController, batchAnimationController e modo headless');
 if (!appJs.includes("window.addEventListener('paste'")) {
   console.error('[ERRO] js/app.js não contém listener de paste');
   process.exit(1);
@@ -425,12 +433,16 @@ if (!stylesCss.includes('.batch-spinner-icon') || !stylesCss.includes('spinner-r
   console.error('[ERRO] css/styles.css não contém regras de estilo para o spinner radial vetorial (.batch-spinner-icon / spinner-rotate-step)');
   process.exit(1);
 }
-console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), barra com GPU e estilos do spinner radial');
+if (!stylesCss.includes('.queue-total-bytes-card') || !stylesCss.includes('.live-total-bytes-counter') || !stylesCss.includes('font-variant-numeric: tabular-nums')) {
+  console.error('[ERRO] css/styles.css não contém regras para .queue-total-bytes-card com tabular-nums');
+  process.exit(1);
+}
+console.log('[OK] css/styles.css contém layout travado de cabeçalho (CLS=0), barra com GPU e badge de Total MD');
 
 // 6. Verifica README.md
 const readme = fs.readFileSync('./README.md', 'utf8');
-if (!readme.includes('v.1.8.3')) {
-  console.error('[ERRO] README.md não contém v.1.8.3');
+if (!readme.includes('v.1.8.4')) {
+  console.error('[ERRO] README.md não contém v.1.8.4');
   process.exit(1);
 }
 if (!readme.includes('# Open Mark')) {
@@ -441,7 +453,7 @@ if (!readme.includes('https://mathmorato.github.io/open-mark/#')) {
   console.error('[ERRO] README.md não contém o link de acesso online oficial (https://mathmorato.github.io/open-mark/#)');
   process.exit(1);
 }
-console.log('[OK] README.md contém cabeçalho v.1.8.3, título # Open Mark e link de acesso online imediato');
+console.log('[OK] README.md contém cabeçalho v.1.8.4, título # Open Mark e link de acesso online imediato');
 
 // 5. Verifica existência de todos os arquivos do projeto
 const requiredFiles = [

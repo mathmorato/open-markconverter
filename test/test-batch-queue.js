@@ -34,6 +34,9 @@ import {
   dispatchNext,
   processQueue,
   getDynamicConcurrency,
+  totalBytesAnimController,
+  computeAndAnimateTotalMdBytes,
+  removeItemFromQueue,
   state as appState
 } from '../js/app.js';
 import { parseText } from '../js/parsers/text-parser.js';
@@ -41,7 +44,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.3)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.4)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -478,6 +481,15 @@ const mockProgressFill = {
     contains(cls) { return this.classes.has(cls); }
   }
 };
+const mockTotalBytesCard = {
+  style: { display: 'inline-flex' }
+};
+const mockTotalBytesCounter = {
+  textContent: '0'
+};
+const mockTotalFormattedUnit = {
+  textContent: '(0 KB)'
+};
 
 global.document = {
   querySelector: (sel) => (sel === '.file-queue-list' ? mockQueueList : null),
@@ -488,6 +500,9 @@ global.document = {
     if (id === 'batch-global-progress') return mockBatchProgress;
     if (id === 'global-progress-counter') return mockProgressCounter;
     if (id === 'global-progress-fill') return mockProgressFill;
+    if (id === 'queue-total-bytes-card') return mockTotalBytesCard;
+    if (id === 'live-total-bytes-counter') return mockTotalBytesCounter;
+    if (id === 'live-total-formatted-unit') return mockTotalFormattedUnit;
     if (id === 'headless-mode-notice') return null;
     return null;
   }
@@ -1302,6 +1317,62 @@ if (!mockBatchProgress.classList.contains('is-completed')) {
 }
 console.log('  -> [OK] Classe .is-completed adicionada a 100% e removida no reset com sucesso!');
 
+// 27. Testando Badge de Telemetria Total MD Bytes & Animação Contínua
+console.log('[TESTE 27] Testando cálculo cumulativo de bytes totais de Markdown e controlador animado...');
+
+// 27.1. Cálculo com itens concluídos e parciais
+appState.queue = [
+  { id: 'item_md_1', file: new File([''], 'doc1.txt', { type: 'text/plain' }), formatInfo: { parser: 'text', key: 'text' }, status: 'completed', mdSize: 1048576, markdown: 'teste 1' },
+  { id: 'item_md_2', file: new File([''], 'doc2.txt', { type: 'text/plain' }), formatInfo: { parser: 'text', key: 'text' }, status: 'completed', mdSize: 524288, markdown: 'teste 2' },
+  { id: 'item_md_3', file: new File([''], 'doc3.txt', { type: 'text/plain' }), formatInfo: { parser: 'text', key: 'text' }, status: 'processing', currentMdBytes: 262144 }
+];
+
+const computedTotal = computeAndAnimateTotalMdBytes();
+const expectedTotal = 1048576 + 524288 + 262144; // 1.835.008 bytes
+if (computedTotal !== expectedTotal) {
+  console.error(`[FALHA] computeAndAnimateTotalMdBytes calculou ${computedTotal}, esperado ${expectedTotal}`);
+  process.exit(1);
+}
+if (totalBytesAnimController.targetBytes !== expectedTotal) {
+  console.error(`[FALHA] totalBytesAnimController.targetBytes é ${totalBytesAnimController.targetBytes}, esperado ${expectedTotal}`);
+  process.exit(1);
+}
+console.log(`  -> [OK] Soma cumulativa exata (${computedTotal.toLocaleString('pt-BR')} bytes) validada!`);
+
+// 27.2. Formatação brasileira e unidade legível no DOM (anti-jitter)
+totalBytesAnimController.render(expectedTotal);
+if (mockTotalBytesCounter.textContent !== expectedTotal.toLocaleString('pt-BR')) {
+  console.error(`[FALHA] live-total-bytes-counter formatou como "${mockTotalBytesCounter.textContent}", esperado "${expectedTotal.toLocaleString('pt-BR')}"`);
+  process.exit(1);
+}
+if (!mockTotalFormattedUnit.textContent.includes('MB')) {
+  console.error(`[FALHA] live-total-formatted-unit não calculou MB legível: "${mockTotalFormattedUnit.textContent}"`);
+  process.exit(1);
+}
+console.log(`  -> [OK] Contador exibido: ${mockTotalBytesCounter.textContent} bytes ${mockTotalFormattedUnit.textContent}!`);
+
+// 27.3. Remoção de item individual recomputa e atualiza alvo da animação
+removeItemFromQueue('item_md_3');
+const afterRemovalTotal = computeAndAnimateTotalMdBytes();
+const expectedAfterRemoval = 1048576 + 524288;
+if (afterRemovalTotal !== expectedAfterRemoval || totalBytesAnimController.targetBytes !== expectedAfterRemoval) {
+  console.error(`[FALHA] Remoção de item não atualizou total de bytes. Calculado: ${afterRemovalTotal}, esperado: ${expectedAfterRemoval}`);
+  process.exit(1);
+}
+console.log('  -> [OK] Remoção individual de item atualizou a contagem em tempo real!');
+
+// 27.4. Limpeza total da fila reseta animação e zera o contador
+realClearQueue();
+if (totalBytesAnimController.targetBytes !== 0 || totalBytesAnimController.currentBytes !== 0) {
+  console.error('[FALHA] realClearQueue() não zerou totalBytesAnimController');
+  process.exit(1);
+}
+if (mockTotalBytesCounter.textContent !== '0') {
+  console.error(`[FALHA] Contador não retornou a 0 após clearQueue(): "${mockTotalBytesCounter.textContent}"`);
+  process.exit(1);
+}
+console.log('  -> [OK] clearQueue() resetou a animação e zerou o contador com sucesso!');
+
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.3)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.4)');
 console.log('===============================================================');

@@ -2055,4 +2055,81 @@ body.dark-mode .global-progress-track,
   display: inline-block !important;
 }
 
+/* ==========================================================================
+   Telemetria do Total de Bytes de MD Gerado (Topo Direito da Fila)
+   ========================================================================== */
+.queue-total-bytes-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #334155;
+  margin-left: auto; /* Garante que fique encostado no canto superior direito */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  user-select: none;
+}
+
+body.dark-mode .queue-total-bytes-card,
+[data-theme="dark"] .queue-total-bytes-card {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
+
+.total-bytes-icon {
+  display: inline-flex;
+  color: #2563EB;
+}
+
+body.dark-mode .total-bytes-icon,
+[data-theme="dark"] .total-bytes-icon {
+  color: #60A5FA;
+}
+
+.total-bytes-label {
+  font-weight: 500;
+  color: #64748B;
+}
+
+body.dark-mode .total-bytes-label,
+[data-theme="dark"] .total-bytes-label {
+  color: #94A3B8;
+}
+
+.total-bytes-values {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.live-total-bytes-counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+body.dark-mode .live-total-bytes-counter,
+[data-theme="dark"] .live-total-bytes-counter {
+  color: #F8FAFC;
+}
+
+.total-bytes-unit {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.live-total-formatted-unit {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #10B981; /* Verde esmeralda de conformidade */
+  margin-left: 0.15rem;
+}
+
+
 

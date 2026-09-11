@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.3
+ * @version v.1.8.4
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -101,7 +101,10 @@ const elements = typeof document !== 'undefined' ? {
   unifiedDownloadContainer: document.getElementById('unified-action-row') || document.getElementById('unified-download-container'),
   batchGlobalProgress: document.getElementById('batch-global-progress'),
   globalProgressCounter: document.getElementById('global-progress-counter'),
-  globalProgressFill: document.getElementById('global-progress-fill')
+  globalProgressFill: document.getElementById('global-progress-fill'),
+  queueTotalBytesCard: document.getElementById('queue-total-bytes-card'),
+  liveTotalBytesCounter: document.getElementById('live-total-bytes-counter'),
+  liveTotalFormattedUnit: document.getElementById('live-total-formatted-unit')
 } : {};
 
 /* ==========================================================================
@@ -806,10 +809,106 @@ export function shouldEnableHeadlessMode(queueLength) {
  * @returns {number} total de bytes
  */
 export function updateGlobalMdAccumulator() {
-  const totalMdBytes = (state && state.queue)
-    ? state.queue.reduce((acc, it) => acc + (it.mdSize || 0), 0)
-    : 0;
-  return totalMdBytes;
+  return computeAndAnimateTotalMdBytes();
+}
+
+/**
+ * Controlador de interpolação contínua e desacoplada (60 FPS) via requestAnimationFrame
+ * para contagem suave de bytes consolidados de Markdown (rolling count-up sem jank)
+ */
+export const totalBytesAnimController = {
+  currentBytes: 0,
+  targetBytes: 0,
+  rafId: null,
+
+  setTarget(newTarget) {
+    this.targetBytes = Math.max(0, newTarget);
+    if (typeof requestAnimationFrame === 'function') {
+      if (!this.rafId) {
+        this.rafId = requestAnimationFrame(() => this.loop());
+      }
+    } else {
+      // Fallback síncrono para ambientes de teste/Node.js
+      this.currentBytes = this.targetBytes;
+      this.render(this.targetBytes);
+      this.rafId = null;
+    }
+  },
+
+  loop() {
+    const diff = this.targetBytes - this.currentBytes;
+
+    // Velocidade de convergência proporcional (lerp ágil)
+    if (Math.abs(diff) > 1) {
+      const step = diff * 0.12;
+      this.currentBytes += (Math.abs(step) < 1) ? Math.sign(diff) : step;
+      this.render(Math.round(this.currentBytes));
+      if (typeof requestAnimationFrame === 'function') {
+        this.rafId = requestAnimationFrame(() => this.loop());
+      } else {
+        this.rafId = null;
+      }
+    } else {
+      this.currentBytes = this.targetBytes;
+      this.render(this.targetBytes);
+      this.rafId = null;
+    }
+  },
+
+  render(bytes) {
+    const counterEl = (elements && elements.liveTotalBytesCounter) || (typeof document !== 'undefined' ? document.getElementById('live-total-bytes-counter') : null);
+    const formattedEl = (elements && elements.liveTotalFormattedUnit) || (typeof document !== 'undefined' ? document.getElementById('live-total-formatted-unit') : null);
+    if (!counterEl) return;
+
+    counterEl.textContent = bytes.toLocaleString('pt-BR');
+    if (formattedEl) {
+      formattedEl.textContent = `(${formatFileSize(bytes)})`;
+    }
+  },
+
+  reset() {
+    if (this.rafId) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.rafId);
+      }
+      this.rafId = null;
+    }
+    this.currentBytes = 0;
+    this.targetBytes = 0;
+    this.render(0);
+  }
+};
+
+/**
+ * Calcula dinamicamente o somatório de bytes de Markdown emitidos e alimenta a animação
+ * @returns {number} total acumulado de bytes
+ */
+export function computeAndAnimateTotalMdBytes() {
+  if (!state || !state.queue) {
+    totalBytesAnimController.setTarget(0);
+    return 0;
+  }
+  const totalBytes = state.queue.reduce((accum, item) => {
+    // Prioriza a saída final já concluída; se em processamento, soma os bytes parciais
+    let itemBytes = 0;
+    if (item.markdownOutput) {
+      itemBytes = (typeof Blob !== 'undefined')
+        ? new Blob([item.markdownOutput], { type: 'text/markdown;charset=utf-8' }).size
+        : Buffer.byteLength(item.markdownOutput, 'utf8');
+    } else if (item.currentMdBytes) {
+      itemBytes = item.currentMdBytes;
+    } else if (item.mdSize) {
+      itemBytes = item.mdSize;
+    } else if (item.markdown) {
+      itemBytes = (typeof Blob !== 'undefined')
+        ? new Blob([item.markdown], { type: 'text/markdown;charset=utf-8' }).size
+        : Buffer.byteLength(item.markdown, 'utf8');
+    }
+    return accum + (Number(itemBytes) || 0);
+  }, 0);
+
+  totalBytesAnimController.setTarget(totalBytes);
+  return totalBytes;
 }
 
 function renderQueue() {
@@ -825,6 +924,7 @@ function renderQueue() {
   if (total === 0) {
     queueSection.style.display = 'none';
     if (queueCounter) queueCounter.textContent = '0 arquivos';
+    computeAndAnimateTotalMdBytes();
     updateGlobalBatchProgress();
     return;
   }
@@ -845,6 +945,7 @@ function renderQueue() {
   }
 
   const isHeadless = shouldEnableHeadlessMode(total);
+  computeAndAnimateTotalMdBytes();
 
   if (isHeadless) {
     // Oculta e esvazia a lista de cards individuais para liberar 100% da CPU e zerar reflows
@@ -856,7 +957,8 @@ function renderQueue() {
 
   queueList.style.display = 'flex';
   queueList.innerHTML = state.queue.map(item => {
-    const ext = item.file.name.split('.').pop() || item.formatInfo.parser;
+    const fileName = (item.file && item.file.name) || item.name || 'documento.txt';
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : ((item.formatInfo && item.formatInfo.parser) || 'txt');
     const formatIcon = renderFileBadgeIcon(ext);
     const statusClass = item.status;
     const badgeErrorClass = item.status === 'error' ? 'badge-error' : '';
@@ -864,7 +966,7 @@ function renderQueue() {
     const isProcessing = item.status === 'processing';
     const isCompleted = item.status === 'completed';
     const isError = item.status === 'error';
-    const baseName = item.file.name.replace(/\.[^/.]+$/, '');
+    const baseName = fileName.replace(/\.[^/.]+$/, '');
     
     // Obtenção segura do tamanho do Markdown convertido (defesa contra ReferenceError)
     const mdSizeInBytes = item.mdSize 
@@ -1238,7 +1340,7 @@ function downloadQueueItem(itemId) {
   downloadMarkdownFile(baseName, item.markdown);
 }
 
-function removeQueueItem(itemId) {
+export function removeQueueItem(itemId) {
   const itemIndex = state.queue.findIndex(it => it.id === itemId);
   if (itemIndex === -1) return;
 
@@ -1246,9 +1348,12 @@ function removeQueueItem(itemId) {
   item.cancelled = true;
   state.queue.splice(itemIndex, 1);
 
+  computeAndAnimateTotalMdBytes();
   renderQueue();
   processQueue();
 }
+
+export const removeItemFromQueue = removeQueueItem;
 
 /**
  * Auto-scroll desativado em definitivo para garantir estabilidade visual da fila.
@@ -1681,6 +1786,7 @@ async function processQueueItem(item) {
     item.mdSize = mdSizeInBytes;
     item.formattedMdSize = formattedMdSize;
     updateQueueItemDOM(item);
+    computeAndAnimateTotalMdBytes();
     updateGlobalBatchProgress();
 
     const formattedDuration = formatElapsedTime(duration);
@@ -1723,6 +1829,7 @@ async function processQueueItem(item) {
         handleBatchChunkAutoScroll(itemIndex, state.queue.length);
       }
     }
+    computeAndAnimateTotalMdBytes();
     updateGlobalBatchProgress();
     dispatchNext();
   }
@@ -2078,7 +2185,9 @@ export function clearQueue() {
   state.queue = [];
   state.userIsScrolling = false;
   completedCountSinceLastScroll = 0;
+  totalBytesAnimController.reset();
   batchAnimationController.reset();
+  computeAndAnimateTotalMdBytes();
   renderQueue();
 }
 

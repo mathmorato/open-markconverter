@@ -59,7 +59,7 @@ import JSZip from 'jszip';
 import fs from 'fs';
 
 console.log('===============================================================');
-console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.8.9)');
+console.log('  TESTANDO FILA, AUTO-EXTRAÇÃO, RESILIÊNCIA & ERROS (v.1.9.0)');
 console.log('===============================================================');
 
 // Simulação de estado da fila
@@ -1788,6 +1788,6 @@ if (!zipAsResult || !zipAsResult.blob) {
 console.log('  -> [OK] downloadAllAsZip disparou com sucesso e retornou Blob!');
 
 console.log('===============================================================');
-console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.8.9)');
+console.log('  SUCESSO: TODOS OS TESTES PASSARAM COM ÊXITO (v.1.9.0)');
 console.log('===============================================================');
 

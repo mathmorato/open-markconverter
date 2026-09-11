@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Controlador Principal da Aplicação
- * @version v.1.8.9
+ * @version v.1.9.0
  */
 
 // Telemetria Global de Erros de Runtime e Falhas de Carregamento de CDN
@@ -370,7 +370,9 @@ export function downloadMarkdownFile(baseName, content) {
       a.click();
     }
     if (typeof URL.revokeObjectURL === 'function') {
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        try { URL.revokeObjectURL(url); } catch (_) {}
+      }, 5000);
     }
   }
   return { fileName, blob, content };
@@ -2194,7 +2196,9 @@ export async function downloadAllZip() {
         a.click();
       }
       if (typeof URL.revokeObjectURL === 'function') {
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch (_) {}
+        }, 5000);
       }
     }
 
@@ -2812,11 +2816,62 @@ export function showToast() {
 /* ==========================================================================
    Inicialização Global do App
    ========================================================================== */
+export function boot() {
+  initVersion();
+  initTheme();
+  initDropzone();
+  initQueueEvents();
+}
+
 if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    initVersion();
-    initTheme();
-    initDropzone();
-    initQueueEvents();
-  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  // Delegação global direta no document (fase de captura) para garantir que NENHUM clique em botão de download
+  // (seja agregado ou de item individual em lote de zip) seja ignorado ou bloqueado no primeiro clique.
+  if (!document.__openMarkGlobalClickAttached) {
+    document.__openMarkGlobalClickAttached = true;
+    document.addEventListener('click', (e) => {
+      // 1. Download Unificado (.md)
+      const btnUnified = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('#btn-download-unified, .btn-download-unified, .btn-queue-download-merged')
+        : null;
+      if (btnUnified) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        downloadUnifiedMarkdown();
+        return;
+      }
+
+      // 2. Download Todos (.zip)
+      const btnZip = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('#btn-queue-download-all, .btn-queue-download-all')
+        : null;
+      if (btnZip) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        downloadAllZip();
+        return;
+      }
+
+      // 3. Download Item Individual (.md)
+      const btnItem = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('.btn-download-item, .btn-queue-item-download, .btn-download')
+        : null;
+      if (btnItem) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        const itemId = btnItem.dataset ? btnItem.dataset.id : (btnItem.getAttribute ? btnItem.getAttribute('data-id') : null);
+        const item = (state && state.queue) ? state.queue.find(q => q.id === itemId) : null;
+        if (item && (item.markdownOutput || item.markdown)) {
+          const fileName = (item.file && item.file.name) || item.name || 'documento.md';
+          triggerDownload(getOutputFileName(fileName), item.markdownOutput || item.markdown);
+        } else if (itemId) {
+          downloadQueueItem(itemId);
+        }
+        return;
+      }
+    }, true);
+  }
 }

@@ -1,7 +1,7 @@
 /**
  * Open Mark (doc2md)
  * Configuração Central & Versionamento SemVer
- * @version v.1.8.9
+ * @version v.1.9.0
  */
 
 export const CODE_EXTENSIONS_MAP = {
@@ -179,7 +179,7 @@ export const MIME_TYPE_MAP = {
 };
 
 export const APP_CONFIG = {
-  VERSION: 'v.1.8.9',
+  VERSION: 'v.1.9.0',
   APP_NAME: 'Open Mark',
   TAGLINE: 'Open Mark • Conversor Universal 100% Client-Side',
   REPO_URL: 'https://github.com/mathmorato/open-mark',
